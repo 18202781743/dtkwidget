@@ -15,6 +15,7 @@
 #include <DColumnView>
 #include <DStyle>
 #include <DSizeMode>
+#include <QPushButton>
 
 #include "listviewexample.h"
 
@@ -23,12 +24,12 @@ DWIDGET_USE_NAMESPACE
 ListViewExampleWindow::ListViewExampleWindow(QWidget *parent)
     : PageWindowInterface(parent)
 {
-    addExampleWindow(new DBackgroundGroupExample(this));
+//    addExampleWindow(new DBackgroundGroupExample(this));
     addExampleWindow(new DListViewExample(this));
-    addExampleWindow(new DGroupBoxExample(this));
-    addExampleWindow(new DTreeViewExample(this));
-    addExampleWindow(new DHeaderViewExample(this));
-    addExampleWindow(new DColumnViewExample(this));
+//    addExampleWindow(new DGroupBoxExample(this));
+//    addExampleWindow(new DTreeViewExample(this));
+//    addExampleWindow(new DHeaderViewExample(this));
+//    addExampleWindow(new DColumnViewExample(this));
 }
 
 DBackgroundGroupExample::DBackgroundGroupExample(QWidget *parent)
@@ -108,19 +109,20 @@ DListViewExample::DListViewExample(QWidget *parent)
     QVBoxLayout *listViewWLayout = new QVBoxLayout(listViewWidget);
     QVBoxLayout *listviewPicLayout = new QVBoxLayout(listviewPicWidget);
     DListView *fingerPrintLV = new DListView(listViewWidget);
-    DListView *browserLV = new DListView(listViewWidget);
-    browserLV->setDragDropMode(QListView::InternalMove);
-    DListView *screenLV = new DListView(listViewWidget);
+//    DListView *browserLV = new DListView(listViewWidget);
+//    browserLV->setDragDropMode(QListView::InternalMove);
+//    DListView *screenLV = new DListView(listViewWidget);
     QStandardItemModel *fingerPrintModel = new QStandardItemModel(fingerPrintLV);
-    QStandardItemModel *browserModel = new QStandardItemModel(browserLV);
-    QStandardItemModel *screenModel = new QStandardItemModel(screenLV);
+//    QStandardItemModel *browserModel = new QStandardItemModel(browserLV);
+//    QStandardItemModel *screenModel = new QStandardItemModel(screenLV);
     QLabel *picLabel1 = new QLabel(listviewPicWidget);
     QLabel *picLabel2 = new QLabel(listviewPicWidget);
     QLabel *picLabel3 = new QLabel(listviewPicWidget);
 
-    listViewInit(fingerPrintLV, 111, 1, fingerPrintModel);
-    listViewInit(browserLV, 232, 10, browserModel);
-    listViewInit(screenLV, 326, 10, screenModel);
+    listViewInit(fingerPrintLV, 151, 1, fingerPrintModel);
+//    fingerPrintLV->setEditTriggers(QListView::NoEditTriggers);
+//    listViewInit(browserLV, 232, 10, browserModel);
+//    listViewInit(screenLV, 326, 10, screenModel);
 
     picLabel1->setAlignment(Qt::AlignCenter);
     picLabel2->setAlignment(Qt::AlignCenter);
@@ -132,25 +134,27 @@ DListViewExample::DListViewExample(QWidget *parent)
     DStandardItem *fingerPrintItem1 = new DStandardItem("右手大拇指");
     DStandardItem *fingerPrintItem2 = new DStandardItem("手指2");
     DStandardItem *fingerPrintItem3 = new DStandardItem("添加指纹");
+    fingerPrintItem1->setBackgroundRole(DPalette::TextWarning);
+//    fingerPrintItem3->setBackgroundRole(DPalette::TextWarning);
 
     DStandardItem *browserItem1 = new DStandardItem(QIcon("://images/example/DListViewBrowser_1.svg"), "谷歌浏览器");
 
-    browserModel->setItemPrototype(new DStandardItem());
+//    browserModel->setItemPrototype(new DStandardItem());
     // 设置其他style时，转换指针为空
-    if (DStyle *ds = qobject_cast<DStyle *>(style())) {
-        auto action = new DViewItemAction(Qt::AlignVCenter, QSize(), QSize(), true);
-        action->setIcon(ds->standardIcon(DStyle::SP_IndicatorChecked));
-        action->setParent(this);
-        browserItem1->setActionList(Qt::Edge::RightEdge, {action});
-        connect(action, &DViewItemAction::triggered, this, [action, browserModel]() {
-            for (int i = 0; i < browserModel->rowCount(); i++) {
-                auto item =  dynamic_cast<DStandardItem *>(browserModel->item(i));
-                Q_ASSERT(item);
-                if (item->actionList(Qt::RightEdge).contains(action))
-                    qDebug() << "clicked the row" << i;
-            }
-        });
-    }
+//    if (DStyle *ds = qobject_cast<DStyle *>(style())) {
+//        auto action = new DViewItemAction(Qt::AlignVCenter, QSize(), QSize(), true);
+//        action->setIcon(ds->standardIcon(DStyle::SP_IndicatorChecked));
+//        action->setParent(this);
+//        browserItem1->setActionList(Qt::Edge::RightEdge, {action});
+//        connect(action, &DViewItemAction::triggered, this, [action, browserModel]() {
+//            for (int i = 0; i < browserModel->rowCount(); i++) {
+//                auto item =  dynamic_cast<DStandardItem *>(browserModel->item(i));
+//                Q_ASSERT(item);
+//                if (item->actionList(Qt::RightEdge).contains(action))
+//                    qDebug() << "clicked the row" << i;
+//            }
+//        });
+//    }
 
     DStandardItem *browserItem2 = new DStandardItem(QIcon("://images/example/DListViewBrowser_2.svg"), "火狐浏览器");
     DStandardItem *browserItem3 = new DStandardItem(QIcon("://images/example/DListViewBrowser_3.svg"), "遨游浏览器");
@@ -199,27 +203,52 @@ DListViewExample::DListViewExample(QWidget *parent)
     fingerPrintModel->appendRow(fingerPrintItem1);
     fingerPrintModel->appendRow(fingerPrintItem2);
     fingerPrintModel->appendRow(fingerPrintItem3);
-    browserModel->appendRow(browserItem1);
-    browserModel->appendRow(browserItem2);
-    browserModel->appendRow(browserItem3);
-    browserModel->appendRow(browserItem4);
-    screenModel->appendRow(screenItem1);
-    screenModel->appendRow(screenItem2);
-    screenModel->appendRow(screenItem3);
-    screenModel->appendRow(screenItem4);
+//    browserModel->appendRow(browserItem1);
+//    browserModel->appendRow(browserItem2);
+//    browserModel->appendRow(browserItem3);
+//    browserModel->appendRow(browserItem4);
+//    screenModel->appendRow(screenItem1);
+//    screenModel->appendRow(screenItem2);
+//    screenModel->appendRow(screenItem3);
+//    screenModel->appendRow(screenItem4);
+    auto btn = new QPushButton("txt");
+    fingerPrintLV->itemDelegate()->setObjectName("abc");
+    QList<QWidget *> widgets;
+    for (int i = 0; i < fingerPrintModel->rowCount(); i++) {
 
-    for (int i = 0 ; i < browserModel->rowCount(); i++)
-    {
-        auto item = browserModel->item(i);
-        item->setDragEnabled(true);
-        item->setDropEnabled(false);
-    }
+        auto item = static_cast<DStandardItem *>(fingerPrintModel->item(i, 0));
+        auto action = new DViewItemAction();
+        auto widget = new QPushButton("btn" + QString::number(i), fingerPrintLV->viewport());
+        connect(widget, &QPushButton::clicked, [widget]() {
+            widget->setVisible(!widget->isVisible());
+        });
+        widget->setCursor(Qt::PointingHandCursor);
+        action->setWidget(widget);
+        item->setActionList(Qt::RightEdge, {action});
+        if (i == 0 || i == 1) {
+            widgets << widget;
+        }
+   }
+    connect(btn, &QPushButton::clicked, this, [this, widgets]() {
+        for (auto widget: widgets) {
+            widget->setVisible(!widget->isVisible());
+        }
+//        qDebug() << "******" << widget->isVisible();
+    });
+
+//    for (int i = 0 ; i < browserModel->rowCount(); i++)
+//    {
+//        auto item = browserModel->item(i);
+//        item->setDragEnabled(true);
+//        item->setDropEnabled(false);
+//    }
 
     listViewWLayout->setContentsMargins(85, 0, 85, 0);
     listViewWLayout->setSpacing(60);
+    listViewWLayout->addWidget(btn);
     listViewWLayout->addWidget(fingerPrintLV, 2);
-    listViewWLayout->addWidget(browserLV, 3);
-    listViewWLayout->addWidget(screenLV, 4);
+//    listViewWLayout->addWidget(browserLV, 3);
+//    listViewWLayout->addWidget(screenLV, 4);
     listviewPicLayout->setSpacing(30);
     listviewPicLayout->addWidget(picLabel1);
     listviewPicLayout->addWidget(picLabel2);
