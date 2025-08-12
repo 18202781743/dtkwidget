@@ -8,17 +8,20 @@
 #include "dloadingindicator.h"
 #include "private/dloadingindicator_p.h"
 #include "dthememanager.h"
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logProgressAnimation)
 
 DLoadingIndicatorPrivate::DLoadingIndicatorPrivate(DLoadingIndicator *qq) :
     DObjectPrivate(qq)
 {
-
+    qCDebug(logProgressAnimation) << "init loading indicator private";
 }
 
 void DLoadingIndicatorPrivate::init()
 {
+    qCDebug(logProgressAnimation) << "init loading indicator";
     D_Q(DLoadingIndicator);
 
     q->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -41,6 +44,7 @@ void DLoadingIndicatorPrivate::init()
 
 void DLoadingIndicatorPrivate::setLoadingItem(QGraphicsItem *item)
 {
+    qCDebug(logProgressAnimation) << "set loading item";
     D_QC(DLoadingIndicator);
 
     QSizeF itemSize = item->boundingRect().size();
@@ -106,6 +110,7 @@ DLoadingIndicator::DLoadingIndicator(QWidget *parent) :
     QGraphicsView(parent),
     DObject(*new DLoadingIndicatorPrivate(this))
 {
+    qCDebug(logProgressAnimation) << "create loading indicator";
     d_func()->init();
 }
 
@@ -128,17 +133,20 @@ DLoadingIndicator::~DLoadingIndicator()
  */
 QColor DLoadingIndicator::backgroundColor() const
 {
+    qCDebug(logProgressAnimation) << "get background color";
     return scene()->backgroundBrush().color();
 }
 
 void DLoadingIndicator::setRotate(QVariant angle)
 {
+    qCDebug(logProgressAnimation) << "set rotate" << angle;
     if(!scene()->items().isEmpty())
         scene()->items().first()->setRotation(angle.toReal());
 }
 
 void DLoadingIndicator::setWidgetSource(QWidget *widgetSource)
 {
+    qCDebug(logProgressAnimation) << "set widget source" << static_cast<void*>(widgetSource);
     D_D(DLoadingIndicator);
 
     if(d->widgetSource)
@@ -155,6 +163,7 @@ void DLoadingIndicator::setWidgetSource(QWidget *widgetSource)
 
 void DLoadingIndicator::setImageSource(const QPixmap &imageSource)
 {
+    qCDebug(logProgressAnimation) << "set image source, size" << imageSource.size();
     D_D(DLoadingIndicator);
 
     QGraphicsPixmapItem * item = new QGraphicsPixmapItem(imageSource);
@@ -172,6 +181,7 @@ void DLoadingIndicator::setAniEasingType(QEasingCurve::Type aniEasingType)
 
 void DLoadingIndicator::setSmooth(bool smooth)
 {
+    qCDebug(logProgressAnimation) << "set smooth" << smooth;
     D_D(DLoadingIndicator);
 
     if(d->smooth == smooth)
@@ -198,6 +208,8 @@ void DLoadingIndicator::setSmooth(bool smooth)
 
 void DLoadingIndicator::setDirection(DLoadingIndicator::RotationDirection direction)
 {
+    qCDebug(logProgressAnimation) << "set direction" << static_cast<int>(direction);
+
     D_D(DLoadingIndicator);
 
     if (d->direction == direction)
@@ -218,6 +230,7 @@ void DLoadingIndicator::setDirection(DLoadingIndicator::RotationDirection direct
 
 void DLoadingIndicator::resizeEvent(QResizeEvent *e)
 {
+    qCDebug(logProgressAnimation) << "resize" << e->size();
     QGraphicsView::resizeEvent(e);
 
     setSceneRect(QRectF(rect()));
@@ -232,6 +245,7 @@ void DLoadingIndicator::resizeEvent(QResizeEvent *e)
 
 void DLoadingIndicator::setLoading(bool flag)
 {
+    qCDebug(logProgressAnimation) << "set loading" << flag;
     if (flag == true){
         start();
     } else {
@@ -241,6 +255,7 @@ void DLoadingIndicator::setLoading(bool flag)
 
 void DLoadingIndicator::setAniDuration(int msecs)
 {
+    qCDebug(logProgressAnimation) << "set ani duration" << msecs;
     D_D(DLoadingIndicator);
 
     d->rotateAni.setDuration(msecs);
@@ -265,6 +280,7 @@ void DLoadingIndicator::setAniDuration(int msecs)
  */
 void DLoadingIndicator::setAniEasingCurve(const QEasingCurve & easing)
 {
+    qCDebug(logProgressAnimation) << "set easing curve type" << static_cast<int>(easing.type());
     D_D(DLoadingIndicator);
 
     d->rotateAni.setEasingCurve(easing);
@@ -272,6 +288,7 @@ void DLoadingIndicator::setAniEasingCurve(const QEasingCurve & easing)
 
 void DLoadingIndicator::setBackgroundColor(const QColor &color)
 {
+    qCDebug(logProgressAnimation) << "set background color" << color;
     scene()->setBackgroundBrush(color);
 }
 
@@ -295,7 +312,9 @@ bool DLoadingIndicator::loading() const
 {
     D_DC(DLoadingIndicator);
 
-    return d->rotateAni.state() == QVariantAnimation::Running;
+    const auto &running = d->rotateAni.state() == QVariantAnimation::Running;
+    qCDebug(logProgressAnimation) << "get loading state" << running;
+    return running;
 }
 
 /*!
@@ -313,6 +332,7 @@ QWidget *DLoadingIndicator::widgetSource() const
 {
     D_DC(DLoadingIndicator);
 
+    qCDebug(logProgressAnimation) << "get widget source" << static_cast<void*>(d->widgetSource);
     return d->widgetSource;
 }
 
@@ -334,6 +354,8 @@ QPixmap DLoadingIndicator::imageSource() const
     if(!scene()->items().isEmpty())
         item = dynamic_cast<QGraphicsPixmapItem*>(scene()->items().first());
 
+    if (item)
+        qCDebug(logProgressAnimation) << "get image source, size" << item->pixmap().size();
     return item ? item->pixmap() : QPixmap();
 }
 
@@ -349,7 +371,9 @@ int DLoadingIndicator::aniDuration() const
 {
     D_DC(DLoadingIndicator);
 
-    return d->rotateAni.duration();
+    const auto &ms = d->rotateAni.duration();
+    qCDebug(logProgressAnimation) << "get ani duration" << ms;
+    return ms;
 }
 
 /*!
@@ -367,12 +391,16 @@ QEasingCurve::Type DLoadingIndicator::aniEasingType() const
 {
     D_DC(DLoadingIndicator);
 
-    return d->rotateAni.easingCurve().type();
+    const auto &t = d->rotateAni.easingCurve().type();
+    qCDebug(logProgressAnimation) << "get easing type" << static_cast<int>(t);
+    return t;
 }
 
 QSize DLoadingIndicator::sizeHint() const
 {
-    return scene()->sceneRect().size().toSize();
+    const auto &s = scene()->sceneRect().size().toSize();
+    qCDebug(logProgressAnimation) << "get size hint" << s;
+    return s;
 }
 
 /*!
@@ -394,6 +422,7 @@ bool DLoadingIndicator::smooth() const
 {
     D_DC(DLoadingIndicator);
 
+    qCDebug(logProgressAnimation) << "get smooth" << d->smooth;
     return d->smooth;
 }
 
@@ -418,6 +447,7 @@ DLoadingIndicator::RotationDirection DLoadingIndicator::direction() const
 {
     D_DC(DLoadingIndicator);
 
+    qCDebug(logProgressAnimation) << "get direction" << static_cast<int>(d->direction);
     return d->direction;
 }
 
@@ -451,6 +481,7 @@ qreal DLoadingIndicator::rotate() const
  */
 void DLoadingIndicator::start()
 {
+    qCDebug(logProgressAnimation) << "start animation";
     D_D(DLoadingIndicator);
 
     d->rotateAni.start();
@@ -464,6 +495,7 @@ void DLoadingIndicator::start()
  */
 void DLoadingIndicator::stop()
 {
+    qCDebug(logProgressAnimation) << "stop animation";
     D_D(DLoadingIndicator);
 
     d->rotateAni.stop();

@@ -11,6 +11,9 @@
 #include <DListView>
 #include <DHorizontalLine>
 #include <DLicenseInfo>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logDialogs, "dtk.widgets.dialogs")
 
 #include <QLabel>
 #include <QHBoxLayout>
@@ -64,10 +67,12 @@ DLicenseDialogPrivate::DLicenseDialogPrivate(DLicenseDialog *qq)
     , licenseContentLabel(new QLabel)
     , scrollArea(new QScrollArea)
 {
+    qCDebug(logDialogs) << "Creating DLicenseDialogPrivate";
 }
 
 void DLicenseDialogPrivate::init()
 {
+    qCDebug(logDialogs) << "Initializing DLicenseDialog";
     D_Q(DLicenseDialog);
     q->setFixedSize(900, 800);
 
@@ -154,6 +159,7 @@ void DLicenseDialogPrivate::init()
 
 void DLicenseDialogPrivate::addComponentItem(const DLicenseInfo::DComponentInfo *componentInfo)
 {
+    qCDebug(logDialogs) << "Adding component item:" << componentInfo->name();
     D_Q(DLicenseDialog);
     auto pItem = new DStandardItem(componentInfo->name());
     pItem->setEditable(false);
@@ -170,6 +176,7 @@ void DLicenseDialogPrivate::addComponentItem(const DLicenseInfo::DComponentInfo 
 
 bool DLicenseDialogPrivate::loadLicense()
 {
+    qCDebug(logDialogs) << "Loading license, content size:" << content.size() << "path:" << path;
     if (!content.isEmpty()) {
         isValid = licenseInfo.loadContent(content);
     } else if (!path.isEmpty()) {
@@ -187,46 +194,54 @@ bool DLicenseDialogPrivate::loadLicense()
 DLicenseDialog::DLicenseDialog(QWidget *parent)
     : DAbstractDialog(*new DLicenseDialogPrivate(this), parent)
 {
+    qCDebug(logDialogs) << "Creating DLicenseDialog";
     Q_D(DLicenseDialog);
     d->init();
 }
 
 DLicenseDialog::~DLicenseDialog()
 {
+    qCDebug(logDialogs) << "Destroying DLicenseDialog";
 }
 
 void DLicenseDialog::setContent(const QByteArray &content)
 {
+    qCDebug(logDialogs) << "Setting content, size:" << content.size();
     D_D(DLicenseDialog);
     d->content = content;
 }
 
 void DLicenseDialog::setFile(const QString &file)
 {
+    qCDebug(logDialogs) << "Setting file:" << file;
     D_D(DLicenseDialog);
     d->path = file;
 }
 
 void DLicenseDialog::setLicenseSearchPath(const QString &path)
 {
+    qCDebug(logDialogs) << "Setting license search path:" << path;
     D_D(DLicenseDialog);
     d->licenseInfo.setLicenseSearchPath(path);
 }
 
 bool DLicenseDialog::load()
 {
+    qCDebug(logDialogs) << "Loading license dialog";
     D_D(DLicenseDialog);
     return d->loadLicense();
 }
 
 bool DLicenseDialog::isValid() const
 {
+    qCDebug(logDialogs) << "Checking if valid:" << d->isValid;
     D_DC(DLicenseDialog);
     return d->isValid;
 }
 
 void DLicenseDialog::hideEvent(QHideEvent *)
 {
+    qCDebug(logDialogs) << "Hide event";
     D_D(DLicenseDialog);
     d->backwardBtn->setVisible(false);
     d->stackedLayout->setCurrentIndex(0);

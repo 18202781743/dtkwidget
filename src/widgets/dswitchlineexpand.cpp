@@ -6,8 +6,13 @@
 #include "dthememanager.h"
 
 #include <QResizeEvent>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
+}
 
 /*!
   \class Dtk::Widget::DSwitchHeaderLine
@@ -30,6 +35,7 @@ DWIDGET_BEGIN_NAMESPACE
 DSwitchHeaderLine::DSwitchHeaderLine(QWidget *parent) :
     DHeaderLine(parent)
 {
+    qCDebug(logBasicWidgets) << "Creating switch header line";
     m_switchButton = new DSwitchButton(this);
     m_switchButton->setAccessibleName("DSwitchHeaderLineSwitchButton");
     connect(m_switchButton, &DSwitchButton::checkedChanged, this, &DSwitchHeaderLine::checkedChanged);
@@ -42,12 +48,15 @@ DSwitchHeaderLine::DSwitchHeaderLine(QWidget *parent) :
  */
 void DSwitchHeaderLine::setExpand(bool value)
 {
+    qCDebug(logBasicWidgets) << "Setting expand state:" << value;
     m_switchButton->setChecked(value);
 }
 
 void DSwitchHeaderLine::mousePressEvent(QMouseEvent *)
 {
-    m_switchButton->setChecked(!m_switchButton->isChecked());
+    const auto newState = !m_switchButton->isChecked();
+    qCDebug(logBasicWidgets) << "Mouse press, toggling to:" << newState;
+    m_switchButton->setChecked(newState);
 //    Q_EMIT mousePress();
 }
 
@@ -68,11 +77,15 @@ void DSwitchHeaderLine::mousePressEvent(QMouseEvent *)
   \a parent 指定了控件的父控件。
  */
 DSwitchLineExpand::DSwitchLineExpand(QWidget *parent) : DDrawer(parent) {
+    qCDebug(logBasicWidgets) << "Creating switch line expand widget";
     m_headerLine = new DSwitchHeaderLine(this);
     m_headerLine->setExpand(expand());
     m_headerLine->setAccessibleName("DSwitchLineExpandHeaderLine");
     connect(m_headerLine, &DSwitchHeaderLine::checkedChanged,
-            [=](bool arg) { DDrawer::setExpand(arg); });
+            [=](bool arg) { 
+                qCDebug(logBasicWidgets) << "Header checked changed:" << arg;
+                DDrawer::setExpand(arg); 
+            });
     setHeader(m_headerLine);
 }
 
@@ -82,6 +95,7 @@ DSwitchLineExpand::DSwitchLineExpand(QWidget *parent) : DDrawer(parent) {
  */
 void DSwitchLineExpand::setTitle(const QString &title)
 {
+    qCDebug(logBasicWidgets) << "Setting title:" << title;
     m_headerLine->setTitle(title);
 }
 
@@ -93,6 +107,7 @@ void DSwitchLineExpand::setTitle(const QString &title)
  */
 void DSwitchLineExpand::setExpand(bool value)
 {
+    qCDebug(logBasicWidgets) << "Setting expand state:" << value;
     //Header's arrow direction change here
     m_headerLine->setExpand(value);
 }
@@ -103,6 +118,7 @@ void DSwitchLineExpand::setExpand(bool value)
  */
 DBaseLine *DSwitchLineExpand::header()
 {
+    qCDebug(logBasicWidgets) << "Getting header widget";
     return m_headerLine;
 }
 
@@ -114,11 +130,13 @@ DBaseLine *DSwitchLineExpand::header()
  */
 void DSwitchLineExpand::setHeader(QWidget *header)
 {
+    qCDebug(logBasicWidgets) << "Setting custom header widget";
     DDrawer::setHeader(header);
 }
 
 void DSwitchLineExpand::resizeEvent(QResizeEvent *e)
 {
+    qCDebug(logBasicWidgets) << "Resize event, new width:" << e->size().width();
     m_headerLine->setFixedWidth(e->size().width());
 
     DDrawer::resizeEvent(e);

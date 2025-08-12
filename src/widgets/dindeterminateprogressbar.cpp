@@ -12,8 +12,11 @@
 #include <QPropertyAnimation>
 #include <QDebug>
 #include <QPainterPath>
+#include <QLoggingCategory>
 
 DGUI_USE_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logProgressAnimation)
 
 const int SPOT_WIDGET_WIDTH = 200;
 
@@ -37,23 +40,32 @@ DIndeterminateProgressbar::DIndeterminateProgressbar(QWidget *parent)
     , DObject(*new DIndeterminateProgressbarPrivate(this))
 {
     D_D(DIndeterminateProgressbar);
+    qCDebug(logProgressAnimation) << "Construct indeterminate progress"
+                                  << reinterpret_cast<const void *>(this);
 
     if (ENABLE_ANIMATIONS && ENABLE_ANIMATION_PROGRESSBAR) {
+        qCDebug(logProgressAnimation) << "Animations enabled, setting up spot widget";
         d->m_spotWidget->setFixedSize(SPOT_WIDGET_WIDTH, height());
         d->m_spotWidget->move(-SPOT_WIDGET_WIDTH, 0);
+    } else {
+        qCDebug(logProgressAnimation) << "Animations disabled";
     }
 
+    qCDebug(logProgressAnimation) << "Setting up slider widget";
     d->m_sliderWidget->setFixedWidth(150);
     d->m_sliderWidget->move(0, 0);
 
     d->m_timer->setInterval(10);
+    qCDebug(logProgressAnimation) << "Timer interval set to 10ms";
     static int step = 0;
     connect(d->m_timer, &QTimer::timeout, this, [this, d]() {
         if (d->m_sliderWidget->geometry().right() >= rect().right()) {
+            qCDebug(logProgressAnimation) << "Slider reached right edge, changing direction";
             d->m_leftToRight = false;
         }
 
         if (d->m_sliderWidget->geometry().left() <= rect().left()) {
+            qCDebug(logProgressAnimation) << "Slider reached left edge, changing direction";
             d->m_leftToRight = true;
         }
 
@@ -62,11 +74,13 @@ DIndeterminateProgressbar::DIndeterminateProgressbar(QWidget *parent)
         update();
     });
     d->m_timer->start();
+    qCDebug(logProgressAnimation) << "Timer started";
 }
 
 void DIndeterminateProgressbar::resizeEvent(QResizeEvent *e)
 {
     D_D(DIndeterminateProgressbar);
+    qCDebug(logProgressAnimation) << "Resize event" << size();
     d->m_sliderWidget->setFixedHeight(height());
 
     if (!ENABLE_ANIMATIONS || !ENABLE_ANIMATION_PROGRESSBAR)
@@ -88,6 +102,7 @@ void DIndeterminateProgressbar::resizeEvent(QResizeEvent *e)
 void DIndeterminateProgressbar::paintEvent(QPaintEvent *e)
 {
     D_D(DIndeterminateProgressbar);
+    qCDebug(logProgressAnimation) << "Paint";
     QWidget::paintEvent(e);
     QPainter p(this);
 

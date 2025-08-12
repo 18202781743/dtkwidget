@@ -22,11 +22,14 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_DECLARE_LOGGING_CATEGORY(logUtilClasses)
+
 class DTrashManager_ : public DTrashManager {};
 Q_GLOBAL_STATIC(DTrashManager_, globalTrashManager)
 
 static QString getNotExistsFileName(const QString &fileName, const QString &targetPath)
 {
+    qCDebug(logUtilClasses) << "Getting non-existing file name for:" << fileName;
     QByteArray name = fileName.toUtf8();
 
     int index = name.lastIndexOf('.');
@@ -52,9 +55,11 @@ static QString getNotExistsFileName(const QString &fileName, const QString &targ
 
 static bool writeTrashInfo(const QString &fileBaseName, const QString &sourceFilePath, const QDateTime &datetime, QString *errorString = NULL)
 {
+    qCDebug(logUtilClasses) << "Writing trash info for file:" << fileBaseName;
     QFile metadata(TRASH_INFO_PATH"/" + fileBaseName + ".trashinfo");
 
     if (metadata.exists()) {
+        qCWarning(logUtilClasses) << "Trash info file already exists:" << metadata.fileName();
         if (errorString) {
             *errorString = QString("The %1 file is exists").arg(metadata.fileName());
         }
@@ -63,6 +68,7 @@ static bool writeTrashInfo(const QString &fileBaseName, const QString &sourceFil
     }
 
     if (!metadata.open(QIODevice::WriteOnly)) {
+        qCWarning(logUtilClasses) << "Failed to open trash info file:" << metadata.errorString();
         if (errorString) {
             *errorString = metadata.errorString();
         }
@@ -80,6 +86,7 @@ static bool writeTrashInfo(const QString &fileBaseName, const QString &sourceFil
     metadata.close();
 
     if (size <= 0) {
+        qCWarning(logUtilClasses) << "Failed to write trash info:" << metadata.errorString();
         if (errorString) {
             *errorString = metadata.errorString();
         }
@@ -92,10 +99,12 @@ static bool writeTrashInfo(const QString &fileBaseName, const QString &sourceFil
 
 static bool renameFile(const QFileInfo &fileInfo, const QString &target, QString *errorString = NULL)
 {
+    qCDebug(logUtilClasses) << "Renaming file to:" << target;
     if (fileInfo.isFile() || fileInfo.isSymLink()) {
         QFile file(fileInfo.filePath());
 
         if (!file.rename(target)) {
+            qCWarning(logUtilClasses) << "Failed to rename file:" << file.errorString();
             if (errorString) {
                 *errorString = file.errorString();
             }
@@ -152,11 +161,13 @@ public:
 
 DTrashManager *DTrashManager::instance()
 {
+    qCDebug(logUtilClasses) << "Getting DTrashManager instance";
     return globalTrashManager;
 }
 
 bool DTrashManager::trashIsEmpty() const
 {
+    qCDebug(logUtilClasses) << "Checking if trash is empty";
     QDirIterator iterator(TRASH_INFO_PATH,
 //                          QStringList() << "*.trashinfo",
                           QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden);
@@ -166,6 +177,7 @@ bool DTrashManager::trashIsEmpty() const
 
 bool DTrashManager::cleanTrash()
 {
+    qCDebug(logUtilClasses) << "Cleaning trash";
     QDirIterator iterator_info(TRASH_INFO_PATH,
                                QDir::Files | QDir::NoDotAndDotDot | QDir::Hidden);
 
@@ -179,9 +191,11 @@ bool DTrashManager::cleanTrash()
 
 bool DTrashManager::moveToTrash(const QString &filePath, bool followSymlink)
 {
+    qCDebug(logUtilClasses) << "Moving file to trash:" << filePath << "followSymlink:" << followSymlink;
     QFileInfo fileInfo(filePath);
 
     if (!fileInfo.exists() && (followSymlink || !fileInfo.isSymLink())) {
+        qCWarning(logUtilClasses) << "File does not exist:" << filePath;
         return false;
     }
 
@@ -220,7 +234,7 @@ DTrashManager::DTrashManager()
     : QObject()
     , DObject(*new DTrashManagerPrivate(this))
 {
-
+    qCDebug(logUtilClasses) << "DTrashManager created";
 }
 
 bool DTrashManagerPrivate::removeFileOrDir(const QString &path)

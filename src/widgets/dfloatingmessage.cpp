@@ -13,6 +13,9 @@
 #include <QDebug>
 #include <QGraphicsDropShadowEffect>
 #include <QWindow>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logMessageNotification, "dtk.widgets.message")
 
 class MessageLabel : public QLabel
 {
@@ -27,17 +30,18 @@ DWIDGET_BEGIN_NAMESPACE
 DFloatingMessagePrivate::DFloatingMessagePrivate(DFloatingMessage *qq)
     : DFloatingWidgetPrivate(qq)
 {
-
+    qCDebug(logMessageNotification) << "DFloatingMessagePrivate created";
 }
 
 DFloatingMessagePrivate::~DFloatingMessagePrivate()
 {
-
+    qCDebug(logMessageNotification) << "DFloatingMessagePrivate destroyed";
 }
 
 void DFloatingMessagePrivate::init()
 {
     D_Q(DFloatingMessage);
+    qCDebug(logMessageNotification) << "Initializing floating message";
 
     timer = nullptr;
     content = nullptr;
@@ -63,6 +67,7 @@ void DFloatingMessagePrivate::init()
     hBoxLayout->addWidget(labMessage);
 
     if (notifyType == DFloatingMessage::MessageType::TransientType) {  //临时消息
+        qCDebug(logMessageNotification) << "Setting up transient message with timer";
         timer = new QTimer(q);
         timer->setInterval(4000);
         timer->setSingleShot(true);
@@ -74,6 +79,7 @@ void DFloatingMessagePrivate::init()
         else
             q->connect(timer, &QTimer::timeout, q, &DFloatingMessage::close);
     } else {  //常驻消息
+        qCDebug(logMessageNotification) << "Setting up persistent message with close button";
         content  = nullptr;
         closeButton = new DDialogCloseButton(q);
         // FIX bug-20506 close button too small
@@ -160,15 +166,26 @@ DFloatingMessage::MessageType DFloatingMessage::messageType() const
  */
 void DFloatingMessage::setIcon(const QIcon &ico)
 {
+    qCDebug(logMessageNotification) << "Setting floating message icon, is null:" << ico.isNull();
     D_D(DFloatingMessage);
 
+    QIcon currentIcon = d->iconButton->icon();
+    if (currentIcon.cacheKey() == ico.cacheKey()) {
+        qCDebug(logMessageNotification) << "Icon unchanged, skipping update";
+        return;
+    }
+
     d->iconButton->setIcon(ico);
+    qCDebug(logMessageNotification) << "Icon set on icon button successfully";
 }
 
 void DFloatingMessage::setIcon(const DDciIcon &icon)
 {
+    qCDebug(logMessageNotification) << "Setting floating message DDci icon, is null:" << icon.isNull();
     D_D(DFloatingMessage);
+    
     d->iconButton->setIcon(icon);
+    qCDebug(logMessageNotification) << "DDci icon set on icon button successfully";
 }
 
 /*!
@@ -177,9 +194,16 @@ void DFloatingMessage::setIcon(const DDciIcon &icon)
  */
 void DFloatingMessage::setMessage(const QString &str)
 {
+    qCDebug(logMessageNotification) << "Setting floating message text:" << str;
     D_D(DFloatingMessage);
 
+    if (d->labMessage->text() == str) {
+        qCDebug(logMessageNotification) << "Message text unchanged, skipping update";
+        return;
+    }
+
     d->labMessage->setText(str);
+    qCDebug(logMessageNotification) << "Message text updated";
 }
 
 /*!
@@ -188,13 +212,26 @@ void DFloatingMessage::setMessage(const QString &str)
  */
 void DFloatingMessage::setWidget(QWidget *w)
 {
+    qCDebug(logMessageNotification) << "Setting floating message widget:" << w;
     D_D(DFloatingMessage);
 
-    if (d->content)
+    if (d->content == w) {
+        qCDebug(logMessageNotification) << "Widget unchanged, skipping update";
+        return;
+    }
+
+    if (d->content) {
+        qCDebug(logMessageNotification) << "Removing existing content widget";
         delete d->hBoxLayout->takeAt(2);
+    }
 
     d->content = w;
-    d->hBoxLayout->insertWidget(2, d->content);
+    if (w) {
+        d->hBoxLayout->insertWidget(2, d->content);
+        qCDebug(logMessageNotification) << "Widget inserted at position 2";
+    } else {
+        qCDebug(logMessageNotification) << "Widget is null, not inserting";
+    }
 }
 
 /*!
@@ -203,12 +240,21 @@ void DFloatingMessage::setWidget(QWidget *w)
  */
 void DFloatingMessage::setDuration(int msec)
 {
+    qCDebug(logMessageNotification) << "Setting floating message duration:" << msec << "ms";
     D_D(DFloatingMessage);
 
-    if (d->timer == nullptr)
+    if (d->timer == nullptr) {
+        qCDebug(logMessageNotification) << "No timer available, message is not transient type";
         return;
+    }
+
+    if (d->timer->interval() == msec) {
+        qCDebug(logMessageNotification) << "Duration unchanged, skipping update";
+        return;
+    }
 
     d->timer->setInterval(msec);
+    qCDebug(logMessageNotification) << "Timer interval updated successfully";
 }
 
 QSize DFloatingMessage::sizeHint() const
@@ -228,10 +274,15 @@ QSize DFloatingMessage::sizeHint() const
  */
 void DFloatingMessage::showEvent(QShowEvent *event)
 {
+    qCDebug(logMessageNotification) << "Floating message show event";
     D_D(DFloatingMessage);
 
-    if (d->timer)
+    if (d->timer) {
+        qCDebug(logMessageNotification) << "Starting timer for transient message";
         d->timer->start();
+    } else {
+        qCDebug(logMessageNotification) << "No timer, message is persistent";
+    }
 
     DFloatingWidget::showEvent(event);
 }

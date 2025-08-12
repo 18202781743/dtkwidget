@@ -29,14 +29,20 @@ Q_DECLARE_METATYPE(QMargins)
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_LOGGING_CATEGORY(logStyleTheme, "dtk.widgets.style")
+
 struct ActionListData : public QSharedData {
-    explicit ActionListData() { }
+    explicit ActionListData() { 
+        qCDebug(logStyleTheme) << "ActionListData constructor called";
+    }
     explicit ActionListData(const DViewItemActionList& v)
         : list(v)
     {
+        qCDebug(logStyleTheme) << "ActionListData constructor called with action list size:" << v.size();
     }
     ~ActionListData ()
     {
+        qCDebug(logStyleTheme) << "ActionListData destructor called";
         qDeleteAll(list);
     }
     DViewItemActionList list;
@@ -45,10 +51,13 @@ struct ActionListData : public QSharedData {
 class ActionList
 {
 public:
-    explicit ActionList() { }
+    explicit ActionList() { 
+        qCDebug(logStyleTheme) << "ActionList constructor called";
+    }
     explicit ActionList(ActionListData *data)
         : m_data(data)
     {
+        qCDebug(logStyleTheme) << "ActionList constructor called with data";
     }
     inline bool isValid() const
     {
@@ -66,6 +75,7 @@ private:
 
 QDataStream &operator<<(QDataStream &ds, const ActionList &v)
 {
+    qCDebug(logStyleTheme) << "Serializing ActionList";
     quintptr data = reinterpret_cast<quintptr>(v.m_data.data());
     ds << data;
     return ds;
@@ -73,6 +83,7 @@ QDataStream &operator<<(QDataStream &ds, const ActionList &v)
 
 QDataStream &operator>>(QDataStream &ds, ActionList &v)
 {
+    qCDebug(logStyleTheme) << "Deserializing ActionList";
     quintptr data;
     ds >> data;
     v.m_data = reinterpret_cast<ActionListData *>(data);
@@ -85,12 +96,14 @@ Q_DECLARE_METATYPE(DTK_WIDGET_NAMESPACE::ActionList)
 DWIDGET_BEGIN_NAMESPACE
 static void saveDViewItemActionList(QDataStream &s, const void *d)
 {
+    qCDebug(logStyleTheme) << "Saving DViewItemActionList";
     const ActionList &data = *static_cast<const ActionList*>(d);
     s << data;
 }
 
 static void loadDViewItemActionList(QDataStream &s, void *d)
 {
+    qCDebug(logStyleTheme) << "Loading DViewItemActionList";
     ActionList &data = *static_cast<ActionList*>(d);
     s >> data;
 }
@@ -98,6 +111,11 @@ static void loadDViewItemActionList(QDataStream &s, void *d)
 __attribute__((constructor))
 static void registerMetaType ()
 {
+    qCDebug(logStyleTheme) << "Registering meta types";
+    qRegisterMetaType<ActionList>("ActionList");
+    qRegisterMetaTypeStreamOperators<ActionList>("ActionList");
+    qRegisterMetaType<DViewItemActionList>("DViewItemActionList");
+    qRegisterMetaTypeStreamOperators<DViewItemActionList>("DViewItemActionList");
     #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     // register DViewItemActionList's stream operator to support that QMetaType can using save and load function.
     QMetaType::registerStreamOperators(QMetaTypeId<DTK_WIDGET_NAMESPACE::ActionList>::qt_metatype_id(),
@@ -666,6 +684,7 @@ DViewItemAction::DViewItemAction(Qt::Alignment alignment, const QSize &iconSize,
     , DObject(*new DViewItemActionPrivate(this))
 {
     D_D(DViewItemAction);
+    qCDebug(logStyleTheme) << "DViewItemAction constructor called with alignment:" << alignment << "iconSize:" << iconSize << "maxSize:" << maxSize << "clickable:" << clickable;
 
     d->alignment = alignment;
     d->iconSize = iconSize.isValid() ? iconSize : QSize(qApp->style()->pixelMetric(DStyle::PM_IndicatorWidth), qApp->style()->pixelMetric(DStyle::PM_IndicatorHeight));
@@ -691,7 +710,7 @@ DViewItemAction::DViewItemAction(Qt::Alignment alignment, const QSize &iconSize,
 Qt::Alignment DViewItemAction::alignment() const
 {
     D_DC(DViewItemAction);
-
+    qCDebug(logStyleTheme) << "Getting alignment:" << d->alignment;
     return d->alignment;
 }
 
@@ -702,7 +721,7 @@ Qt::Alignment DViewItemAction::alignment() const
 QSize DViewItemAction::iconSize() const
 {
     D_DC(DViewItemAction);
-
+    qCDebug(logStyleTheme) << "Getting icon size:" << d->iconSize;
     return d->iconSize;
 }
 
@@ -713,7 +732,7 @@ QSize DViewItemAction::iconSize() const
 QSize DViewItemAction::maximumSize() const
 {
     D_DC(DViewItemAction);
-
+    qCDebug(logStyleTheme) << "Getting maximum size:" << d->maxSize;
     return d->maxSize;
 }
 
@@ -735,7 +754,7 @@ QMargins DViewItemAction::clickAreaMargins() const
 void DViewItemAction::setClickAreaMargins(const QMargins &margins)
 {
     D_D(DViewItemAction);
-
+    qCDebug(logStyleTheme) << "Setting click area margins to:" << margins;
     d->clickMargins = margins;
 }
 
@@ -748,7 +767,7 @@ void DViewItemAction::setClickAreaMargins(const QMargins &margins)
 void DViewItemAction::setTextColorRole(DPalette::ColorType role)
 {
     D_D(DViewItemAction);
-
+    qCDebug(logStyleTheme) << "Setting text color role to DPalette type:" << role;
     d->colorRole = -1;
     d->colorType = role;
 }
@@ -762,7 +781,7 @@ void DViewItemAction::setTextColorRole(DPalette::ColorType role)
 void DViewItemAction::setTextColorRole(QPalette::ColorRole role)
 {
     D_D(DViewItemAction);
-
+    qCDebug(logStyleTheme) << "Setting text color role to QPalette role:" << role;
     d->colorType = -1;
     d->colorRole = role;
 }

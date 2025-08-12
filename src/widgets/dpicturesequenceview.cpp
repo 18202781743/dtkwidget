@@ -8,8 +8,11 @@
 #include <QGraphicsPixmapItem>
 #include <QImageReader>
 #include <QIcon>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logMediaImage)
 
 DPictureSequenceViewPrivate::DPictureSequenceViewPrivate(DPictureSequenceView *q) :
     DObjectPrivate(q)
@@ -31,7 +34,8 @@ DPictureSequenceViewPrivate::~DPictureSequenceViewPrivate()
 void DPictureSequenceViewPrivate::init()
 {
     D_Q(DPictureSequenceView);
-
+    qCDebug(logMediaImage) << "Init picture sequence view"
+                           << reinterpret_cast<const void *>(q);
     scene = new QGraphicsScene(q);
     refreshTimer = new QTimer(q);
     refreshTimer->setInterval(33);
@@ -47,6 +51,7 @@ void DPictureSequenceViewPrivate::init()
 
 void DPictureSequenceViewPrivate::play()
 {
+    qCDebug(logMediaImage) << "Start playback";
     refreshTimer->start();
 }
 
@@ -61,6 +66,7 @@ QPixmap DPictureSequenceViewPrivate::loadPixmap(const QString &path)
     QPixmap pixmap;
 
     if (!qFuzzyCompare(ratio, devicePixelRatio)) {
+        qCDebug(logMediaImage) << "Load pixmap with DPR" << devicePixelRatio;
         QImageReader reader;
         reader.setFileName(qt_findAtNxFile(path, devicePixelRatio, &ratio));
         if (reader.canRead()) {
@@ -69,6 +75,7 @@ QPixmap DPictureSequenceViewPrivate::loadPixmap(const QString &path)
             pixmap.setDevicePixelRatio(devicePixelRatio);
         }
     } else {
+        qCDebug(logMediaImage) << "Load pixmap";
         pixmap.load(path);
     }
 
@@ -77,6 +84,7 @@ QPixmap DPictureSequenceViewPrivate::loadPixmap(const QString &path)
 
 void DPictureSequenceViewPrivate::_q_refreshPicture()
 {
+    qCDebug(logMediaImage) << "Refresh frame";
     QGraphicsPixmapItem *item = pictureItemList.value(lastItemPos++);
 
     if (item)
@@ -126,7 +134,8 @@ DPictureSequenceView::DPictureSequenceView(QWidget *parent) :
     DObject(*new DPictureSequenceViewPrivate(this))
 {
     D_D(DPictureSequenceView);
-
+    qCDebug(logMediaImage) << "Construct picture sequence view"
+                           << reinterpret_cast<const void *>(this);
     d->init();
 }
 
@@ -145,6 +154,7 @@ DPictureSequenceView::DPictureSequenceView(QWidget *parent) :
  */
 void DPictureSequenceView::setPictureSequence(const QString &srcFormat, const QPair<int, int> &range, const int fieldWidth, const bool autoScale)
 {
+    qCDebug(logMediaImage) << "Set sequence by template";
     QStringList pics;
 
     for (int i(range.first); i != range.second; ++i)
@@ -166,6 +176,7 @@ void DPictureSequenceView::setPictureSequence(const QStringList &sequence, const
 {
     D_D(DPictureSequenceView);
 
+    qCDebug(logMediaImage) << "Set sequence by list" << sequence.size();
     QList<QPixmap> pixmapSequence;
     for (const QString &path : sequence) {
         pixmapSequence << d->loadPixmap(path);
@@ -187,6 +198,7 @@ void DPictureSequenceView::setPictureSequence(const QList<QPixmap> &sequence, co
 {
     D_D(DPictureSequenceView);
 
+    qCDebug(logMediaImage) << "Set sequence by pixmaps" << sequence.size();
     stop();
     d->scene->clear();
     d->pictureItemList.clear();
@@ -214,7 +226,11 @@ void DPictureSequenceView::setPictureSequence(const QList<QPixmap> &sequence, co
 void DPictureSequenceView::play()
 {
     D_D(DPictureSequenceView);
-
+    qCDebug(logMediaImage) << "Play animation with" << d->pictureItemList.size() << "frames";
+    if (d->pictureItemList.isEmpty()) {
+        qCDebug(logMediaImage) << "No frames to play, ignoring play request";
+        return;
+    }
     d->play();
 }
 
@@ -225,7 +241,11 @@ void DPictureSequenceView::play()
 void DPictureSequenceView::pause()
 {
     D_D(DPictureSequenceView);
-
+    qCDebug(logMediaImage) << "Pause animation at frame:" << d->lastItemPos;
+    if (!d->refreshTimer->isActive()) {
+        qCDebug(logMediaImage) << "Timer not active, already paused";
+        return;
+    }
     d->refreshTimer->stop();
 }
 
@@ -236,12 +256,16 @@ void DPictureSequenceView::pause()
 void DPictureSequenceView::stop()
 {
     D_D(DPictureSequenceView);
-
+    qCDebug(logMediaImage) << "Stop animation and reset to first frame";
     d->refreshTimer->stop();
-    if (d->pictureItemList.count() > d->lastItemPos)
+    if (d->pictureItemList.count() > d->lastItemPos) {
+        qCDebug(logMediaImage) << "Hiding current frame:" << d->lastItemPos;
         d->pictureItemList[d->lastItemPos]->hide();
-    if (!d->pictureItemList.isEmpty())
+    }
+    if (!d->pictureItemList.isEmpty()) {
+        qCDebug(logMediaImage) << "Showing first frame";
         d->pictureItemList[0]->show();
+    }
     d->lastItemPos = 0;
 }
 
@@ -254,7 +278,13 @@ int DPictureSequenceView::speed() const
 
 void DPictureSequenceView::setSpeed(int speed)
 {
+    qCDebug(logMediaImage) << "Setting animation speed:" << speed << "ms";
     D_D(DPictureSequenceView);
+
+    if (d->refreshTimer->interval() == speed) {
+        qCDebug(logMediaImage) << "Speed unchanged, skipping update";
+        return;
+    }
 
     d->refreshTimer->setInterval(speed);
 }
@@ -268,7 +298,13 @@ bool DPictureSequenceView::singleShot() const
 
 void DPictureSequenceView::setSingleShot(bool singleShot)
 {
+    qCDebug(logMediaImage) << "Setting single shot mode:" << singleShot;
     D_D(DPictureSequenceView);
+
+    if (d->singleShot == singleShot) {
+        qCDebug(logMediaImage) << "Single shot mode unchanged, skipping update";
+        return;
+    }
 
     d->singleShot = singleShot;
 }

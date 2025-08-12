@@ -4,7 +4,13 @@
 
 #include "ddesktopservices.h"
 
+#include <QLoggingCategory>
+
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logUtilClasses)
+}
 
 static QStringList urls2uris(const QList<QUrl> &urls)
 {
@@ -34,6 +40,7 @@ static QList<QUrl> path2urls(const QList<QString> &paths)
 
 bool DDesktopServices::showFolder(QString localFilePath, const QString &startupId)
 {
+    qCDebug(logUtilClasses) << "Windows showFolder not implemented for:" << localFilePath;
     Q_UNUSED(localFilePath);
     Q_UNUSED(startupId);
     return false;
@@ -118,6 +125,7 @@ bool DDesktopServices::showFileItems(const QList<QUrl> urls, const QString &star
 
 bool DDesktopServices::trash(QString localFilePath)
 {
+    qCDebug(logUtilClasses) << "Windows trash not implemented for:" << localFilePath;
     Q_UNUSED(localFilePath);
     return false;
 }

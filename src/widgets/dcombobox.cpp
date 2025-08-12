@@ -30,17 +30,22 @@
 #include <QScreen>
 #include <QStack>
 #include <QWindow>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(logListWidgets)
 
 DWIDGET_BEGIN_NAMESPACE
 
 DComboBoxPrivate::DComboBoxPrivate(DComboBox *q)
     : DObjectPrivate(q)
 {
+    qCDebug(logListWidgets) << "DComboBoxPrivate created";
 }
 
 void DComboBoxPrivate::init()
 {
     D_Q(DComboBox);
+    qCDebug(logListWidgets) << "Initializing DComboBox";
     q->setMaxVisibleItems(MaxVisibleItems);
 }
 
@@ -51,9 +56,12 @@ void DComboBoxPrivate::init()
 QRect DComboBoxPrivate::popupGeometry()
 {
     D_Q(DComboBox);
+    qCDebug(logListWidgets) << "Getting popup geometry";
     bool useFullScreenForPopupMenu = false;
-    if (const QPlatformTheme *theme = QGuiApplicationPrivate::platformTheme())
+    if (const QPlatformTheme *theme = QGuiApplicationPrivate::platformTheme()) {
         useFullScreenForPopupMenu = theme->themeHint(QPlatformTheme::UseFullScreenForPopupMenu).toBool();
+        qCDebug(logListWidgets) << "Using full screen for popup menu:" << useFullScreenForPopupMenu;
+    }
     auto screen = q->window()->windowHandle()->screen();
     return useFullScreenForPopupMenu ? screen->geometry() : screen->availableGeometry();
 }
@@ -65,6 +73,7 @@ QRect DComboBoxPrivate::popupGeometry()
 int DComboBoxPrivate::computeWidthHint() const
 {
     D_Q(const DComboBox);
+    qCDebug(logListWidgets) << "Computing width hint for combo box";
 
     int width = 0;
     const int count = q->count();
@@ -77,10 +86,13 @@ int DComboBoxPrivate::computeWidthHint() const
 #else
         const int textWidth = fontMetrics.horizontalAdvance(q->itemText(i));
 #endif
-        if (q->itemIcon(i).isNull())
+        if (q->itemIcon(i).isNull()) {
+            qCDebug(logListWidgets) << "Item" << i << "has no icon, using text width";
             width = (qMax(width, textWidth));
-        else
+        } else {
+            qCDebug(logListWidgets) << "Item" << i << "has icon, using text + icon width";
             width = (qMax(width, textWidth + iconWidth));
+        }
     }
 
     QStyleOptionComboBox opt;

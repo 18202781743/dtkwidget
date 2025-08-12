@@ -13,6 +13,7 @@
 #include <QBackingStore>
 #include <QPaintEvent>
 #include <QDebug>
+#include <QLoggingCategory>
 
 #include <qpa/qplatformbackingstore.h>
 #include <private/qwidget_p.h>
@@ -40,37 +41,42 @@ DGUI_USE_NAMESPACE
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_DECLARE_LOGGING_CATEGORY(logContainers)
+
 QMultiHash<QWidget *, const DBlurEffectWidget *> DBlurEffectWidgetPrivate::blurEffectWidgetHash;
 QHash<const DBlurEffectWidget *, QWidget *> DBlurEffectWidgetPrivate::windowOfBlurEffectHash;
 
 DBlurEffectWidgetPrivate::DBlurEffectWidgetPrivate(DBlurEffectWidget *qq)
     : DObjectPrivate(qq)
 {
-
+    qCDebug(logContainers) << "DBlurEffectWidgetPrivate constructor called";
 }
 
 bool DBlurEffectWidgetPrivate::isBehindWindowBlendMode() const
 {
     D_QC(DBlurEffectWidget);
-
-    return blendMode == DBlurEffectWidget::BehindWindowBlend
-           || q->isWindow();
+    const auto& result = blendMode == DBlurEffectWidget::BehindWindowBlend || q->isWindow();
+    qCDebug(logContainers) << "isBehindWindowBlendMode called, returning:" << result;
+    return result;
 }
 
 bool DBlurEffectWidgetPrivate::isFull() const
 {
     D_QC(DBlurEffectWidget);
-
-    return full || (q->isWindow() && !(blurRectXRadius && blurRectYRadius) && maskPath.isEmpty());
+    const auto& result = full || (q->isWindow() && !(blurRectXRadius && blurRectYRadius) && maskPath.isEmpty());
+    qCDebug(logContainers) << "isFull called, returning:" << result;
+    return result;
 }
 
 void DBlurEffectWidgetPrivate::addToBlurEffectWidgetHash()
 {
     D_QC(DBlurEffectWidget);
+    qCDebug(logContainers) << "addToBlurEffectWidgetHash called";
 
     QWidget *oldTopLevelWidget = windowOfBlurEffectHash.value(q);
 
     if (oldTopLevelWidget) {
+        qCDebug(logContainers) << "removing from old top level widget";
         blurEffectWidgetHash.remove(oldTopLevelWidget, q);
         updateWindowBlurArea(oldTopLevelWidget);
     }
@@ -80,26 +86,31 @@ void DBlurEffectWidgetPrivate::addToBlurEffectWidgetHash()
     blurEffectWidgetHash.insert(topLevelWidget, q);
     windowOfBlurEffectHash[q] = topLevelWidget;
     updateWindowBlurArea(topLevelWidget);
+    qCDebug(logContainers) << "added to blur effect widget hash";
 }
 
 void DBlurEffectWidgetPrivate::removeFromBlurEffectWidgetHash()
 {
     D_QC(DBlurEffectWidget);
+    qCDebug(logContainers) << "removeFromBlurEffectWidgetHash called";
 
     QWidget *topLevelWidget = windowOfBlurEffectHash.value(q);
 
     if (!topLevelWidget) {
+        qCDebug(logContainers) << "no top level widget found";
         return;
     }
 
     blurEffectWidgetHash.remove(topLevelWidget, q);
     windowOfBlurEffectHash.remove(q);
     updateWindowBlurArea(topLevelWidget);
+    qCDebug(logContainers) << "removed from blur effect widget hash";
 }
 
 bool DBlurEffectWidgetPrivate::updateWindowBlurArea()
 {
     D_QC(DBlurEffectWidget);
+    qCDebug(logContainers) << "updateWindowBlurArea called";
 
     QWidget *topLevelWidget = windowOfBlurEffectHash.value(q);
 
@@ -107,6 +118,7 @@ bool DBlurEffectWidgetPrivate::updateWindowBlurArea()
 }
 
 void DBlurEffectWidgetPrivate::setMaskAlpha(const quint8 alpha) {
+    qCDebug(logContainers) << "setMaskAlpha called with alpha:" << alpha;
     maskAlpha = alpha;
 
     // refresh alpha
@@ -115,14 +127,19 @@ void DBlurEffectWidgetPrivate::setMaskAlpha(const quint8 alpha) {
 
 quint8 DBlurEffectWidgetPrivate::getMaskColorAlpha() const
 {
-    if (maskAlpha < 0)
-        return isBehindWindowBlendMode() ? 102 : 204;
+    if (maskAlpha < 0) {
+        const auto& result = isBehindWindowBlendMode() ? 102 : 204;
+        qCDebug(logContainers) << "getMaskColorAlpha called, returning default:" << result;
+        return result;
+    }
 
+    qCDebug(logContainers) << "getMaskColorAlpha called, returning:" << static_cast<quint8>(maskAlpha);
     return static_cast<quint8>(maskAlpha);
 }
 
 QColor DBlurEffectWidgetPrivate::getMaskColor(const QColor &baseColor) const
 {
+    qCDebug(logContainers) << "getMaskColor called with base color:" << baseColor.name();
     QColor color = baseColor;
     DGuiApplicationHelper::ColorType ct = DGuiApplicationHelper::toColorType(color);
 
@@ -136,8 +153,11 @@ QColor DBlurEffectWidgetPrivate::getMaskColor(const QColor &baseColor) const
 
     if (!isBehindWindowBlendMode() || DWindowManagerHelper::instance()->hasBlurWindow()) {
         color.setAlpha(maskAlpha);
+        qCDebug(logContainers) << "setting alpha to:" << maskAlpha;
     } else {
-        return ct == DGuiApplicationHelper::DarkType ? "#202020" : "#D2D2D2";
+        const auto& result = ct == DGuiApplicationHelper::DarkType ? "#202020" : "#D2D2D2";
+        qCDebug(logContainers) << "using fallback color:" << result;
+        return result;
     }
 
     return color;
@@ -145,16 +165,21 @@ QColor DBlurEffectWidgetPrivate::getMaskColor(const QColor &baseColor) const
 
 void DBlurEffectWidgetPrivate::resetSourceImage()
 {
+    qCDebug(logContainers) << "resetSourceImage called";
     // 设置了自定义的image时忽略此请求
     // 属于某个组时也忽略
-    if (customSourceImage || group)
+    if (customSourceImage || group) {
+        qCDebug(logContainers) << "ignoring reset request due to custom source image or group";
         return;
+    }
 
     sourceImage = QImage();
+    qCDebug(logContainers) << "source image reset";
 }
 
 void DBlurEffectWidgetPrivate::setMaskColor(const QColor &color)
 {
+    qCDebug(logContainers) << "setMaskColor called with color:" << color.name();
     maskColor = color;
 
     if (isBehindWindowBlendMode()) {
@@ -464,28 +489,29 @@ DBlurEffectWidget::DBlurEffectWidget(QWidget *parent)
     : QWidget(parent)
     , DObject(*new DBlurEffectWidgetPrivate(this))
 {
+    qCDebug(logContainers) << "DBlurEffectWidget constructor called";
     setAttribute(Qt::WA_TranslucentBackground);
     setBackgroundRole(QPalette::Window);
 
     if (!parent) {
         D_D(DBlurEffectWidget);
-
+        qCDebug(logContainers) << "no parent widget, adding to blur effect widget hash";
         d->addToBlurEffectWidgetHash();
     }
 
     QObject::connect(DWindowManagerHelper::instance(), &DWindowManagerHelper::windowManagerChanged, this, [this] {
         D_D(DBlurEffectWidget);
-
+        qCDebug(logContainers) << "window manager changed, updating blur area";
         d->updateWindowBlurArea();
     });
     QObject::connect(DWindowManagerHelper::instance(), &DWindowManagerHelper::hasBlurWindowChanged, this, [this] {
         D_D(DBlurEffectWidget);
-
+        qCDebug(logContainers) << "blur window support changed, updating mask color";
         d->setMaskColor(d->maskColor);
     });
     QObject::connect(DWindowManagerHelper::instance(), &DWindowManagerHelper::hasCompositeChanged, this, [this] {
         D_D(const DBlurEffectWidget);
-
+        qCDebug(logContainers) << "composite support changed, updating widget";
         if (d->maskColorType != CustomColor)
             update();
     });
@@ -493,14 +519,17 @@ DBlurEffectWidget::DBlurEffectWidget(QWidget *parent)
 
 DBlurEffectWidget::~DBlurEffectWidget()
 {
+    qCDebug(logContainers) << "DBlurEffectWidget destructor called";
     D_D(DBlurEffectWidget);
 
     if (d->isBehindWindowBlendMode()) {
+        qCDebug(logContainers) << "removing from blur effect widget hash";
         d->removeFromBlurEffectWidgetHash();
     }
 
     // clean group
     if (d->group) {
+        qCDebug(logContainers) << "removing from group";
         d->group->removeWidget(this);
     }
 }
@@ -514,7 +543,7 @@ DBlurEffectWidget::~DBlurEffectWidget()
 int DBlurEffectWidget::radius() const
 {
     D_DC(DBlurEffectWidget);
-
+    qCDebug(logContainers) << "radius getter called, returning:" << d->radius;
     return d->radius;
 }
 
@@ -526,7 +555,7 @@ int DBlurEffectWidget::radius() const
 DBlurEffectWidget::BlurMode DBlurEffectWidget::mode() const
 {
     D_DC(DBlurEffectWidget);
-
+    qCDebug(logContainers) << "mode getter called, returning:" << d->mode;
     return d->mode;
 }
 
@@ -536,7 +565,7 @@ DBlurEffectWidget::BlurMode DBlurEffectWidget::mode() const
 DBlurEffectWidget::BlendMode DBlurEffectWidget::blendMode() const
 {
     D_DC(DBlurEffectWidget);
-
+    qCDebug(logContainers) << "blendMode getter called, returning:" << d->blendMode;
     return d->blendMode;
 }
 
@@ -673,17 +702,21 @@ bool DBlurEffectWidget::blurEnabled() const
  */
 void DBlurEffectWidget::setRadius(int radius)
 {
+    qCDebug(logContainers) << "setRadius called with radius:" << radius;
     D_D(DBlurEffectWidget);
 
     if (d->radius == radius) {
+        qCDebug(logContainers) << "radius unchanged, returning";
         return;
     }
 
+    qCDebug(logContainers) << "Updating radius from" << d->radius << "to" << radius;
     d->radius = radius;
     d->resetSourceImage();
 
+    qCDebug(logContainers) << "Triggering widget update";
     update();
-
+    qCDebug(logContainers) << "Emitting radiusChanged signal";
     Q_EMIT radiusChanged(radius);
 }
 
@@ -693,9 +726,11 @@ void DBlurEffectWidget::setRadius(int radius)
  */
 void DBlurEffectWidget::setMode(DBlurEffectWidget::BlurMode mode)
 {
+    qCDebug(logContainers) << "setMode called with mode:" << mode;
     D_D(DBlurEffectWidget);
 
     if (d->mode == mode) {
+        qCDebug(logContainers) << "mode unchanged, returning";
         return;
     }
 
@@ -710,27 +745,35 @@ void DBlurEffectWidget::setMode(DBlurEffectWidget::BlurMode mode)
  */
 void DBlurEffectWidget::setBlendMode(DBlurEffectWidget::BlendMode blendMode)
 {
+    qCDebug(logContainers) << "setBlendMode called with mode:" << blendMode;
     D_D(DBlurEffectWidget);
 
     if (d->blendMode == blendMode) {
+        qCDebug(logContainers) << "blend mode unchanged, returning";
         return;
     }
 
+    qCDebug(logContainers) << "Changing blend mode from" << d->blendMode << "to" << blendMode;
+
     if (blendMode == BehindWindowBlend) {
+        qCDebug(logContainers) << "Setting up behind window blend mode";
         d->addToBlurEffectWidgetHash();
 
         // 移除针对顶层窗口的事件过滤器
         topLevelWidget()->removeEventFilter(this);
     } else {
+        qCDebug(logContainers) << "Setting up in-window blend mode";
         if (blendMode != BehindWindowBlend) {
             d->maskColor.setAlpha(d->getMaskColorAlpha());
         }
 
         if (d->blendMode == BehindWindowBlend) {
+            qCDebug(logContainers) << "Removing from blur effect widget hash";
             d->removeFromBlurEffectWidgetHash();
         }
 
         if (isVisible()) {
+            qCDebug(logContainers) << "Installing event filter on top level widget";
             // 给顶层窗口添加事件过滤器
             topLevelWidget()->installEventFilter(this);
         }
@@ -740,6 +783,7 @@ void DBlurEffectWidget::setBlendMode(DBlurEffectWidget::BlendMode blendMode)
     d->blendMode = blendMode;
     update();
 
+    qCDebug(logContainers) << "Emitting blendModeChanged signal";
     Q_EMIT blendModeChanged(blendMode);
 }
 
@@ -749,16 +793,21 @@ void DBlurEffectWidget::setBlendMode(DBlurEffectWidget::BlendMode blendMode)
  */
 void DBlurEffectWidget::setBlurRectXRadius(int blurRectXRadius)
 {
+    qCDebug(logContainers) << "setBlurRectXRadius called with radius:" << blurRectXRadius;
     D_D(DBlurEffectWidget);
 
     if (d->blurRectXRadius == blurRectXRadius) {
+        qCDebug(logContainers) << "blur rect X radius unchanged, returning";
         return;
     }
 
+    qCDebug(logContainers) << "Updating blur rect X radius from" << d->blurRectXRadius << "to" << blurRectXRadius;
     d->blurRectXRadius = blurRectXRadius;
 
+    qCDebug(logContainers) << "Triggering widget update";
     update();
 
+    qCDebug(logContainers) << "Emitting blurRectXRadiusChanged signal";
     Q_EMIT blurRectXRadiusChanged(blurRectXRadius);
 }
 
@@ -768,16 +817,21 @@ void DBlurEffectWidget::setBlurRectXRadius(int blurRectXRadius)
  */
 void DBlurEffectWidget::setBlurRectYRadius(int blurRectYRadius)
 {
+    qCDebug(logContainers) << "setBlurRectYRadius called with radius:" << blurRectYRadius;
     D_D(DBlurEffectWidget);
 
     if (d->blurRectYRadius == blurRectYRadius) {
+        qCDebug(logContainers) << "blur rect Y radius unchanged, returning";
         return;
     }
 
+    qCDebug(logContainers) << "Updating blur rect Y radius from" << d->blurRectYRadius << "to" << blurRectYRadius;
     d->blurRectYRadius = blurRectYRadius;
 
+    qCDebug(logContainers) << "Triggering widget update";
     update();
 
+    qCDebug(logContainers) << "Emitting blurRectYRadiusChanged signal";
     Q_EMIT blurRectYRadiusChanged(blurRectYRadius);
 }
 
@@ -786,12 +840,18 @@ void DBlurEffectWidget::setBlurRectYRadius(int blurRectYRadius)
   \a alpha　设置Alpha通道,值变化发送maskAlphaChanged信号
  */
 void DBlurEffectWidget::setMaskAlpha(quint8 alpha) {
+    qCDebug(logContainers) << "setMaskAlpha called with alpha:" << alpha;
     D_D(DBlurEffectWidget);
 
-    if (alpha == d->maskAlpha) return;
+    if (alpha == d->maskAlpha) {
+        qCDebug(logContainers) << "mask alpha unchanged, returning";
+        return;
+    }
 
+    qCDebug(logContainers) << "Updating mask alpha from" << d->maskAlpha << "to" << alpha;
     d->setMaskAlpha(alpha);
 
+    qCDebug(logContainers) << "Emitting maskAlphaChanged signal";
     Q_EMIT maskAlphaChanged(alpha);
 }
 
@@ -801,19 +861,24 @@ void DBlurEffectWidget::setMaskAlpha(quint8 alpha) {
  */
 void DBlurEffectWidget::setMaskColor(QColor maskColor)
 {
+    qCDebug(logContainers) << "setMaskColor called with color:" << maskColor.name();
     D_D(DBlurEffectWidget);
 
     if (!maskColor.isValid()) {
+        qCDebug(logContainers) << "Invalid color provided, using transparent";
         maskColor = Qt::transparent;
     }
 
     if (d->maskColor == maskColor) {
+        qCDebug(logContainers) << "mask color unchanged, returning";
         return;
     }
 
+    qCDebug(logContainers) << "Setting mask color type to CustomColor";
     d->maskColorType = CustomColor;
     d->setMaskColor(maskColor);
 
+    qCDebug(logContainers) << "Emitting maskColorChanged signal";
     Q_EMIT maskColorChanged(maskColor);
 }
 
@@ -883,8 +948,10 @@ void DBlurEffectWidget::updateBlurSourceImage(const QRegion &ren)
     D_D(DBlurEffectWidget);
 
     // 自定义模式，或者属于某个组时不需要以下操作
-    if (d->customSourceImage || d->group)
+    if (d->customSourceImage || d->group) {
+        qCDebug(logContainers) << "updateBlurSourceImage called, but custom source image or group is set, ignoring.";
         return;
+    }
 
     const qreal device_pixel_ratio = devicePixelRatioF();
     const QPoint point_offset = mapTo(window(), QPoint(0, 0));
@@ -929,8 +996,10 @@ void DBlurEffectWidget::paintEvent(QPaintEvent *event)
 {
     D_D(DBlurEffectWidget);
 
-    if (!d->blurEnabled)
+    if (!d->blurEnabled) {
+        qCDebug(logContainers) << "paintEvent called, blurEnabled is false, returning.";
         return;
+    }
 
     if (!d->isBehindWindowBlendMode()) {
         // 此模式下是自行控制sourceImage的更新
@@ -995,17 +1064,20 @@ void DBlurEffectWidget::moveEvent(QMoveEvent *event)
     D_D(DBlurEffectWidget);
 
     if (isWindow()) {
+        qCDebug(logContainers) << "moveEvent called, isWindow() is true, returning.";
         return QWidget::moveEvent(event);
     }
 
     if (d->blendMode == DBlurEffectWidget::InWindowBlend
             || d->blendMode == DBlurEffectWidget::BehindWindowBlend) {
         d->resetSourceImage();
+        qCDebug(logContainers) << "moveEvent called, blendMode is InWindowBlend or BehindWindowBlend, resetting source image.";
 
         return QWidget::moveEvent(event);
     }
 
     d->updateWindowBlurArea();
+    qCDebug(logContainers) << "moveEvent called, updating window blur area.";
 
     QWidget::moveEvent(event);
 }
@@ -1015,6 +1087,7 @@ void DBlurEffectWidget::resizeEvent(QResizeEvent *event)
     D_D(DBlurEffectWidget);
 
     d->resetSourceImage();
+    qCDebug(logContainers) << "resizeEvent called, resetting source image.";
 
     if (!d->isBehindWindowBlendMode()) {
         if (d->autoScaleSourceImage) {
@@ -1026,6 +1099,7 @@ void DBlurEffectWidget::resizeEvent(QResizeEvent *event)
     }
 
     d->updateWindowBlurArea();
+    qCDebug(logContainers) << "resizeEvent called, updating window blur area.";
 
     QWidget::resizeEvent(event);
 }
@@ -1042,11 +1116,13 @@ void DBlurEffectWidget::showEvent(QShowEvent *event)
 
         // 给顶层窗口添加事件过滤器
         topLevelWidget()->installEventFilter(this);
+        qCDebug(logContainers) << "showEvent called, installing event filter on top level widget.";
 
         return QWidget::showEvent(event);
     }
 
     d->addToBlurEffectWidgetHash();
+    qCDebug(logContainers) << "showEvent called, adding to blur effect widget hash.";
 
     QWidget::showEvent(event);
 }
@@ -1058,11 +1134,13 @@ void DBlurEffectWidget::hideEvent(QHideEvent *event)
     if (!d->isBehindWindowBlendMode()) {
         // 移除事件过滤器
         topLevelWidget()->removeEventFilter(this);
+        qCDebug(logContainers) << "hideEvent called, removing event filter from top level widget.";
 
         return QWidget::hideEvent(event);
     }
 
     d->removeFromBlurEffectWidgetHash();
+    qCDebug(logContainers) << "hideEvent called, removing from blur effect widget hash.";
 
     QWidget::hideEvent(event);
 }
@@ -1077,8 +1155,10 @@ void DBlurEffectWidget::changeEvent(QEvent *event)
 
     if (event->type() == QEvent::ParentAboutToChange) {
         d->removeFromBlurEffectWidgetHash();
+        qCDebug(logContainers) << "changeEvent called, parent about to change, removing from blur effect widget hash.";
     } else if (event->type() == QEvent::ParentChange) {
         d->addToBlurEffectWidgetHash();
+        qCDebug(logContainers) << "changeEvent called, parent changed, adding to blur effect widget hash.";
     }
 
     QWidget::changeEvent(event);
@@ -1126,6 +1206,7 @@ bool DBlurEffectWidget::eventFilter(QObject *watched, QEvent *event)
         if (!(dirty & radius_edge.translated(offset)).isEmpty()) {
             // 此区域已经脏了，应当重置source image
             d->resetSourceImage();
+            qCDebug(logContainers) << "eventFilter called, dirty region includes radius edge, resetting source image.";
 
             if (d->blendMode == InWidgetBlend)
                 Q_EMIT blurSourceImageDirtied();

@@ -12,6 +12,7 @@
 #include <QMimeDatabase>
 #include <QMimeType>
 #include <QDebug>
+#include <QLoggingCategory>
 
 #ifdef USE_GTK_PLUS_2_0
 #include <QUrl>
@@ -21,6 +22,8 @@
 
 DGUI_USE_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logUtilClasses)
 
 #ifdef USE_GTK_PLUS_2_0
 typedef enum {
@@ -77,24 +80,30 @@ Ptr_gtk_icon_theme_get_default DFileIconProviderPrivate::gtk_icon_theme_get_defa
 DFileIconProviderPrivate::DFileIconProviderPrivate(DFileIconProvider *qq)
     : DObjectPrivate(qq)
 {
+    qCDebug(logUtilClasses) << "DFileIconProviderPrivate constructor called";
     init();
 }
 
 void DFileIconProviderPrivate::init()
 {
+    qCDebug(logUtilClasses) << "initializing DFileIconProviderPrivate";
 #ifdef USE_GTK_PLUS_2_0
     gnome_icon_lookup_sync = (Ptr_gnome_icon_lookup_sync)QLibrary::resolve(QLatin1String("gnomeui-2"), 0, "gnome_icon_lookup_sync");
     gnome_vfs_init = (Ptr_gnome_vfs_init)QLibrary::resolve(QLatin1String("gnomevfs-2"), 0, "gnome_vfs_init");
 
-    if (DGUI_NAMESPACE::DGuiApplicationHelper::instance()->isXWindowPlatform())
+    if (DGUI_NAMESPACE::DGuiApplicationHelper::instance()->isXWindowPlatform()) {
+        qCDebug(logUtilClasses) << "X11 platform detected, resolving GTK icon theme";
         gtk_icon_theme_get_default = (Ptr_gtk_icon_theme_get_default)QLibrary::resolve(QLatin1String("gtk-x11-2.0"), 0, "gtk_icon_theme_get_default");
+    }
 #endif
 }
 
 QIcon DFileIconProviderPrivate::getFilesystemIcon(const QFileInfo &info) const
 {
+    qCDebug(logUtilClasses) << "getFilesystemIcon called for file:" << info.absoluteFilePath();
 #ifdef USE_GTK_PLUS_2_0
     if (gnome_vfs_init && gnome_icon_lookup_sync && gtk_icon_theme_get_default) {
+        qCDebug(logUtilClasses) << "using GTK icon lookup";
         gnome_vfs_init();
         GtkIconTheme *theme = gtk_icon_theme_get_default();
         QByteArray fileurl = QUrl::fromLocalFile(info.absoluteFilePath()).toEncoded();
@@ -107,41 +116,54 @@ QIcon DFileIconProviderPrivate::getFilesystemIcon(const QFileInfo &info) const
         QString iconName = QString::fromUtf8(icon_name);
         g_free(icon_name);
         if (iconName.startsWith(QLatin1Char('/'))) {
+            qCDebug(logUtilClasses) << "returning absolute path icon:" << iconName;
             return QIcon(iconName);
         }
+        qCDebug(logUtilClasses) << "returning theme icon:" << iconName;
         return fromTheme(iconName);
     }
 #endif
 
+    qCDebug(logUtilClasses) << "using MIME database for icon lookup";
     const QMimeType &db = QMimeDatabase().mimeTypeForFile(info);
     const QIcon &icon = fromTheme(db.iconName());
 
     if (!icon.isNull()) {
+        qCDebug(logUtilClasses) << "found icon from MIME type:" << db.iconName();
         return icon;
     }
 
+    qCDebug(logUtilClasses) << "using generic icon name:" << db.genericIconName();
     return fromTheme(db.genericIconName());
 }
 
 QIcon DFileIconProviderPrivate::fromTheme(QString iconName) const
 {
+    qCDebug(logUtilClasses) << "fromTheme called with icon name:" << iconName;
     QIcon icon = DIconTheme::findQIcon(iconName);
 
     if (Q_LIKELY(!icon.isNull())) {
+        qCDebug(logUtilClasses) << "found icon in theme:" << iconName;
         return icon;
     }
 
+    qCDebug(logUtilClasses) << "icon not found, trying fallback names";
     if (iconName == "application-vnd.debian.binary-package") {
         iconName = "application-x-deb";
+        qCDebug(logUtilClasses) << "fallback to deb package icon";
     } else if (iconName == "application-vnd.rar") {
         iconName = "application-zip";
+        qCDebug(logUtilClasses) << "fallback to zip icon for rar";
     } else if (iconName == "application-vnd.ms-htmlhelp") {
         iconName = "chmsee";
+        qCDebug(logUtilClasses) << "fallback to chmsee icon";
     } else {
+        qCDebug(logUtilClasses) << "no fallback available, returning null icon";
         return icon;
     }
 
     icon = DIconTheme::findQIcon(iconName);
+    qCDebug(logUtilClasses) << "fallback icon result:" << (icon.isNull() ? "null" : "found");
 
     return icon;
 }
@@ -151,21 +173,23 @@ Q_GLOBAL_STATIC(DFileIconProvider, globalFIP)
 DFileIconProvider::DFileIconProvider()
     : DObject(*new DFileIconProviderPrivate(this))
 {
-
+    qCDebug(logUtilClasses) << "DFileIconProvider constructor called";
 }
 
 DFileIconProvider::~DFileIconProvider()
 {
-
+    qCDebug(logUtilClasses) << "DFileIconProvider destructor called";
 }
 
 DFileIconProvider *DFileIconProvider::globalProvider()
 {
+    qCDebug(logUtilClasses) << "globalProvider called";
     return globalFIP;
 }
 
 QIcon DFileIconProvider::icon(const QFileInfo &info) const
 {
+    qCDebug(logUtilClasses) << "icon called for file:" << info.absoluteFilePath();
     Q_D(const DFileIconProvider);
 
     return d->getFilesystemIcon(info);
@@ -173,12 +197,15 @@ QIcon DFileIconProvider::icon(const QFileInfo &info) const
 
 QIcon DFileIconProvider::icon(const QFileInfo &info, const QIcon &feedback) const
 {
+    qCDebug(logUtilClasses) << "icon called with feedback for file:" << info.absoluteFilePath();
     const QIcon &icon = this->icon(info);
 
     if (icon.isNull()) {
+        qCDebug(logUtilClasses) << "icon is null, returning feedback icon";
         return feedback;
     }
 
+    qCDebug(logUtilClasses) << "returning found icon";
     return icon;
 }
 

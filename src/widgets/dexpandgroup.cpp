@@ -3,6 +3,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include "dexpandgroup.h"
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logContainers, "dtk.widgets.containers")
+
 #if DTK_VERSION < DTK_VERSION_CHECK(6, 0, 0, 0)
 DWIDGET_USE_NAMESPACE
 
@@ -23,7 +27,7 @@ DWIDGET_USE_NAMESPACE
  */
 DExpandGroup::DExpandGroup(QObject *parent) : QObject(parent)
 {
-
+    qCDebug(logContainers) << "Creating DExpandGroup";
 }
 
 /*!
@@ -33,6 +37,7 @@ DExpandGroup::DExpandGroup(QObject *parent) : QObject(parent)
  */
 QList<DBaseExpand *> DExpandGroup::expands() const
 {
+    qCDebug(logContainers) << "Getting expands, count:" << m_expandMap.size();
     return m_expandMap.values();
 }
 
@@ -43,6 +48,7 @@ QList<DBaseExpand *> DExpandGroup::expands() const
  */
 DBaseExpand *DExpandGroup::checkedExpand() const
 {
+    qCDebug(logContainers) << "Getting checked expand, checked count:" << m_checkedMap.size();
     if (m_checkedMap.isEmpty())
         return NULL;
     else
@@ -58,6 +64,7 @@ DBaseExpand *DExpandGroup::checkedExpand() const
  */
 DBaseExpand *DExpandGroup::expand(int id) const
 {
+    qCDebug(logContainers) << "Getting expand by id:" << id;
     return m_expandMap.value(id);
 }
 
@@ -69,18 +76,23 @@ DBaseExpand *DExpandGroup::expand(int id) const
  */
 void DExpandGroup::addExpand(DBaseExpand *expand, int id)
 {
+    qCDebug(logContainers) << "Adding expand with id:" << id;
     if (m_expandMap.values().indexOf(expand) == -1){
         if (id == -1){
+            qCDebug(logContainers) << "Auto-generating id";
             int maxId = -1;
             Q_FOREACH (int tmp, m_expandMap.keys()) {
                 maxId = qMax(tmp, maxId);
             }
-
             id = maxId + 1;
+            qCDebug(logContainers) << "Generated id:" << id;
         }
         m_expandMap.insert(id, expand);
+        qCDebug(logContainers) << "Expand added with final id:" << id;
 
         connect(expand, &DBaseExpand::expandChange, this, &DExpandGroup::onExpandChanged);
+    } else {
+        qCDebug(logContainers) << "Expand already exists in group";
     }
 }
 
@@ -92,6 +104,7 @@ void DExpandGroup::addExpand(DBaseExpand *expand, int id)
  */
 void DExpandGroup::setId(DBaseExpand *expand, int id)
 {
+    qCDebug(logContainers) << "Setting id for expand to:" << id;
     int index = m_expandMap.values().indexOf(expand);
     if (index != -1){
         m_expandMap.remove(m_expandMap.keys().at(index));
@@ -106,6 +119,7 @@ void DExpandGroup::setId(DBaseExpand *expand, int id)
  */
 void DExpandGroup::removeExpand(DBaseExpand *expand)
 {
+    qCDebug(logContainers) << "Removing expand";
     int index = m_expandMap.values().indexOf(expand);
     m_expandMap.remove(m_expandMap.keys().at(index));
 }
@@ -117,6 +131,7 @@ void DExpandGroup::removeExpand(DBaseExpand *expand)
  */
 int DExpandGroup::checkedId() const
 {
+    qCDebug(logContainers) << "Getting checked id, checked count:" << m_checkedMap.size();
     if (m_checkedMap.isEmpty())
         return -1;
     else
@@ -132,25 +147,43 @@ int DExpandGroup::checkedId() const
  */
 int DExpandGroup::id(DBaseExpand *expand) const
 {
+    qCDebug(logContainers) << "Getting id for expand";
     return m_expandMap.keys().at(m_expandMap.values().indexOf(expand));
 }
 
 void DExpandGroup::onExpandChanged(bool v)
 {
+    qCDebug(logContainers) << "Expand changed, value:" << v;
     DBaseExpand *dSender = qobject_cast<DBaseExpand *>(sender());
-    if (!dSender || dSender == checkedExpand() || !v)
+    if (!dSender) {
+        qCDebug(logContainers) << "Invalid sender, ignoring";
         return;
+    }
+    if (dSender == checkedExpand()) {
+        qCDebug(logContainers) << "Sender is already checked expand, ignoring";
+        return;
+    }
+    if (!v) {
+        qCDebug(logContainers) << "Expand is being collapsed, ignoring";
+        return;
+    }
 
+    qCDebug(logContainers) << "Processing expand change";
     m_checkedMap.clear();
     int checkedIndex = m_expandMap.values().indexOf(dSender);
     m_checkedMap.insert(m_expandMap.keys().at(checkedIndex), dSender);
 
     QList<DBaseExpand *> expandList = m_expandMap.values();
+    int collapsedCount = 0;
     for (int i = 0; i < expandList.count(); i ++){
         DBaseExpand *target = expandList.at(i);
-        if (target != dSender && target->expand())
+        if (target != dSender && target->expand()) {
+            qCDebug(logContainers) << "Collapsing expand at index:" << i;
             target->setExpand(false);
+            collapsedCount++;
+        }
     }
+    qCDebug(logContainers) << "Collapsed" << collapsedCount << "expands";
 }
 
 #endif

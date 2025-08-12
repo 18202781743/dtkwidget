@@ -10,6 +10,7 @@
 #include <QLabel>
 #include <DFrame>
 #include <DStyle>
+#include <QLoggingCategory>
 
 #include "dthememanager.h"
 #include "dipv4lineedit.h"
@@ -17,16 +18,19 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
+
 #define RX_PATTERN_IP "^(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)?$"
 
 DIpv4LineEditPrivate::DIpv4LineEditPrivate(DIpv4LineEdit *parent)
         : DObjectPrivate(parent)
 {
-
+    qCDebug(logBasicWidgets) << "DIpv4LineEditPrivate constructor called";
 }
 
 void DIpv4LineEditPrivate::init()
 {
+    qCDebug(logBasicWidgets) << "DIpv4LineEditPrivate::init called";
     D_Q(DIpv4LineEdit);
 
     // Keep the consistency with the child edit and do not display the menu.
@@ -64,6 +68,7 @@ void DIpv4LineEditPrivate::init()
 
 QLabel *DIpv4LineEditPrivate::getLabel()
 {
+    qCDebug(logBasicWidgets) << "getLabel called";
     QLabel *label = new QLabel(".");
 
     label->setObjectName("DIpv4LineEdit_Label");
@@ -74,6 +79,7 @@ QLabel *DIpv4LineEditPrivate::getLabel()
 
 QLineEdit *DIpv4LineEditPrivate::getEdit()
 {
+    qCDebug(logBasicWidgets) << "getEdit called";
     D_Q(DIpv4LineEdit);
 
     QLineEdit *edit = new QLineEdit;
@@ -96,10 +102,13 @@ QLineEdit *DIpv4LineEditPrivate::getEdit()
 
 void DIpv4LineEditPrivate::setFocus(bool focus)
 {
+    qCDebug(logBasicWidgets) << "setFocus called with focus:" << focus;
     D_Q(DIpv4LineEdit);
 
-    if (this->focus == focus)
+    if (this->focus == focus) {
+        qCDebug(logBasicWidgets) << "focus unchanged, returning early";
         return;
+    }
 
     this->focus = focus;
 
@@ -110,6 +119,7 @@ void DIpv4LineEditPrivate::setFocus(bool focus)
 
 void DIpv4LineEditPrivate::_q_updateLineEditText()
 {
+    qCDebug(logBasicWidgets) << "_q_updateLineEditText called";
     D_Q(DIpv4LineEdit);
     QString text;
 
@@ -120,7 +130,9 @@ void DIpv4LineEditPrivate::_q_updateLineEditText()
     QObject::disconnect(q, SIGNAL(textChanged(QString)), q, SLOT(_q_setIpLineEditText(QString)));
 
     if (text == "....") {
+        qCDebug(logBasicWidgets) << "text is empty pattern";
         if (!q->text().isEmpty()) {
+            qCDebug(logBasicWidgets) << "clearing text";
             q->setText("");
             Q_EMIT q->textEdited(q->text());
         }
@@ -128,6 +140,7 @@ void DIpv4LineEditPrivate::_q_updateLineEditText()
         text = text.mid(1);
 
         if (text != q->text()) {
+            qCDebug(logBasicWidgets) << "updating text to:" << text;
             q->setText(text);
             Q_EMIT q->textEdited(q->text());
         }
@@ -140,11 +153,13 @@ void DIpv4LineEditPrivate::_q_updateLineEditText()
 
 void DIpv4LineEditPrivate::_q_setIpLineEditText(const QString &text)
 {
+    qCDebug(logBasicWidgets) << "_q_setIpLineEditText called with text:" << text;
     D_Q(DIpv4LineEdit);
 
     int pos = 0;
 
     if (q->validator()->validate(const_cast<QString &>(text), pos) != QValidator::Acceptable) {
+        qCDebug(logBasicWidgets) << "text validation failed, updating";
         _q_updateLineEditText();
         return;
     }
@@ -322,7 +337,9 @@ bool DIpv4LineEdit::hasAcceptableInput() const
  */
 bool DIpv4LineEdit::isReadOnly() const
 {
-    return d_func()->editList.first()->isReadOnly();
+    const auto& readOnly = d_func()->editList.first()->isReadOnly();
+    qCDebug(logBasicWidgets) << "isReadOnly called, returning:" << readOnly;
+    return readOnly;
 }
 
 /*!
@@ -334,15 +351,18 @@ bool DIpv4LineEdit::isReadOnly() const
  */
 void DIpv4LineEdit::setCursorPosition(int cursorPosition)
 {
+    qCDebug(logBasicWidgets) << "setCursorPosition called with position:" << cursorPosition;
     QLineEdit::setCursorPosition(cursorPosition);
 
     D_D(DIpv4LineEdit);
 
     for (QLineEdit *edit : d->editList) {
         if (cursorPosition > edit->text().size()) {
+            qCDebug(logBasicWidgets) << "cursor position beyond current edit, adjusting";
             cursorPosition -= edit->text().size();
             --cursorPosition;
         } else {
+            qCDebug(logBasicWidgets) << "setting cursor position in current edit";
             edit->setCursorPosition(cursorPosition);
             edit->setFocus();
 
@@ -360,6 +380,7 @@ void DIpv4LineEdit::setCursorPosition(int cursorPosition)
  */
 void DIpv4LineEdit::setReadOnly(bool readOnly)
 {
+    qCDebug(logBasicWidgets) << "setReadOnly called with readOnly:" << readOnly;
     D_D(DIpv4LineEdit);
 
     for (QLineEdit *edit : d->editList) {
@@ -377,21 +398,25 @@ void DIpv4LineEdit::setReadOnly(bool readOnly)
  */
 void DIpv4LineEdit::setSelection(int start, int length)
 {
+    qCDebug(logBasicWidgets) << "setSelection called with start:" << start << "length:" << length;
     D_D(DIpv4LineEdit);
 
     for (QLineEdit *edit : d->editList) {
         if (edit->text().size() > start) {
             if (edit->text().size() < length + start) {
+                qCDebug(logBasicWidgets) << "selection spans multiple edits";
                 int tmp_length = edit->text().size() - start;
 
                 edit->setSelection(start, tmp_length);
 
                 length -= tmp_length;
             } else {
+                qCDebug(logBasicWidgets) << "selection within current edit";
                 edit->setSelection(start, length);
                 break;
             }
         } else {
+            qCDebug(logBasicWidgets) << "no selection in current edit";
             edit->setSelection(edit->cursorPosition(), 0);
         }
 
@@ -409,6 +434,7 @@ void DIpv4LineEdit::setSelection(int start, int length)
  */
 void DIpv4LineEdit::selectAll()
 {
+    qCDebug(logBasicWidgets) << "selectAll called";
     D_D(DIpv4LineEdit);
 
     for (QLineEdit *edit : d->editList) {
@@ -429,6 +455,7 @@ void DIpv4LineEdit::selectAll()
 
 bool DIpv4LineEdit::eventFilter(QObject *obj, QEvent *e)
 {
+    qCDebug(logBasicWidgets) << "eventFilter called with event type:" << e->type();
     if (e->type() == QEvent::KeyPress) {
         QLineEdit *edit = qobject_cast<QLineEdit *>(obj);
 
@@ -440,23 +467,27 @@ bool DIpv4LineEdit::eventFilter(QObject *obj, QEvent *e)
                 if (event->modifiers() == Qt::ShiftModifier &&
                     (event->key() == Qt::Key_Left ||
                      event->key() == Qt::Key_Right)) {
-                  return QLineEdit::eventFilter(obj, e);
+                    qCDebug(logBasicWidgets) << "shift+arrow key pressed, delegating to parent";
+                    return QLineEdit::eventFilter(obj, e);
                 }
 
                 D_D(DIpv4LineEdit);
                 if (event->key() <= Qt::Key_9 && event->key() >= Qt::Key_0) {
+                    qCDebug(logBasicWidgets) << "number key pressed:" << (event->key() - Qt::Key_0);
                     if (edit->cursorPosition() == edit->text().size()) {
                         QRegularExpression rx(RX_PATTERN_IP);
 
                         const QString number = QString::number(event->key() - Qt::Key_0);
 
                         if (!rx.match(edit->text().append(number)).hasMatch()) {
+                            qCDebug(logBasicWidgets) << "number would exceed limit, moving to next edit";
                             int index = d->editList.indexOf(edit) + 1;
 
                             if (index < d->editList.count()) {
                                 d->editList[index]->setFocus();
 
                                 if (d->editList[index]->text().isEmpty()) {
+                                    qCDebug(logBasicWidgets) << "setting number in next edit";
                                     d->editList[index]->setText(number);
                                     d->_q_updateLineEditText();
                                 }

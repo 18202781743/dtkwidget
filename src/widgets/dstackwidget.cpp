@@ -7,8 +7,10 @@
 #include "dthememanager.h"
 #include "dstackwidget.h"
 #include "private/dstackwidget_p.h"
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logContainers)
 
 DAbstractStackWidgetTransitionPrivate::DAbstractStackWidgetTransitionPrivate(DAbstractStackWidgetTransition *qq)
     : DObjectPrivate(qq)
@@ -34,11 +36,13 @@ DAbstractStackWidgetTransition::DAbstractStackWidgetTransition(QObject *parent):
     QObject(parent),
     DObject(*new DAbstractStackWidgetTransitionPrivate(this))
 {
+    qCDebug(logContainers) << "create transition";
     d_func()->init();
 }
 
 void DAbstractStackWidgetTransition::beginTransition(const TransitionInfo &info)
 {
+    qCDebug(logContainers) << "begin transition";
     Q_D(DAbstractStackWidgetTransition);
 
     d->info = info;
@@ -48,6 +52,7 @@ QVariantAnimation *DAbstractStackWidgetTransition::animation() const
 {
     Q_D(const DAbstractStackWidgetTransition);
 
+    qCDebug(logContainers) << "get animation" << static_cast<void*>(d->animation);
     return d->animation;
 }
 
@@ -74,6 +79,7 @@ DSlideStackWidgetTransition::DSlideStackWidgetTransition(QObject *parent):
 
 void DSlideStackWidgetTransition::beginTransition(const TransitionInfo &info)
 {
+    qCDebug(logContainers) << "slide begin";
     DAbstractStackWidgetTransition::beginTransition(info);
 
     info.oldWidget->move(0, 0);
@@ -93,6 +99,7 @@ void DSlideStackWidgetTransition::beginTransition(const TransitionInfo &info)
 
 void DSlideStackWidgetTransition::updateVariant(const QVariant &variant)
 {
+    qCDebug(logContainers) << "slide update" << variant;
     int x = variant.toInt();
 
     info().oldWidget->move(x, 0);
@@ -127,19 +134,25 @@ void DStackWidgetPrivate::init()
 
 void DStackWidgetPrivate::setCurrentIndex(int index)
 {
-    if(index == currentIndex)
+    qCDebug(logContainers) << "DStackWidgetPrivate setting current index:" << index;
+    if(index == currentIndex) {
+        qCDebug(logContainers) << "Index unchanged, skipping update";
         return;
+    }
 
     Q_Q(DStackWidget);
 
     if(index >= 0 && index < widgetList.count()){
+        qCDebug(logContainers) << "Valid index, setting current widget";
         currentIndex = index;
         currentWidget = widgetList[index];
     } else {
+        qCDebug(logContainers) << "Invalid index, clearing current widget";
         currentIndex = -1;
         currentWidget = nullptr;
     }
 
+    qCDebug(logContainers) << "Emitting index and widget changed signals";
     q->currentIndexChanged(index);
     q->currentWidgetChanged(currentWidget);
 }
@@ -319,15 +332,33 @@ int DStackWidget::pushWidget(QWidget *widget, bool enableTransition)
  */
 void DStackWidget::insertWidget(int index, QWidget *widget, bool enableTransition)
 {
+    qCDebug(logContainers) << "insert widget at index" << index << "transition" << enableTransition;
     Q_D(DStackWidget);
+
+    if (!widget) {
+        qCDebug(logContainers) << "widget is null, skipping insertion";
+        return;
+    }
+
+    if (index < 0 || index > d->widgetList.size()) {
+        qCDebug(logContainers) << "invalid index" << index << "for list size" << d->widgetList.size();
+        return;
+    }
 
     widget->setParent(this);
     d->widgetList.insert(index, widget);
+    qCDebug(logContainers) << "widget inserted, new depth:" << depth();
 
-    if(index == this->depth() - 1)
+    if(index == this->depth() - 1) {
+        qCDebug(logContainers) << "inserting at top, setting current index";
         setCurrentIndex(index, DAbstractStackWidgetTransition::Push, enableTransition);
-    else
+    } else {
+        qCDebug(logContainers) << "inserting in middle, updating current index";
         d->setCurrentIndex(indexOf(currentWidget()));
+    }
+
+    qCDebug(logContainers) << "emitting depth changed signal";
+    Q_EMIT depthChanged(depth());
 }
 
 /*!
@@ -343,12 +374,16 @@ void DStackWidget::insertWidget(int index, QWidget *widget, bool enableTransitio
  */
 void DStackWidget::popWidget(QWidget *widget, bool isDelete, int count, bool enableTransition)
 {
+    qCDebug(logContainers) << "pop widget, delete" << isDelete << "count" << count << "transition" << enableTransition;
     Q_D(DStackWidget);
 
     int i = widget ? indexOf(widget) : currentIndex();
+    qCDebug(logContainers) << "pop starting at index" << i;
 
-    if(i < 0 || i >= depth())
+    if(i < 0 || i >= depth()) {
+        qCDebug(logContainers) << "invalid index, returning";
         return;
+    }
 
     bool current_widget_deleted = false;
 
@@ -356,8 +391,10 @@ void DStackWidget::popWidget(QWidget *widget, bool isDelete, int count, bool ena
         QWidget *tmp_widget = d->widgetList[i];
 
         if(tmp_widget == currentWidget()) {
+            qCDebug(logContainers) << "current widget will be deleted";
             current_widget_deleted = true;
         } else if(isDelete) {
+            qCDebug(logContainers) << "deleting widget";
             tmp_widget->deleteLater();
         }
 
@@ -366,8 +403,10 @@ void DStackWidget::popWidget(QWidget *widget, bool isDelete, int count, bool ena
 
     if(current_widget_deleted && isDelete){
         if(enableTransition && depth()){
+            qCDebug(logContainers) << "adding current widget to trash for transition";
             d->trashWidgetList << d->currentWidget;
         } else if(d->currentWidget) {
+            qCDebug(logContainers) << "deleting current widget immediately";
             d->currentWidget->deleteLater();
             d->currentWidget = nullptr;
         }
@@ -381,11 +420,20 @@ void DStackWidget::popWidget(QWidget *widget, bool isDelete, int count, bool ena
  */
 void DStackWidget::clear()
 {
+    qCDebug(logContainers) << "clearing all widgets, current count:" << depth();
     Q_D(DStackWidget);
 
+    if (d->widgetList.isEmpty()) {
+        qCDebug(logContainers) << "widget list is already empty";
+        return;
+    }
+
+    qCDebug(logContainers) << "deleting" << d->widgetList.size() << "widgets";
     qDeleteAll(d->widgetList.begin(), d->widgetList.end());
     d->widgetList.clear();
     d->setCurrentIndex(-1);
+    qCDebug(logContainers) << "all widgets cleared, emitting depth changed";
+    Q_EMIT depthChanged(0);
 }
 
 /*!
@@ -396,9 +444,12 @@ void DStackWidget::clear()
  */
 int DStackWidget::indexOf(QWidget *widget) const
 {
+    qCDebug(logContainers) << "getting index of widget";
     Q_D(const DStackWidget);
 
-    return d->widgetList.indexOf(widget);
+    const auto& index = d->widgetList.indexOf(widget);
+    qCDebug(logContainers) << "widget index:" << index;
+    return index;
 }
 
 /*!
@@ -409,9 +460,15 @@ int DStackWidget::indexOf(QWidget *widget) const
  */
 QWidget *DStackWidget::getWidgetByIndex(int index) const
 {
+    qCDebug(logContainers) << "getting widget by index:" << index;
     Q_D(const DStackWidget);
 
-    return d->widgetList[index];
+    if (index >= 0 && index < d->widgetList.size()) {
+        return d->widgetList[index];
+    } else {
+        qCDebug(logContainers) << "invalid index, returning nullptr";
+        return nullptr;
+    }
 }
 
 /*!
@@ -421,24 +478,39 @@ QWidget *DStackWidget::getWidgetByIndex(int index) const
  */
 void DStackWidget::setTransition(DAbstractStackWidgetTransition *transition)
 {
+    qCDebug(logContainers) << "setting transition:" << transition;
     Q_D(DStackWidget);
 
+    if (!transition) {
+        qCDebug(logContainers) << "transition is null, skipping";
+        return;
+    }
+
+    if (d->transition == transition) {
+        qCDebug(logContainers) << "transition unchanged, skipping update";
+        return;
+    }
+
     if(d->transition){
+        qCDebug(logContainers) << "deleting old transition";
         d->transition->deleteLater();
     }
 
     transition->setParent(this);
     d->transition = transition;
+    qCDebug(logContainers) << "new transition set successfully";
 
     connect(transition->animation(), &QVariantAnimation::stateChanged,
             this, [this, d](QAbstractAnimation::State newState, QAbstractAnimation::State oldState){
         if(newState == QVariantAnimation::Stopped) {
+            qCDebug(logContainers) << "animation stopped";
             busyChanged(false);
             qDeleteAll(d->trashWidgetList);
             d->trashWidgetList.clear();
 
             Q_EMIT switchWidgetFinished();
         } else if(oldState == QVariantAnimation::Stopped) {
+            qCDebug(logContainers) << "animation started";
             busyChanged(true);
         }
     });
@@ -451,9 +523,16 @@ void DStackWidget::setTransition(DAbstractStackWidgetTransition *transition)
  */
 void DStackWidget::setAnimationDuration(int animationDuration)
 {
+    qCDebug(logContainers) << "setting animation duration:" << animationDuration;
     Q_D(DStackWidget);
 
+    if (d->transition->animation()->duration() == animationDuration) {
+        qCDebug(logContainers) << "animation duration unchanged, skipping update";
+        return;
+    }
+
     d->transition->animation()->setDuration(animationDuration);
+    qCDebug(logContainers) << "animation duration updated successfully";
 }
 
 /*!
@@ -463,6 +542,7 @@ void DStackWidget::setAnimationDuration(int animationDuration)
  */
 void DStackWidget::setAnimationType(QEasingCurve::Type animationType)
 {
+    qCDebug(logContainers) << "setting animation type:" << animationType;
     Q_D(DStackWidget);
 
     d->transition->animation()->setEasingCurve(animationType);
@@ -478,29 +558,36 @@ DStackWidget::DStackWidget(DStackWidgetPrivate &dd, QWidget *parent):
 void DStackWidget::setCurrentIndex(int currentIndex, DAbstractStackWidgetTransition::TransitionType type,
                                    bool enableTransition)
 {
+    qCDebug(logContainers) << "Setting current index:" << currentIndex << "type:" << type << "transition:" << enableTransition;
     Q_D(DStackWidget);
 
     if(enableTransition && currentWidget() && currentIndex >= 0) {
+        qCDebug(logContainers) << "Using transition animation";
         DAbstractStackWidgetTransition::TransitionInfo info;
         info.stackWidget = this;
         info.oldWidget = currentWidget();
-        info.newWidget = getWidgetByIndex(depth() - 1);
+        info.newWidget = getWidgetByIndex(currentIndex);
         info.type = type;
 
+        qCDebug(logContainers) << "Transition from widget:" << info.oldWidget << "to widget:" << info.newWidget;
         d->setCurrentIndex(currentIndex);
         d->transition->beginTransition(info);
     } else {
+        qCDebug(logContainers) << "Using direct switch without animation";
         if(currentWidget()) {
+            qCDebug(logContainers) << "Hiding current widget";
             currentWidget()->hide();
         }
 
         d->setCurrentIndex(currentIndex);
 
         if(currentWidget()) {
+            qCDebug(logContainers) << "Showing new current widget";
             currentWidget()->move(0, 0);
             currentWidget()->show();
         }
 
+        qCDebug(logContainers) << "Emitting switchWidgetFinished signal";
         Q_EMIT switchWidgetFinished();
     }
 }
@@ -508,7 +595,10 @@ void DStackWidget::setCurrentIndex(int currentIndex, DAbstractStackWidgetTransit
 void DStackWidget::setCurrentWidget(QWidget *currentWidget, DAbstractStackWidgetTransition::TransitionType type,
                                     bool enableTransition)
 {
-    setCurrentIndex(indexOf(currentWidget), type, enableTransition);
+    qCDebug(logContainers) << "Setting current widget:" << currentWidget << "type:" << type << "transition:" << enableTransition;
+    int index = indexOf(currentWidget);
+    qCDebug(logContainers) << "Widget index:" << index;
+    setCurrentIndex(index, type, enableTransition);
 }
 
 DWIDGET_END_NAMESPACE

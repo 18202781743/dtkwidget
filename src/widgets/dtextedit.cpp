@@ -21,9 +21,11 @@
 #include <DStyle>
 #include <DObjectPrivate>
 #include <DGuiApplicationHelper>
+#include <QLoggingCategory>
 DGUI_USE_NAMESPACE
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 class DTextEditPrivate : public DTK_CORE_NAMESPACE::DObjectPrivate
 {
@@ -54,6 +56,7 @@ DTextEdit::DTextEdit(QWidget *parent)
     : QTextEdit(parent)
     , DObject(*new DTextEditPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "create dtextedit";
     Q_D(DTextEdit);
 
     viewport()->setAutoFillBackground(false);
@@ -73,11 +76,13 @@ DTextEdit::DTextEdit(QWidget *parent)
 DTextEdit::DTextEdit(const QString &text, QWidget *parent)
     : DTextEdit(parent)
 {
+    qCDebug(logBasicWidgets) << "create dtextedit with text";
     setText(text);
 }
 
 bool DTextEdit::event(QEvent *e)
 {
+    qCDebug(logBasicWidgets) << "event type" << static_cast<int>(e->type());
     Q_D(DTextEdit);
 
     if (e->type() == QEvent::Paint) {
@@ -140,6 +145,7 @@ bool DTextEdit::event(QEvent *e)
 
 void DTextEdit::keyPressEvent(QKeyEvent *event)
 {
+    qCDebug(logBasicWidgets) << "key press" << static_cast<int>(event->key());
     if (event == QKeySequence::SelectAll) {
         QApplication::clipboard()->setText(this->toPlainText(), QClipboard::Mode::Selection);
     }
@@ -149,6 +155,7 @@ void DTextEdit::keyPressEvent(QKeyEvent *event)
 
 void DTextEdit::contextMenuEvent(QContextMenuEvent *e)
 {
+    qCDebug(logBasicWidgets) << "context menu at" << e->pos();
     auto msg = QDBusMessage::createMethodCall("com.iflytek.aiassistant", "/",
                                    "org.freedesktop.DBus.Peer", "Ping");
     // 用之前 Ping 一下, 300ms 内没回复就认定是服务出问题，不再添加助手菜单项
@@ -303,6 +310,7 @@ void DTextEdit::contextMenuEvent(QContextMenuEvent *e)
 bool DTextEdit::speechToTextIsEnabled() const
 {
     D_D(const DTextEdit);
+    qCDebug(logBasicWidgets) << "getting speech to text enabled:" << d->bSpeechToText;
     return d->bSpeechToText;
 }
 
@@ -313,8 +321,16 @@ bool DTextEdit::speechToTextIsEnabled() const
  */
 void DTextEdit::setSpeechToTextEnabled(bool enable)
 {
+    qCDebug(logBasicWidgets) << "setting speech to text enabled:" << enable;
     D_D(DTextEdit);
+    
+    if (d->bSpeechToText == enable) {
+        qCDebug(logBasicWidgets) << "speech to text enabled state unchanged, skipping update";
+        return;
+    }
+    
     d->bSpeechToText = enable;
+    qCDebug(logBasicWidgets) << "speech to text enabled state updated successfully";
 }
 
 /*!
@@ -325,6 +341,7 @@ void DTextEdit::setSpeechToTextEnabled(bool enable)
 bool DTextEdit::textToSpeechIsEnabled() const
 {
     D_D(const DTextEdit);
+    qCDebug(logBasicWidgets) << "getting text to speech enabled:" << d->bTextToSpeech;
     return d->bTextToSpeech;
 }
 
@@ -335,8 +352,16 @@ bool DTextEdit::textToSpeechIsEnabled() const
  */
 void DTextEdit::setTextToSpeechEnabled(bool enable)
 {
+    qCDebug(logBasicWidgets) << "setting text to speech enabled:" << enable;
     D_D(DTextEdit);
+    
+    if (d->bTextToSpeech == enable) {
+        qCDebug(logBasicWidgets) << "text to speech enabled state unchanged, skipping update";
+        return;
+    }
+    
     d->bTextToSpeech = enable;
+    qCDebug(logBasicWidgets) << "text to speech enabled state updated successfully";
 }
 
 /*!
@@ -347,6 +372,7 @@ void DTextEdit::setTextToSpeechEnabled(bool enable)
 bool DTextEdit::textToTranslateIsEnabled() const
 {
     D_D(const DTextEdit);
+    qCDebug(logBasicWidgets) << "getting text to translate enabled:" << d->bTextToTranslate;
     return d->bTextToTranslate;
 }
 
@@ -357,8 +383,16 @@ bool DTextEdit::textToTranslateIsEnabled() const
  */
 void DTextEdit::setTextToTranslateEnabled(bool enable)
 {
+    qCDebug(logBasicWidgets) << "setting text to translate enabled:" << enable;
     D_D(DTextEdit);
+    
+    if (d->bTextToTranslate == enable) {
+        qCDebug(logBasicWidgets) << "text to translate enabled state unchanged, skipping update";
+        return;
+    }
+    
     d->bTextToTranslate = enable;
+    qCDebug(logBasicWidgets) << "text to translate enabled state updated successfully";
 }
 
 DTextEditPrivate::DTextEditPrivate(DTextEdit *qq)

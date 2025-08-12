@@ -11,6 +11,10 @@
 #include <QEvent>
 #include <QPainter>
 
+DWIDGET_BEGIN_NAMESPACE
+
+Q_LOGGING_CATEGORY(logMessageNotification, "dtk.widgets.message")
+
 #define D_MESSAGE_MANAGER_CONTENT "_d_message_manager_content"
 const int MARGIN = 20;
 const int MESSGAE_HEIGHT = 50;
@@ -26,14 +30,22 @@ public:
         : QLabel (parent)
         , m_opacity(0)
     {
+        qCDebug(logMessageNotification) << "ImageLabel constructor called";
     };
-    void setOpacity(qreal opac) { m_opacity = opac; }
-    qreal opacity() { return m_opacity ;}
+    void setOpacity(qreal opac) { 
+        qCDebug(logMessageNotification) << "Setting opacity to:" << opac;
+        m_opacity = opac; 
+    }
+    qreal opacity() { 
+        qCDebug(logMessageNotification) << "Getting opacity:" << m_opacity;
+        return m_opacity ;
+    }
 
 protected:
     void paintEvent(QPaintEvent *e) override
     {
         Q_UNUSED(e)
+        qCDebug(logMessageNotification) << "ImageLabel paintEvent called";
         QPainter p(this);
         p.setRenderHint(QPainter::Antialiasing);
         p.setOpacity(m_opacity);
@@ -63,25 +75,30 @@ protected:
 
 DMessageManager::DMessageManager()
 {
+    qCDebug(logMessageNotification) << "DMessageManager constructor called";
 }
 
 DMessageManager *DMessageManager::instance()
 {
+    qCDebug(logMessageNotification) << "DMessageManager instance called";
     return reinterpret_cast<DMessageManager *>(DTK_WIDGET_NAMESPACE::DMessageManager::instance());
 }
 
 void DMessageManager::sendMessage(QWidget *par, DTK_WIDGET_NAMESPACE::DFloatingMessage *floMsg)
 {
+    qCDebug(logMessageNotification) << "Sending floating message to parent:" << par;
     DTK_WIDGET_NAMESPACE::DMessageManager::instance()->sendMessage(par, floMsg);
 }
 
 void DMessageManager::sendMessage(QWidget *par, const QIcon &icon, const QString &message)
 {
+    qCDebug(logMessageNotification) << "Sending message with icon to parent:" << par << "message:" << message;
     DTK_WIDGET_NAMESPACE::DMessageManager::instance()->sendMessage(par, icon, message);
 }
 
 bool DMessageManager::setContentMargens(QWidget *par, const QMargins &margins)
 {
+    qCDebug(logMessageNotification) << "Setting content margins for parent:" << par << "margins:" << margins;
     return DTK_WIDGET_NAMESPACE::DMessageManager::instance()->setContentMargens(par, margins);
 }
 
@@ -96,6 +113,7 @@ DWIDGET_BEGIN_NAMESPACE
 template<typename IconType>
 static void sendMessage_helper(DMessageManager *manager, QWidget *par, IconType icon, const QString &message)
 {
+    qCDebug(logMessageNotification) << "sendMessage_helper called with message:" << message;
     QWidget *content = par->findChild<QWidget *>(D_MESSAGE_MANAGER_CONTENT, Qt::FindDirectChildrenOnly);
 
     if (content) {
@@ -109,6 +127,7 @@ static void sendMessage_helper(DMessageManager *manager, QWidget *par, IconType 
 
         // TransientType 类型的通知消息，最多只允许同时显示三个
         if (text_message_count >= 3) {
+            qCDebug(logMessageNotification) << "Maximum transient messages reached (3), skipping";
             return;
         }
     }
@@ -127,6 +146,7 @@ DMessageManagerPrivate::DMessageManagerPrivate(DMessageManager *qq)
     , m_aniGroup(nullptr)
     , m_label(nullptr)
 {
+    qCDebug(logMessageNotification) << "DMessageManagerPrivate constructor called";
     if (!ENABLE_ANIMATIONS || !ENABLE_ANIMATION_MESSAGE)
         return;
 
@@ -153,6 +173,7 @@ DMessageManagerPrivate::DMessageManagerPrivate(DMessageManager *qq)
 DMessageManager::DMessageManager()               //私有静态构造函数
     : DObject(*new DMessageManagerPrivate(this))
 {
+    qCDebug(logMessageNotification) << "DMessageManager constructor called";
 }
 
 /*!
@@ -162,6 +183,7 @@ DMessageManager::DMessageManager()               //私有静态构造函数
  */
 DMessageManager *DMessageManager::instance()  //公有静态函数
 {
+    qCDebug(logMessageNotification) << "DMessageManager instance called";
     static DMessageManager instance;             //局部静态变量
     return &instance;
 }
@@ -175,19 +197,25 @@ DMessageManager *DMessageManager::instance()  //公有静态函数
 void DMessageManager::sendMessage(QWidget *par, DFloatingMessage *floMsg)
 {
     D_D(DMessageManager);
+    qCDebug(logMessageNotification) << "Sending floating message to parent:" << par;
     QWidget *content = par->findChild<QWidget *>(D_MESSAGE_MANAGER_CONTENT, Qt::FindDirectChildrenOnly);
 
     if (!content) {
+        qCDebug(logMessageNotification) << "Creating new content widget";
         content = new QWidget(par);
         content->setObjectName(D_MESSAGE_MANAGER_CONTENT);
         content->setAttribute(Qt::WA_AlwaysStackOnTop);
 
         QMargins magins = par->property("_d_margins").value<QMargins>();
-        if (par->property("_d_margins").isValid())
+        if (par->property("_d_margins").isValid()) {
+            qCDebug(logMessageNotification) << "Using custom margins:" << magins;
             content->setContentsMargins(magins);
-        else
+        } else {
+            qCDebug(logMessageNotification) << "Using default margins:" << MARGIN;
             content->setContentsMargins(QMargins(MARGIN, 0, MARGIN, 0));
+        }
 
+        qCDebug(logMessageNotification) << "Installing event filters";
         content->installEventFilter(this);
         par->installEventFilter(this);
         QVBoxLayout *layout = new QVBoxLayout(content);
@@ -269,11 +297,21 @@ void DMessageManager::sendMessage(QWidget *par, DFloatingMessage *floMsg)
  */
 void DMessageManager::sendMessage(QWidget *par, const QIcon &icon, const QString &message)
 {
+    qCDebug(logMessageNotification) << "Sending message with QIcon to parent:" << par << "message:" << message;
+    if (!par) {
+        qCDebug(logMessageNotification) << "Parent widget is null, cannot send message";
+        return;
+    }
     sendMessage_helper(instance(), par, icon, message);
 }
 
 void DMessageManager::sendMessage(QWidget *par, const DDciIcon &icon, const QString &message)
 {
+    qCDebug(logMessageNotification) << "Sending message with DDciIcon to parent:" << par << "message:" << message;
+    if (!par) {
+        qCDebug(logMessageNotification) << "Parent widget is null, cannot send message";
+        return;
+    }
     sendMessage_helper(instance(), par, icon, message);
 }
 
@@ -286,11 +324,26 @@ void DMessageManager::sendMessage(QWidget *par, const DDciIcon &icon, const QStr
  */
 bool DMessageManager::setContentMargens(QWidget *par, const QMargins &margins)
 {
+    qCDebug(logMessageNotification) << "Setting content margins:" << margins << "for parent:" << par;
+    
+    if (!par) {
+        qCDebug(logMessageNotification) << "Parent widget is null, cannot set margins";
+        return false;
+    }
+    
     QWidget *content = par->findChild<QWidget *>(D_MESSAGE_MANAGER_CONTENT, Qt::FindDirectChildrenOnly);
     if (content) {
+        qCDebug(logMessageNotification) << "Content widget found, applying margins immediately";
+        QMargins currentMargins = content->contentsMargins();
+        if (currentMargins == margins) {
+            qCDebug(logMessageNotification) << "Margins unchanged, skipping update";
+            return true;
+        }
         content->setContentsMargins(margins);
+        qCDebug(logMessageNotification) << "Margins applied successfully";
         return true;
     } else {
+        qCDebug(logMessageNotification) << "Content widget not found, storing margins as property";
         par->setProperty("_d_margins", QVariant::fromValue(margins));
         return false;
     }

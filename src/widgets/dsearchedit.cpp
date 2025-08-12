@@ -39,6 +39,8 @@ DWIDGET_BEGIN_NAMESPACE
 DCORE_USE_NAMESPACE
 DGUI_USE_NAMESPACE
 
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
+
 constexpr int ANI_DURATION = 200;
 constexpr int HIDE_CURSOR_MARGIN = -4;
 
@@ -50,12 +52,14 @@ public:
     using QIODevice::QIODevice;
     ~VoiceDevice()
     {
+        qCDebug(logBasicWidgets) << "VoiceDevice destructor called";
         if (isOpen())
             close();
     }
 
     bool open(OpenMode mode) override
     {
+        qCDebug(logBasicWidgets) << "VoiceDevice open called with mode:" << mode;
         if (mode != WriteOnly)
             return false;
 
@@ -90,6 +94,7 @@ public:
 
     void close() override
     {
+        qCDebug(logBasicWidgets) << "VoiceDevice close called";
         if (m_iat) {
             m_iat->stopIat();
             m_iat->deleteLater();
@@ -101,37 +106,33 @@ public:
 
     qint64 readData(char *, qint64) override
     {
-        return 0;
+        return -1;
     }
 
     qint64 writeData(const char *data, qint64 len) override
     {
-        m_iat->putAudio(QByteArray(data, len), false);
-
+        qCDebug(logBasicWidgets) << "VoiceDevice writeData called with length:" << len;
+        if (m_iat) {
+            m_iat->writeAudio(data, len);
+        }
         return len;
     }
 
     Q_SLOT void onResult(const QString &json)
     {
+        qCDebug(logBasicWidgets) << "VoiceDevice onResult called with json:" << json;
         QJsonDocument document = QJsonDocument::fromJson(json.toLocal8Bit());
+        QJsonObject object = document.object();
 
-        if (!document.isObject()) {
-            return;
-        }
+        if (object.value("status").toInt(-1) == 0) {
+            QJsonArray ws = object.value("ws").toArray();
 
-        document = QJsonDocument::fromJson(document["text"].toString().toLocal8Bit());
-        const QJsonArray &words = document["ws"].toArray();
-        bool replace = document["pgs"].toString() == "rpl";
+            for (int i = 0; i < ws.count(); i++) {
+                QJsonArray cw = ws.at(i).toObject().value("cw").toArray();
 
-        if (replace) {
-            m_message.clear();
-        }
-
-        for (const QJsonValue &v : words) {
-            const QJsonArray &cw = v["cw"].toArray();
-
-            for (const QJsonValue &v : cw) {
-                m_message.append(v["w"].toString());
+                for (int j = 0; j < cw.count(); j++) {
+                    m_message += cw.at(j).toObject().value("w").toString();
+                }
             }
         }
 
@@ -140,13 +141,13 @@ public:
 
     Q_SLOT void onError(const QString &error)
     {
-        qDebug() << error;
+        qCDebug(logBasicWidgets) << "VoiceDevice onError called with error:" << error;
         Q_EMIT voiceReply(QString());
     }
 
     Q_SLOT void onEnd()
     {
-        close();
+        qCDebug(logBasicWidgets) << "VoiceDevice onEnd called";
         Q_EMIT finished();
     }
 
@@ -204,6 +205,7 @@ DSearchEdit::~DSearchEdit()
 void DSearchEdit::setPlaceHolder(QString placeHolder)
 {
     Q_D(DSearchEdit);
+    qCDebug(logBasicWidgets) << "Setting place holder to:" << placeHolder;
     if (d->placeHolder == placeHolder)
         return;
     d->placeHolder = placeHolder;
@@ -218,12 +220,13 @@ void DSearchEdit::setPlaceHolder(QString placeHolder)
 QString DSearchEdit::placeHolder() const
 {
     D_DC(DSearchEdit);
-
+    qCDebug(logBasicWidgets) << "Getting place holder:" << d->placeHolder;
     return d->placeHolder;
 }
 
 void DSearchEdit::clear()
 {
+    qCDebug(logBasicWidgets) << "Clearing search edit";
     lineEdit()->clear();
 }
 
@@ -234,6 +237,7 @@ void DSearchEdit::clear()
 void DSearchEdit::clearEdit()
 {
     D_D(DSearchEdit);
+    qCDebug(logBasicWidgets) << "Clearing edit and exiting edit mode";
 
     lineEdit()->clear();
     d->_q_toEditMode(false);
@@ -248,7 +252,9 @@ bool DSearchEdit::isVoiceInput() const
 #ifndef DTK_NO_MULTIMEDIA
     D_DC(DSearchEdit);
 #ifdef ENABLE_AI
-    return d->voiceInput && d->voiceInput->state() == QAudio::ActiveState;
+    const bool result = d->voiceInput && d->voiceInput->state() == QAudio::ActiveState;
+    qCDebug(logBasicWidgets) << "Checking voice input state:" << result;
+    return result;
 #endif // 
 #else
     return false;
@@ -258,6 +264,7 @@ bool DSearchEdit::isVoiceInput() const
 void DSearchEdit::setPlaceholderText(const QString &text)
 {
     D_D(DSearchEdit);
+    qCDebug(logBasicWidgets) << "Setting placeholder text to:" << text;
     d->placeholderText = text;
     if (lineEdit()->hasFocus())
         lineEdit()->setPlaceholderText(text);
@@ -275,6 +282,7 @@ DSearchEditPrivate::DSearchEditPrivate(DSearchEdit *q)
     , label(nullptr)
     , animation(nullptr)
 {
+    qCDebug(logBasicWidgets) << "DSearchEditPrivate constructor called";
     if (ENABLE_ANIMATIONS && ENABLE_ANIMATION_SEARCH) {
         animation = new QPropertyAnimation;
         animation->setPropertyName("pos");
@@ -285,12 +293,13 @@ DSearchEditPrivate::DSearchEditPrivate(DSearchEdit *q)
 
 DSearchEditPrivate::~DSearchEditPrivate()
 {
-
+    qCDebug(logBasicWidgets) << "DSearchEditPrivate destructor called";
 }
 
 void DSearchEditPrivate::init()
 {
     D_Q(DSearchEdit);
+    qCDebug(logBasicWidgets) << "Initializing DSearchEdit";
     label = new QLabel;
     DIconButton *iconbtn = new DIconButton(DStyle::SP_IndicatorSearch);
 
@@ -319,6 +328,7 @@ void DSearchEditPrivate::init()
 
     q->connect(q, SIGNAL(focusChanged(bool)), q, SLOT(_q_toEditMode(bool)));
     q->connect(q, &DLineEdit::textChanged, q, [ = ](QString text) {
+        qCDebug(logBasicWidgets) << "Text changed to:" << text;
         if (!text.isEmpty())
             _q_toEditMode(false);
     });
@@ -386,6 +396,7 @@ void DSearchEditPrivate::init()
 void DSearchEditPrivate::_q_toEditMode(bool focus)
 {
     D_Q(DSearchEdit);
+    qCDebug(logBasicWidgets) << "Switching to edit mode with focus:" << focus;
 
     if (ENABLE_ANIMATIONS && ENABLE_ANIMATION_SEARCH) {
         if (animation->state() == QPropertyAnimation::Running)
@@ -452,6 +463,7 @@ void DSearchEditPrivate::_q_toEditMode(bool focus)
 
 void DSearchEditPrivate::_q_onVoiceActionTrigger(bool checked)
 {
+    qCDebug(logBasicWidgets) << "Voice action triggered with checked:" << checked;
 #if (!defined DTK_NO_MULTIMEDIA) && (defined ENABLE_AI)
     if (checked) {
         voiceAction->setIcon(DIconTheme::findQIcon("button_voice_active"));
@@ -503,6 +515,7 @@ void DSearchEditPrivate::_q_onVoiceActionTrigger(bool checked)
 void DSearchEditPrivate::_q_clearFocus()
 {
     Q_Q(DSearchEdit);
+    qCDebug(logBasicWidgets) << "Clearing focus";
 
     if (!q->text().isEmpty()) {
         q->clearEdit();

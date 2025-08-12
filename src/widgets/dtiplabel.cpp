@@ -6,8 +6,13 @@
 #include "private/dtiplabel_p.h"
 
 #include <DFontSizeManager>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logMediaImage)
+}
 
 /*!
   \class Dtk::Widget::DTipLabel
@@ -28,6 +33,7 @@ DWIDGET_BEGIN_NAMESPACE
 DTipLabel::DTipLabel(const QString &text, QWidget *parent)
     : DLabel(*new DTipLabelPrivate(this), parent)
 {
+    qCDebug(logMediaImage) << "Creating tip label with text:" << text;
     setText(text);
 
     D_D(DTipLabel);
@@ -45,6 +51,7 @@ DTipLabel::~DTipLabel()
  */
 void DTipLabel::show(const QPoint &pos)
 {
+    qCDebug(logMediaImage) << "Showing tip label at position:" << pos;
     if (isWindow()) {
         setWindowFlag(Qt::ToolTip);
     }
@@ -60,6 +67,7 @@ void DTipLabel::show(const QPoint &pos)
  */
 void DTipLabel::setForegroundRole(DPalette::ColorType color)
 {
+    qCDebug(logMediaImage) << "Setting foreground color type:" << int(color);
     DLabel::setForegroundRole(color);
 }
 

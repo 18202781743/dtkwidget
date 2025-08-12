@@ -11,6 +11,7 @@
 #include <QCloseEvent>
 #include <QApplication>
 #include <QSpacerItem>
+#include <QLoggingCategory>
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QDesktopWidget>
 #endif
@@ -34,6 +35,8 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_LOGGING_CATEGORY(logDialogs, "dtk.widgets.dialogs")
+
 DDialogPrivate::DDialogPrivate(DDialog *qq)
     : DAbstractDialogPrivate(qq)
     , messageLabel(nullptr)
@@ -43,16 +46,18 @@ DDialogPrivate::DDialogPrivate(DDialog *qq)
     , buttonLayout(nullptr)
     , clickedButtonIndex(-1)
 {
-
+    qCDebug(logDialogs) << "DDialogPrivate constructor called";
 }
 
 QBoxLayout *DDialogPrivate::getContentLayout()
 {
+    qCDebug(logDialogs) << "getContentLayout called";
     return contentLayout;
 }
 
 static void palrtteTransparency(QWidget *widget, qint8 alphaFloat)
 {
+    qCDebug(logDialogs) << "palrtteTransparency called with alphaFloat:" << alphaFloat;
     QPalette palette = widget->palette();
     QColor color = DGuiApplicationHelper::adjustColor(palette.color(QPalette::Active, QPalette::BrightText), 0, 0, 0, 0, 0, 0, alphaFloat);
     palette.setColor(QPalette::WindowText, color);
@@ -61,6 +66,7 @@ static void palrtteTransparency(QWidget *widget, qint8 alphaFloat)
 
 void DDialogPrivate::init()
 {
+    qCDebug(logDialogs) << "DDialogPrivate init called";
     D_Q(DDialog);
 
     // TopLayout--TextLabel
@@ -291,7 +297,9 @@ void DDialogPrivate::_q_defaultButtonTriggered()
 DDialog::DDialog(QWidget *parent) :
     DAbstractDialog(*new DDialogPrivate(this), parent)
 {
+    qCDebug(logDialogs) << "DDialog constructor called";
     d_func()->init();
+    qCDebug(logDialogs) << "DDialog initialized";
 }
 
 /*!
@@ -305,10 +313,12 @@ DDialog::DDialog(QWidget *parent) :
 DDialog::DDialog(const QString &title, const QString &message, QWidget *parent) :
     DAbstractDialog(*new DDialogPrivate(this), parent)
 {
+    qCDebug(logDialogs) << "DDialog constructor called with title:" << title << "message:" << message;
     d_func()->init();
 
     setTitle(title);
     setMessage(message);
+    qCDebug(logDialogs) << "DDialog initialized with title and message";
 }
 
 /*!
@@ -321,15 +331,19 @@ DDialog::DDialog(const QString &title, const QString &message, QWidget *parent) 
  */
 int DDialog::getButtonIndexByText(const QString &text) const
 {
+    qCDebug(logDialogs) << "getButtonIndexByText called with text:" << text;
     int i = -1;
 
     for (const QAbstractButton *button : getButtons()) {
         ++i;
 
-        if (button->text() == text)
+        if (button->text() == text) {
+            qCDebug(logDialogs) << "found button at index:" << i;
             return i;
+        }
     }
 
+    qCDebug(logDialogs) << "button not found, returning:" << i;
     return i;
 }
 
@@ -340,8 +354,9 @@ int DDialog::getButtonIndexByText(const QString &text) const
 int DDialog::buttonCount() const
 {
     D_DC(DDialog);
-
-    return d->buttonList.count();
+    const auto& count = d->buttonList.count();
+    qCDebug(logDialogs) << "buttonCount called, returning:" << count;
+    return count;
 }
 
 /*!
@@ -351,8 +366,9 @@ int DDialog::buttonCount() const
 int DDialog::contentCount() const
 {
     D_DC(DDialog);
-
-    return d->contentList.count();
+    const auto& count = d->contentList.count();
+    qCDebug(logDialogs) << "contentCount called, returning:" << count;
+    return count;
 }
 
 /*!
@@ -362,7 +378,7 @@ int DDialog::contentCount() const
 QList<QAbstractButton *> DDialog::getButtons() const
 {
     D_DC(DDialog);
-
+    qCDebug(logDialogs) << "getButtons called, returning button count:" << d->buttonList.size();
     return d->buttonList;
 }
 
@@ -373,7 +389,7 @@ QList<QAbstractButton *> DDialog::getButtons() const
 QList<QWidget *> DDialog::getContents() const
 {
     D_DC(DDialog);
-
+    qCDebug(logDialogs) << "getContents called, returning content count:" << d->contentList.size();
     return d->contentList;
 }
 
@@ -387,7 +403,7 @@ QList<QWidget *> DDialog::getContents() const
 QAbstractButton *DDialog::getButton(int index) const
 {
     D_DC(DDialog);
-
+    qCDebug(logDialogs) << "getButton called with index:" << index;
     return d->buttonList.at(index);
 }
 
@@ -400,7 +416,7 @@ QAbstractButton *DDialog::getButton(int index) const
 QWidget *DDialog::getContent(int index) const
 {
     D_DC(DDialog);
-
+    qCDebug(logDialogs) << "getContent called with index:" << index;
     return d->contentList.at(index);
 }
 
@@ -413,7 +429,7 @@ QWidget *DDialog::getContent(int index) const
 QString DDialog::title() const
 {
     D_DC(DDialog);
-
+    qCDebug(logDialogs) << "title getter called, returning:" << d->title;
     return d->title;
 }
 
@@ -426,7 +442,7 @@ QString DDialog::title() const
 QString DDialog::message() const
 {
     D_DC(DDialog);
-
+    qCDebug(logDialogs) << "message getter called, returning:" << d->message;
     return d->message;
 }
 
@@ -439,7 +455,7 @@ QString DDialog::message() const
 QIcon DDialog::icon() const
 {
     D_DC(DDialog);
-
+    qCDebug(logDialogs) << "icon getter called";
     return d->icon;
 }
 
@@ -470,7 +486,7 @@ QPixmap DDialog::iconPixmap() const
 Qt::TextFormat DDialog::textFormat() const
 {
     D_DC(DDialog);
-
+    qCDebug(logDialogs) << "textFormat getter called, returning:" << d->textFormat;
     return d->textFormat;
 }
 
@@ -483,7 +499,7 @@ Qt::TextFormat DDialog::textFormat() const
 bool DDialog::onButtonClickedClose() const
 {
     D_DC(DDialog);
-
+    qCDebug(logDialogs) << "onButtonClickedClose getter called, returning:" << d->onButtonClickedClose;
     return d->onButtonClickedClose;
 }
 
@@ -494,9 +510,11 @@ bool DDialog::onButtonClickedClose() const
  */
 void DDialog::setContentLayoutContentsMargins(const QMargins &margins)
 {
+    qCDebug(logDialogs) << "setContentLayoutContentsMargins called with margins:" << margins;
     D_D(DDialog);
 
     d->contentLayout->setContentsMargins(margins);
+    qCDebug(logDialogs) << "content layout margins set";
 }
 
 /*!
@@ -508,8 +526,9 @@ void DDialog::setContentLayoutContentsMargins(const QMargins &margins)
 QMargins DDialog::contentLayoutContentsMargins() const
 {
     D_DC(DDialog);
-
-    return d->contentLayout->contentsMargins();
+    const auto& margins = d->contentLayout->contentsMargins();
+    qCDebug(logDialogs) << "contentLayoutContentsMargins called, returning:" << margins;
+    return margins;
 }
 
 /*!
@@ -520,7 +539,9 @@ QMargins DDialog::contentLayoutContentsMargins() const
  */
 bool DDialog::closeButtonVisible() const
 {
-    return windowFlags().testFlag(Qt::WindowCloseButtonHint);
+    const auto& visible = windowFlags().testFlag(Qt::WindowCloseButtonHint);
+    qCDebug(logDialogs) << "closeButtonVisible called, returning:" << visible;
+    return visible;
 }
 
 /*!
@@ -535,10 +556,11 @@ bool DDialog::closeButtonVisible() const
  */
 int DDialog::addButton(const QString &text, bool isDefault, ButtonType type)
 {
+    qCDebug(logDialogs) << "addButton called with text:" << text << "isDefault:" << isDefault << "type:" << type;
     int index = buttonCount();
 
     insertButton(index, text, isDefault, type);
-
+    qCDebug(logDialogs) << "button added at index:" << index;
     return index;
 }
 
@@ -552,10 +574,11 @@ int DDialog::addButton(const QString &text, bool isDefault, ButtonType type)
  */
 int DDialog::addButtons(const QStringList &text)
 {
+    qCDebug(logDialogs) << "addButtons called with text list:" << text;
     int index = buttonCount();
 
     insertButtons(index, text);
-
+    qCDebug(logDialogs) << "buttons added starting at index:" << index;
     return index;
 }
 
@@ -570,16 +593,20 @@ int DDialog::addButtons(const QStringList &text)
  */
 void DDialog::insertButton(int index, const QString &text, bool isDefault, ButtonType type)
 {
+    qCDebug(logDialogs) << "insertButton called with index:" << index << "text:" << text << "isDefault:" << isDefault << "type:" << type;
     QAbstractButton *button;
 
     switch (type) {
     case ButtonWarning:
+        qCDebug(logDialogs) << "creating DWarningButton";
         button = new DWarningButton(this);
         break;
     case ButtonRecommend:
+        qCDebug(logDialogs) << "creating DSuggestButton";
         button = new DSuggestButton(this);
         break;
     default:
+        qCDebug(logDialogs) << "creating QPushButton";
         button = new QPushButton(this);
         break;
     }
@@ -590,6 +617,7 @@ void DDialog::insertButton(int index, const QString &text, bool isDefault, Butto
     button->setAttribute(Qt::WA_NoMousePropagation);
 
     insertButton(index, button, isDefault);
+    qCDebug(logDialogs) << "button inserted successfully";
 }
 
 /*!
@@ -602,6 +630,7 @@ void DDialog::insertButton(int index, const QString &text, bool isDefault, Butto
  */
 void DDialog::insertButton(int index, QAbstractButton *button, bool isDefault)
 {
+    qCDebug(logDialogs) << "insertButton (QAbstractButton) called with index:" << index << "isDefault:" << isDefault;
     D_D(DDialog);
 
     DVerticalLine *line = new DVerticalLine;
@@ -611,7 +640,10 @@ void DDialog::insertButton(int index, QAbstractButton *button, bool isDefault)
     d->buttonLayout->insertWidget(index * 2 , line);
     d->buttonLayout->insertWidget(index * 2 + 1, button);
     d->buttonList << button;
+    qCDebug(logDialogs) << "button added to list, total count:" << d->buttonList.count();
+    
     if (d->buttonList.count() == 1) {
+        qCDebug(logDialogs) << "first button added, setting spacer";
         int spacing = DStyleHelper(style()).pixelMetric(DStyle::PM_ContentsSpacing);
         d->setSpacer(spacing);
     }
@@ -619,8 +651,10 @@ void DDialog::insertButton(int index, QAbstractButton *button, bool isDefault)
     d->buttonLayout->itemAt(0)->widget()->hide();
 
     connect(button, SIGNAL(clicked(bool)), this, SLOT(_q_onButtonClicked()));
+    qCDebug(logDialogs) << "button click signal connected";
 
     if (isDefault) {
+        qCDebug(logDialogs) << "setting as default button";
         setDefaultButton(button);
     }
 
@@ -652,9 +686,12 @@ void DDialog::insertButton(int index, QAbstractButton *button, bool isDefault)
  */
 void DDialog::insertButtons(int index, const QStringList &text)
 {
+    qCDebug(logDialogs) << "insertButtons called with index:" << index << "text count:" << text.count();
     for (int i = 0; i < text.count(); ++i) {
+        qCDebug(logDialogs) << "inserting button" << i << "with text:" << text[i];
         insertButton(index + i, text[i]);
     }
+    qCDebug(logDialogs) << "all buttons inserted";
 }
 
 /*!
@@ -665,22 +702,26 @@ void DDialog::insertButtons(int index, const QStringList &text)
  */
 void DDialog::removeButton(int index)
 {
+    qCDebug(logDialogs) << "removeButton called with index:" << index;
     D_D(DDialog);
 
     DVerticalLine *label = qobject_cast<DVerticalLine *>(d->buttonLayout->itemAt(index * 2 + 1)->widget());
     QAbstractButton *button = qobject_cast<QAbstractButton *>(d->buttonLayout->itemAt(index * 2)->widget());
 
     if (label) {
+        qCDebug(logDialogs) << "removing vertical line";
         d->buttonLayout->removeWidget(label);
         label->deleteLater();
     }
 
     if (button) {
+        qCDebug(logDialogs) << "removing button";
         d->buttonLayout->removeWidget(button);
         button->deleteLater();
     }
 
     if (index > 0 && index == buttonCount() - 1) {
+        qCDebug(logDialogs) << "hiding last separator line";
         DVerticalLine *label = qobject_cast<DVerticalLine *>(d->buttonLayout->itemAt(d->buttonLayout->count() - 1)->widget());
 
         if (label)
@@ -688,8 +729,10 @@ void DDialog::removeButton(int index)
     }
 
     d->buttonList.removeAt(index);
+    qCDebug(logDialogs) << "button removed, remaining count:" << d->buttonList.count();
 
     if (d->buttonList.isEmpty()) {
+        qCDebug(logDialogs) << "no buttons left, removing spacer";
         d->setSpacer(0);
     }
 }
@@ -702,7 +745,10 @@ void DDialog::removeButton(int index)
  */
 void DDialog::removeButton(QAbstractButton *button)
 {
-    removeButton(getButtons().indexOf(button));
+    qCDebug(logDialogs) << "removeButton (QAbstractButton) called";
+    int index = getButtons().indexOf(button);
+    qCDebug(logDialogs) << "button found at index:" << index;
+    removeButton(index);
 }
 
 /*!
@@ -713,10 +759,15 @@ void DDialog::removeButton(QAbstractButton *button)
  */
 void DDialog::removeButtonByText(const QString &text)
 {
+    qCDebug(logDialogs) << "removeButtonByText called with text:" << text;
     int index = getButtonIndexByText(text);
 
-    if (index >= 0)
+    if (index >= 0) {
+        qCDebug(logDialogs) << "removing button at index:" << index;
         removeButton(index);
+    } else {
+        qCDebug(logDialogs) << "button with text not found";
+    }
 }
 
 /*!
@@ -725,17 +776,22 @@ void DDialog::removeButtonByText(const QString &text)
  */
 void DDialog::clearButtons()
 {
+    qCDebug(logDialogs) << "clearButtons called";
     D_D(DDialog);
 
     d->buttonList.clear();
     d->setSpacer(0);
+    qCDebug(logDialogs) << "button list cleared and spacer reset";
 
+    int layoutCount = d->buttonLayout->count();
+    qCDebug(logDialogs) << "removing" << layoutCount << "layout items";
     while (d->buttonLayout->count()) {
         QLayoutItem *item = d->buttonLayout->takeAt(0);
 
         item->widget()->deleteLater();
         delete item;
     }
+    qCDebug(logDialogs) << "all buttons cleared";
 }
 
 /*!
@@ -957,13 +1013,18 @@ void DDialog::setButtonIcon(int index, const QIcon &icon)
 void DDialog::setTitle(const QString &title)
 {
     D_D(DDialog);
+    qCDebug(logDialogs) << "Setting dialog title:" << title;
 
-    if (d->title == title)
+    if (d->title == title) {
+        qCDebug(logDialogs) << "Title unchanged, skipping update";
         return;
+    }
 
     d->title = title;
     d->titleLabel->setText(title);
     d->titleLabel->setHidden(title.isEmpty());
+    qCDebug(logDialogs) << "Title label visibility set to:" << !title.isEmpty();
+    qCDebug(logDialogs) << "Title updated, emitting titleChanged signal";
 
     Q_EMIT titleChanged(title);
 }
@@ -989,13 +1050,18 @@ void DDialog::setWordWrapTitle(bool wordWrap)
 void DDialog::setMessage(const QString &message)
 {
     D_D(DDialog);
+    qCDebug(logDialogs) << "Setting dialog message:" << message;
 
-    if (d->message == message)
+    if (d->message == message) {
+        qCDebug(logDialogs) << "Message unchanged, skipping update";
         return;
+    }
 
     d->message = message;
     d->messageLabel->setText(message);
     d->messageLabel->setHidden(message.isEmpty());
+    qCDebug(logDialogs) << "Message label visibility set to:" << !message.isEmpty();
+    qCDebug(logDialogs) << "Message updated, emitting messageChanged signal";
 
     Q_EMIT messageChanged(message);
 }
@@ -1014,11 +1080,22 @@ void DDialog::setWordWrapMessage(bool wordWrap)
 void DDialog::setIcon(const QIcon &icon)
 {
     D_D(DDialog);
+    qCDebug(logDialogs) << "Setting dialog icon, is null:" << icon.isNull();
+
+    if (d->icon.cacheKey() == icon.cacheKey()) {
+        qCDebug(logDialogs) << "Icon unchanged, skipping update";
+        return;
+    }
 
     d->icon = icon;
 
     if (!icon.isNull()) {
+        qCDebug(logDialogs) << "Setting icon on title bar";
         d->titleBar->setIcon(d->icon);
+        qCDebug(logDialogs) << "Icon set on title bar successfully";
+    } else {
+        qCDebug(logDialogs) << "Icon is null, clearing title bar icon";
+        d->titleBar->setIcon(QIcon());
     }
 }
 
@@ -1069,13 +1146,17 @@ void DDialog::setIconPixmap(const QPixmap &iconPixmap)
 void DDialog::setTextFormat(Qt::TextFormat textFormat)
 {
     D_D(DDialog);
+    qCDebug(logDialogs) << "Setting text format:" << textFormat;
 
-    if (d->textFormat == textFormat)
+    if (d->textFormat == textFormat) {
+        qCDebug(logDialogs) << "Text format unchanged, skipping update";
         return;
+    }
 
     d->textFormat = textFormat;
     d->titleLabel->setTextFormat(textFormat);
     d->messageLabel->setTextFormat(textFormat);
+    qCDebug(logDialogs) << "Text format updated, emitting textFormatChanged signal";
 
     Q_EMIT textFormatChanged(textFormat);
 }
@@ -1089,7 +1170,7 @@ void DDialog::setTextFormat(Qt::TextFormat textFormat)
 void DDialog::setOnButtonClickedClose(bool onButtonClickedClose)
 {
     D_D(DDialog);
-
+    qCDebug(logDialogs) << "Setting onButtonClickedClose:" << onButtonClickedClose;
     d->onButtonClickedClose = onButtonClickedClose;
 }
 

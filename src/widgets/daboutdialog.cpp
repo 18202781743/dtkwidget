@@ -16,6 +16,9 @@
 #include <QUrl>
 #include <QDebug>
 #include <QVBoxLayout>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(logDialogs)
 #include <QLabel>
 #include <QIcon>
 #include <QKeyEvent>
@@ -37,11 +40,13 @@ const QString DAboutDialogPrivate::websiteLinkTemplate = "<a href='%1' style='te
 DRedPointLabel::DRedPointLabel(QWidget *parent)
     : QLabel(parent)
 {
+    qCDebug(logDialogs) << "DRedPointLabel created";
 }
 
 void DRedPointLabel::paintEvent(QPaintEvent *e)
 {
     Q_UNUSED(e)
+    qCDebug(logDialogs) << "DRedPointLabel paint event";
     QPainter painter(this);
     QRectF rcf(0, 0, 4, 4);
     QPainterPath path;
@@ -55,12 +60,13 @@ void DRedPointLabel::paintEvent(QPaintEvent *e)
 DAboutDialogPrivate::DAboutDialogPrivate(DAboutDialog *qq)
     : DDialogPrivate(qq)
 {
-
+    qCDebug(logDialogs) << "DAboutDialogPrivate created";
 }
 
 void DAboutDialogPrivate::init()
 {
     D_Q(DAboutDialog);
+    qCDebug(logDialogs) << "Initializing DAboutDialog";
 
     q->setFixedSize(540, 290);
 
@@ -230,28 +236,34 @@ void DAboutDialogPrivate::init()
 
 void DAboutDialogPrivate::loadDistributionInfo()
 {
+    qCDebug(logDialogs) << "Loading distribution info";
     logoPath = DSysInfo::distributionOrgLogo(DSysInfo::Distribution, DSysInfo::Light, ":/assets/images/deepin-logo.svg");
     auto websiteInfo = DSysInfo::distributionOrgWebsite(DSysInfo::Distribution); // will always return a valid result.
     websiteName = websiteInfo.first;
     websiteLink = websiteInfo.second;
+    qCDebug(logDialogs) << "Distribution info loaded, website:" << websiteName << websiteLink;
 }
 
 void DAboutDialogPrivate::updateWebsiteLabel()
 {
+    qCDebug(logDialogs) << "Updating website label";
     QString websiteText = QString(websiteLinkTemplate).arg(websiteLink).arg(websiteName);
     websiteLabel->setText(websiteText);
 }
 
 void DAboutDialogPrivate::_q_onLinkActivated(const QString &link)
 {
+    qCDebug(logDialogs) << "Link activated:" << link;
     DGUI_NAMESPACE::DGuiApplicationHelper::openUrl(link);
 }
 
 void DAboutDialogPrivate::_q_onFeatureActivated(const QString &)
 {
     D_Q(DAboutDialog);
+    qCDebug(logDialogs) << "Feature activated";
     DConfig config("org.deepin.dtk.preference");
     if (config.value("featureUpdated", false).toBool()) {
+        qCDebug(logDialogs) << "Feature updated flag cleared";
         config.setValue("featureUpdated", false);
         redPointLabel->setVisible(false);
     }
@@ -261,12 +273,14 @@ void DAboutDialogPrivate::_q_onFeatureActivated(const QString &)
 void DAboutDialogPrivate::_q_onLicenseActivated(const QString &)
 {
     D_Q(DAboutDialog);
+    qCDebug(logDialogs) << "License activated";
     Q_EMIT q->licenseActivated();
 }
 
 QPixmap DAboutDialogPrivate::loadPixmap(const QString &file)
 {
     D_Q(DAboutDialog);
+    qCDebug(logDialogs) << "Loading pixmap from:" << file;
 
     qreal ratio = 1.0;
 
@@ -275,12 +289,15 @@ QPixmap DAboutDialogPrivate::loadPixmap(const QString &file)
     QPixmap pixmap;
 
     if (!qFuzzyCompare(ratio, devicePixelRatio)) {
+        qCDebug(logDialogs) << "Using high DPI scaling, ratio:" << devicePixelRatio;
         QImageReader reader;
         reader.setFileName(qt_findAtNxFile(file, devicePixelRatio, &ratio));
         if (reader.canRead()) {
             reader.setScaledSize(reader.size() * (devicePixelRatio / ratio));
             pixmap = QPixmap::fromImage(reader.read());
             pixmap.setDevicePixelRatio(devicePixelRatio);
+        } else {
+            qCWarning(logDialogs) << "Cannot read image file:" << file;
         }
     } else {
         pixmap.load(file);
@@ -304,6 +321,7 @@ DAboutDialog::DAboutDialog(QWidget *parent)
     : DDialog(*new DAboutDialogPrivate(this), parent)
 {
     D_D(DAboutDialog);
+    qCDebug(logDialogs) << "DAboutDialog created";
 
     d->init();
 }
@@ -315,6 +333,7 @@ DAboutDialog::DAboutDialog(QWidget *parent)
  */
 QString DAboutDialog::windowTitle() const
 {
+    qCDebug(logDialogs) << "Getting window title";
     return title();
 }
 
@@ -327,7 +346,7 @@ QString DAboutDialog::windowTitle() const
 QString DAboutDialog::productName() const
 {
     D_DC(DAboutDialog);
-
+    qCDebug(logDialogs) << "Getting product name";
     return d->productNameLabel->text();
 }
 
@@ -341,7 +360,7 @@ QString DAboutDialog::productName() const
 QString DAboutDialog::version() const
 {
     D_DC(DAboutDialog);
-
+    qCDebug(logDialogs) << "Getting version";
     return d->versionLabel->text();
 }
 
@@ -355,7 +374,7 @@ QString DAboutDialog::version() const
 QString DAboutDialog::description() const
 {
     D_DC(DAboutDialog);
-
+    qCDebug(logDialogs) << "Getting description";
     return d->descriptionLabel->text();
 }
 
@@ -388,7 +407,7 @@ QPixmap DAboutDialog::companyLogo() const
 QString DAboutDialog::websiteName() const
 {
     D_DC(DAboutDialog);
-
+    qCDebug(logDialogs) << "Getting website name";
     return d->websiteName;
 }
 
@@ -403,7 +422,7 @@ QString DAboutDialog::websiteName() const
 QString DAboutDialog::websiteLink() const
 {
     D_DC(DAboutDialog);
-
+    qCDebug(logDialogs) << "Getting website link";
     return d->websiteLink;
 }
 
@@ -427,13 +446,14 @@ QString DAboutDialog::acknowledgementLink() const
 QString DAboutDialog::license() const
 {
     D_DC(DAboutDialog);
-
+    qCDebug(logDialogs) << "Getting license";
     return d->licenseLabel->text();
 }
 
 void DAboutDialog::setLicenseEnabled(bool enabled)
 {
     D_D(DAboutDialog);
+    qCDebug(logDialogs) << "Setting license enabled:" << enabled;
     QString ack = QObject::tr("Sincerely appreciate the open-source software used.");
     if (enabled) {
         QString tmp = QObject::tr("open-source software");
@@ -449,6 +469,7 @@ void DAboutDialog::setLicenseEnabled(bool enabled)
  */
 void DAboutDialog::setWindowTitle(const QString &windowTitle)
 {
+    qCDebug(logDialogs) << "Setting window title:" << windowTitle;
     setTitle(windowTitle);
 }
 
@@ -461,6 +482,7 @@ void DAboutDialog::setWindowTitle(const QString &windowTitle)
 void DAboutDialog::setProductIcon(const QIcon &icon)
 {
     D_D(DAboutDialog);
+    qCDebug(logDialogs) << "Setting product icon";
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     d->logoLabel->setPixmap(icon.pixmap(windowHandle(), QSize(128, 128)));
 #else
@@ -475,7 +497,7 @@ void DAboutDialog::setProductIcon(const QIcon &icon)
 void DAboutDialog::setProductName(const QString &productName)
 {
     D_D(DAboutDialog);
-
+    qCDebug(logDialogs) << "Setting product name:" << productName;
     d->productNameLabel->setText(productName);
 }
 
@@ -486,7 +508,7 @@ void DAboutDialog::setProductName(const QString &productName)
 void DAboutDialog::setVersion(const QString &version)
 {
     D_D(DAboutDialog);
-
+    qCDebug(logDialogs) << "Setting version:" << version;
     d->versionLabel->setText(version);
 }
 
@@ -497,7 +519,7 @@ void DAboutDialog::setVersion(const QString &version)
 void DAboutDialog::setDescription(const QString &description)
 {
     D_D(DAboutDialog);
-
+    qCDebug(logDialogs) << "Setting description:" << description;
     d->descriptionLabel->setText(description);
 }
 
@@ -508,7 +530,7 @@ void DAboutDialog::setDescription(const QString &description)
 void DAboutDialog::setCompanyLogo(const QPixmap &companyLogo)
 {
     D_D(DAboutDialog);
-
+    qCDebug(logDialogs) << "Setting company logo";
     d->companyLogoLabel->setPixmap(companyLogo);
 }
 
@@ -519,8 +541,9 @@ void DAboutDialog::setCompanyLogo(const QPixmap &companyLogo)
 void DAboutDialog::setWebsiteName(const QString &websiteName)
 {
     D_D(DAboutDialog);
-
+    qCDebug(logDialogs) << "Setting website name:" << websiteName;
     if (d->websiteName == websiteName) {
+        qCDebug(logDialogs) << "Website name unchanged, skipping update";
         return;
     }
 
@@ -535,8 +558,9 @@ void DAboutDialog::setWebsiteName(const QString &websiteName)
 void DAboutDialog::setWebsiteLink(const QString &websiteLink)
 {
     D_D(DAboutDialog);
-
+    qCDebug(logDialogs) << "Setting website link:" << websiteLink;
     if (d->websiteLink == websiteLink) {
+        qCDebug(logDialogs) << "Website link unchanged, skipping update";
         return;
     }
 
@@ -560,6 +584,7 @@ void DAboutDialog::setAcknowledgementLink(const QString &)
 void DAboutDialog::setAcknowledgementVisible(bool isVisible)
 {
     D_D(DAboutDialog);
+    qCDebug(logDialogs) << "Setting acknowledgement visible:" << isVisible;
     d->acknowledgementTipLabel->setVisible(isVisible);
     d->acknowledgementLabel->setVisible(isVisible);
 }
@@ -571,7 +596,7 @@ void DAboutDialog::setAcknowledgementVisible(bool isVisible)
 void DAboutDialog::setLicense(const QString &license)
 {
     D_D(DAboutDialog);
-
+    qCDebug(logDialogs) << "Setting license:" << license;
     d->licenseLabel->setText(license);
     d->licenseLabel->setVisible(!license.isEmpty());
     d->licenseTipLabel->setVisible(!license.isEmpty());
@@ -580,6 +605,7 @@ void DAboutDialog::setLicense(const QString &license)
 void DAboutDialog::keyPressEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Escape) {
+        qCDebug(logDialogs) << "Escape key pressed, closing dialog";
         close();
         event->accept();
     }
@@ -589,11 +615,14 @@ void DAboutDialog::keyPressEvent(QKeyEvent *event)
 
 void DAboutDialog::showEvent(QShowEvent *event)
 {
+    qCDebug(logDialogs) << "DAboutDialog show event";
     DDialog::showEvent(event);
 
     if (minimumWidth() == maximumWidth()) {
+        qCDebug(logDialogs) << "Resizing dialog to fit content";
         resize(width(), heightForWidth(width()));
     } else {
+        qCDebug(logDialogs) << "Adjusting dialog size";
         adjustSize();
     }
 }

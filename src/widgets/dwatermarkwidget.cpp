@@ -10,12 +10,15 @@
 #include <QPainter>
 #include <QResizeEvent>
 #include <QDebug>
+#include <QLoggingCategory>
 
 #include <cmath>
 
 DCORE_USE_NAMESPACE
 DTK_USE_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logUtils)
 
 DWIDGET_USE_NAMESPACE
 
@@ -118,6 +121,7 @@ WaterMarkData &WaterMarkData::operator=(const WaterMarkData &p)
 WaterMarkData::WaterMarkType WaterMarkData::type() const
 {
     D_DC(WaterMarkData);
+    qCDebug(logUtils) << "getting watermark type:" << d->type;
     return d->type;
 }
 
@@ -127,6 +131,7 @@ WaterMarkData::WaterMarkType WaterMarkData::type() const
  */
 void WaterMarkData::setType(WaterMarkType type)
 {
+    qCDebug(logUtils) << "setting watermark type:" << type;
     D_D(WaterMarkData);
     d->type = type;
 }
@@ -137,6 +142,7 @@ void WaterMarkData::setType(WaterMarkType type)
 WaterMarkData::WaterMarkLayout WaterMarkData::layout() const
 {
     D_DC(WaterMarkData);
+    qCDebug(logUtils) << "getting watermark layout:" << d->layout;
     return d->layout;
 }
 
@@ -146,6 +152,7 @@ WaterMarkData::WaterMarkLayout WaterMarkData::layout() const
  */
 void WaterMarkData::setLayout(WaterMarkLayout layout)
 {
+    qCDebug(logUtils) << "setting watermark layout:" << layout;
     D_D(WaterMarkData);
     d->layout = layout;
 }
@@ -456,11 +463,14 @@ DWaterMarkWidget::DWaterMarkWidget(QWidget *parent)
     : QWidget(parent)
     , DObject(*new DWaterMarkWidgetPrivate(this))
 {
+    qCDebug(logUtils) << "creating watermark widget";
     D_D(DWaterMarkWidget);
     d->init();
 
-    if (parent)
+    if (parent) {
+        qCDebug(logUtils) << "installing event filter on parent";
         parent->installEventFilter(this);
+    }
 }
 
 /*!
@@ -468,6 +478,7 @@ DWaterMarkWidget::DWaterMarkWidget(QWidget *parent)
  */
 const WaterMarkData &DWaterMarkWidget::data()
 {
+    qCDebug(logUtils) << "getting watermark widget data";
     D_DC(DWaterMarkWidget);
     return d->data;
 }
@@ -477,6 +488,7 @@ const WaterMarkData &DWaterMarkWidget::data()
  */
 void DWaterMarkWidget::setData(const WaterMarkData &data)
 {
+    qCDebug(logUtils) << "setting watermark widget data";
     D_D(DWaterMarkWidget);
 
     d->data = data;
@@ -487,6 +499,7 @@ void DWaterMarkWidget::setData(const WaterMarkData &data)
 
 void DWaterMarkWidget::paintEvent(QPaintEvent *)
 {
+    qCDebug(logUtils) << "paint watermark";
     D_D(DWaterMarkWidget);
 
     qreal deviceScale = devicePixelRatioF();
@@ -555,6 +568,8 @@ void DWaterMarkWidget::paintEvent(QPaintEvent *)
 
 bool DWaterMarkWidget::eventFilter(QObject *watched, QEvent *event)
 {
+    qCDebug(logUtils) << "watermark filter" << static_cast<void*>(watched)
+                      << static_cast<int>(event->type());
     if (watched != parent())
         return false;
 

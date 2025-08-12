@@ -15,8 +15,10 @@
 #include <QApplication>
 #include <QImageReader>
 #include <QDebug>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 /*!
   \class Dtk::Widget::DImageButton
@@ -85,6 +87,7 @@ DImageButton::DImageButton(QWidget *parent)
     : QLabel(parent)
     , DObject(*new DImageButtonPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "create dimagebutton";
     D_D(DImageButton);
 
     d->updateIcon();
@@ -109,6 +112,7 @@ DImageButton::DImageButton(const QString &normalPic, const QString &hoverPic, co
     : QLabel(parent)
     , DObject(*new DImageButtonPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "create dimagebutton images";
     D_D(DImageButton);
 
     if (!normalPic.isEmpty()) {
@@ -148,6 +152,7 @@ DImageButton::DImageButton(const QString &normalPic, const QString &hoverPic,
     : QLabel(parent)
     , DObject(*new DImageButtonPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "create dimagebutton images with checked";
     D_D(DImageButton);
 
     if (!normalPic.isEmpty()) {
@@ -192,6 +197,7 @@ void DImageButton::enterEvent(QEvent *event)
 
 void DImageButton::leaveEvent(QEvent *event)
 {
+    qCDebug(logBasicWidgets) << "leave event";
     D_D(DImageButton);
 
     if (!d->m_isChecked && isEnabled()) {
@@ -204,6 +210,7 @@ void DImageButton::leaveEvent(QEvent *event)
 
 void DImageButton::mousePressEvent(QMouseEvent *event)
 {
+    qCDebug(logBasicWidgets) << "mouse press" << static_cast<int>(event->button());
     D_D(DImageButton);
 
     if (event->button() != Qt::LeftButton) {
@@ -218,6 +225,7 @@ void DImageButton::mousePressEvent(QMouseEvent *event)
 
 void DImageButton::mouseReleaseEvent(QMouseEvent *event)
 {
+    qCDebug(logBasicWidgets) << "mouse release" << static_cast<int>(event->button());
     D_D(DImageButton);
 
     event->accept();

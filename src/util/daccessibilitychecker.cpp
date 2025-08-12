@@ -14,8 +14,11 @@
 #include <QAccessibleTableCellInterface>
 #include <QApplication>
 #include <QTimer>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logUtilClasses)
 
 class DAccessibilityCheckerPrivate : public DCORE_NAMESPACE::DObjectPrivate
 {
@@ -63,24 +66,30 @@ DAccessibilityCheckerPrivate::DAccessibilityCheckerPrivate(DAccessibilityChecker
     , checkTimer(nullptr)
     , widgetIgnoredCount(0)
 {
+    qCDebug(logUtilClasses) << "Creating DAccessibilityCheckerPrivate with" << topLevelWidgets.count() << "top level widgets";
 }
 
 /*! \internal */
 bool DAccessibilityCheckerPrivate::check()
 {
+    qCDebug(logUtilClasses) << "Starting accessibility check";
     if (topLevelWidgets.isEmpty()) {
-        qWarning() << "Found nothing about qApp top level widgets.";
+        qCWarning(logUtilClasses) << "Found nothing about qApp top level widgets";
         return true;
     }
 
     checkWidgetName();
     checkViewItemName();
 
-    if (outputFormat == DAccessibilityChecker::FullFormat)
+    if (outputFormat == DAccessibilityChecker::FullFormat) {
+        qCDebug(logUtilClasses) << "Formatting check results";
         formatCheckResult();
+    }
 
     printSummaryResults();
-    if (widgetsWarningList.isEmpty() && itemWariningList.isEmpty())
+    const auto& hasWarnings = widgetsWarningList.isEmpty() && itemWariningList.isEmpty();
+    qCDebug(logUtilClasses) << "Accessibility check completed, has warnings:" << !hasWarnings;
+    if (hasWarnings)
         return true;
 
     return false;
@@ -89,6 +98,7 @@ bool DAccessibilityCheckerPrivate::check()
 /*! \internal */
 void DAccessibilityCheckerPrivate::checkWidgetName()
 {
+    qCDebug(logUtilClasses) << "Checking widget names";
     D_Q(DAccessibilityChecker);
 
     QWidgetList childrenList(topLevelWidgets);
@@ -98,6 +108,9 @@ void DAccessibilityCheckerPrivate::checkWidgetName()
     for (auto child : std::as_const(childrenList)) {
         if (q->isIgnore(DAccessibilityChecker::Widget, child)) {
             widgetIgnoredCount++;
+            qCDebug(logUtilClasses) << "Ignoring widget:" << child;
+            continue;
+        }
             continue;
         }
 
@@ -128,30 +141,43 @@ void DAccessibilityCheckerPrivate::checkWidgetName()
 /*! \internal */
 void DAccessibilityCheckerPrivate::checkViewItemName()
 {
+    qCDebug(logUtilClasses) << "Checking view item names";
     D_Q(DAccessibilityChecker);
 
     QList<QAbstractItemView *> listViewList;
     for (const QWidget *topLevelWidget : topLevelWidgets)
         listViewList.append(topLevelWidget->findChildren<QAbstractItemView *>());
 
+    qCDebug(logUtilClasses) << "Found" << listViewList.size() << "views to check";
     for (auto absListView : std::as_const(listViewList)) {
-        if (q->isIgnore(DAccessibilityChecker::ViewItem, absListView))
+        if (q->isIgnore(DAccessibilityChecker::ViewItem, absListView)) {
+            qCDebug(logUtilClasses) << "Ignoring view:" << absListView;
             continue;
+        }
 
-        if (!checkViewItemNameFromAccessibleInteface(absListView))
+        if (!checkViewItemNameFromAccessibleInteface(absListView)) {
+            qCDebug(logUtilClasses) << "Checking view item from accessible text";
             checkViewItemNameFromAccessibleText(absListView);
+        }
     }
 }
 
 /*! \internal */
 bool DAccessibilityCheckerPrivate::isIgnore(DAccessibilityChecker::Role role, const QWidget *w)
 {
+    qCDebug(logUtilClasses) << "Checking if widget should be ignored, role:" << static_cast<int>(role);
     switch (role) {
-    case DAccessibilityChecker::Widget:
-        return isDefaultIgnoreWidget(w);
+    case DAccessibilityChecker::Widget: {
+        const auto& result = isDefaultIgnoreWidget(w);
+        qCDebug(logUtilClasses) << "Widget ignore result:" << result;
+        return result;
+    }
     case DAccessibilityChecker::ViewItem: {
-        if (const QAbstractItemView *view = qobject_cast<const QAbstractItemView *>(w))
-            return isDefaultIgnoreView(view);
+        if (const QAbstractItemView *view = qobject_cast<const QAbstractItemView *>(w)) {
+            const auto& result = isDefaultIgnoreView(view);
+            qCDebug(logUtilClasses) << "View ignore result:" << result;
+            return result;
+        }
 
         return false;
     }
@@ -163,12 +189,15 @@ bool DAccessibilityCheckerPrivate::isIgnore(DAccessibilityChecker::Role role, co
 /*! \internal */
 bool DAccessibilityCheckerPrivate::isDefaultIgnoreView(const QAbstractItemView *view) const
 {
+    qCDebug(logUtilClasses) << "Checking default ignore view";
     static QByteArrayList defaultIgnoredView = {
         QByteArrayLiteral("QColumnView"),
         QByteArrayLiteral("QHeaderView")
     };
 
-    return std::any_of(defaultIgnoredView.begin(), defaultIgnoredView.end(), [view](const QByteArray &ignoreClass) -> bool { return view->inherits(ignoreClass); });
+    const auto& result = std::any_of(defaultIgnoredView.begin(), defaultIgnoredView.end(), [view](const QByteArray &ignoreClass) -> bool { return view->inherits(ignoreClass); });
+    qCDebug(logUtilClasses) << "Default ignore view result:" << result;
+    return result;
 }
 
 /*!
@@ -180,17 +209,23 @@ bool DAccessibilityCheckerPrivate::isDefaultIgnoreView(const QAbstractItemView *
  */
 bool DAccessibilityCheckerPrivate::checkViewItemNameFromAccessibleInteface(QAbstractItemView *listview)
 {
+    qCDebug(logUtilClasses) << "Checking view item names from accessible interface";
     auto tableAbsInterface = QAccessible::queryAccessibleInterface(listview);
     bool ret = false;
 
-    if (!tableAbsInterface || !tableAbsInterface->isValid())
+    if (!tableAbsInterface || !tableAbsInterface->isValid()) {
+        qCDebug(logUtilClasses) << "No valid accessible interface found";
         return ret;
+    }
 
     QAccessibleTableInterface *tableInterface = tableAbsInterface->tableInterface();
-    if (!tableInterface)
+    if (!tableInterface) {
+        qCDebug(logUtilClasses) << "No table interface found";
         return ret;
+    }
 
     ret = true;
+    qCDebug(logUtilClasses) << "Checking table with" << tableInterface->rowCount() << "rows and" << tableInterface->columnCount() << "columns";
     for (int rowIdx = 0; rowIdx < tableInterface->rowCount(); ++rowIdx) {
         for (int columnIdx = 0; columnIdx < tableInterface->columnCount(); ++columnIdx) {
             QAccessibleInterface *cellAbsInterface = tableInterface->cellAt(rowIdx, columnIdx);
@@ -203,6 +238,7 @@ bool DAccessibilityCheckerPrivate::checkViewItemNameFromAccessibleInteface(QAbst
                 case DAccessibilityChecker::FullFormat: {
                     if (cellAbsInterface->text(QAccessible::Name).isEmpty()) {
                         itemWariningList.append(viewItemOutputLog(rowIdx, columnIdx, listview));
+                        qCDebug(logUtilClasses) << "Found empty accessible name at row" << rowIdx << "column" << columnIdx;
                     }
                 }
                     break;
@@ -224,13 +260,17 @@ bool DAccessibilityCheckerPrivate::checkViewItemNameFromAccessibleInteface(QAbst
  */
 bool DAccessibilityCheckerPrivate::checkViewItemNameFromAccessibleText(QAbstractItemView *listview)
 {
+    qCDebug(logUtilClasses) << "Checking view item names from accessible text";
     QStandardItemModel *model = qobject_cast<QStandardItemModel *>(listview->model());
     bool ret = false;
 
-    if (!model)
+    if (!model) {
+        qCDebug(logUtilClasses) << "No standard item model found";
         return ret;
+    }
 
     ret = true;
+    qCDebug(logUtilClasses) << "Checking model with" << model->rowCount() << "rows and" << model->columnCount() << "columns";
     for (int rowIdx = 0; rowIdx < model->rowCount(); ++rowIdx) {
         for (int columnIdx = 0; columnIdx < model->columnCount(); ++columnIdx) {
             auto standardItem = model->item(rowIdx, columnIdx);
@@ -244,8 +284,10 @@ bool DAccessibilityCheckerPrivate::checkViewItemNameFromAccessibleText(QAbstract
             }
                 break;
             case DAccessibilityChecker::FullFormat: {
-                if (standardItem->accessibleText().isEmpty())
+                if (standardItem->accessibleText().isEmpty()) {
                     itemWariningList.append(viewItemOutputLog(rowIdx, columnIdx, listview, standardItem->text()));
+                    qCDebug(logUtilClasses) << "Found empty accessible text at row" << rowIdx << "column" << columnIdx;
+                }
             }
                 break;
             default:
@@ -264,6 +306,7 @@ bool DAccessibilityCheckerPrivate::checkViewItemNameFromAccessibleText(QAbstract
  */
 bool DAccessibilityCheckerPrivate::isDefaultIgnoreWidget(const QWidget *w) const
 {
+    qCDebug(logUtilClasses) << "Checking default ignore widget";
     static QStringList defaultIgnoredWidgetObjectName = {
         QLatin1String("qt_scrollarea_hcontainer"),
         QLatin1String("qt_scrollarea_vcontainer"),
@@ -283,21 +326,25 @@ bool DAccessibilityCheckerPrivate::isDefaultIgnoreWidget(const QWidget *w) const
 
     bool ret = defaultIgnoredWidgetObjectName.contains(w->objectName());
 
-    if (!ret)
+    if (!ret) {
         ret = std::any_of(defaultIgnoredWidgetClassName.begin(), defaultIgnoredWidgetClassName.end(), [w](const QByteArray &ignoreClass) -> bool { return w->inherits(ignoreClass); });
+    }
 
+    qCDebug(logUtilClasses) << "Default ignore widget result:" << ret;
     return ret;
 }
 
 /*! \internal */
 QString DAccessibilityCheckerPrivate::widgetOutputLog(const QWidget *w) const
 {
+    qCDebug(logUtilClasses) << "Generating widget output log";
     return QStringLiteral("[-------------]Widget [%1] has no accessible name.\nWidget Detail:\n\t%2").arg(w->metaObject()->className()).arg(widgetInfoString(w));
 }
 
 /*! \internal */
 QString DAccessibilityCheckerPrivate::widgetInfoString(const QWidget *w) const
 {
+    qCDebug(logUtilClasses) << "Generating widget info string";
     QString splices("%1    Widget Path: %2");
 
     QString classDetailString(QStringLiteral("Class Name: ") + w->metaObject()->className());
@@ -324,6 +371,7 @@ QString DAccessibilityCheckerPrivate::widgetInfoString(const QWidget *w) const
 /*! \internal */
 QString DAccessibilityCheckerPrivate::viewItemOutputLog(int rowIndex, int columnIndex, const QAbstractItemView *absView, const QString &itemText) const
 {
+    qCDebug(logUtilClasses) << "Generating view item output log";
     return QStringLiteral("[-------------]View Item has no accessible text.\n View Item Detail:\n\t%1")
         .arg(itemText.isEmpty() ? QStringLiteral("Row: %1, Column %2, Contained in ListView: [%3]").arg(rowIndex).arg(columnIndex).arg(widgetInfoString(absView))
                                 : QStringLiteral("Text: %1, Row: %2, Column %3, Contained in  ListView: [%4]").arg(itemText).arg(rowIndex).arg(columnIndex).arg(widgetInfoString(absView)));
@@ -335,8 +383,11 @@ QString DAccessibilityCheckerPrivate::viewItemOutputLog(int rowIndex, int column
  */
 void DAccessibilityCheckerPrivate::formatCheckResult()
 {
-    if (widgetsWarningList.isEmpty() && itemWariningList.isEmpty())
+    qCDebug(logUtilClasses) << "Formatting check results";
+    if (widgetsWarningList.isEmpty() && itemWariningList.isEmpty()) {
+        qCDebug(logUtilClasses) << "No warnings to format";
         return;
+    }
 
     qInfo().noquote() << "[=============]Found the following items missing the accessible name.";
     printRoleWarningOutput(QStringLiteral("Widgets"), widgetsWarningList);
@@ -349,6 +400,7 @@ void DAccessibilityCheckerPrivate::formatCheckResult()
  */
 void DAccessibilityCheckerPrivate::printSummaryResults()
 {
+    qCDebug(logUtilClasses) << "Printing summary results";
     int totalWidgetsCount = std::accumulate(this->topLevelWidgets.begin(), this->topLevelWidgets.end(), 0, [](int before, const QWidget *after) -> int { return before + after->findChildren<QWidget *>().count(); }) + this->topLevelWidgets.count();
 
     QString summary("[=============]Result Summary: Total Widgets Number: %1    Succeeded: %2    Failed: %3    Ignored: %4");
@@ -358,6 +410,7 @@ void DAccessibilityCheckerPrivate::printSummaryResults()
 /*! \internal */
 void DAccessibilityCheckerPrivate::printRoleWarningOutput(const QString &roleString, const QStringList &roleList)
 {
+    qCDebug(logUtilClasses) << "Printing role warning output for" << roleString;
     if (!roleList.isEmpty()) {
         qInfo().noquote() << QStringLiteral("[*************]%1:").arg(roleString);
 
@@ -368,12 +421,15 @@ void DAccessibilityCheckerPrivate::printRoleWarningOutput(const QString &roleStr
 
 void DAccessibilityCheckerPrivate::_q_checkTimeout()
 {
+    qCDebug(logUtilClasses) << "Check timeout triggered";
     D_Q(DAccessibilityChecker);
     this->topLevelWidgets = qApp->topLevelWidgets();
     this->widgetIgnoredCount = 0;
 
-    if (!q->check())
+    if (!q->check()) {
+        qCDebug(logUtilClasses) << "Check failed, aborting";
         abort();
+    }
 }
 
 /*!
@@ -429,10 +485,12 @@ DAccessibilityChecker::DAccessibilityChecker(QObject *parent)
     : QObject(parent)
     , DObject(*new DAccessibilityCheckerPrivate(this))
 {
+    qCDebug(logUtilClasses) << "Constructing DAccessibilityChecker";
 }
 
 void DAccessibilityChecker::setOutputFormat(DAccessibilityChecker::OutputFormat format)
 {
+    qCDebug(logUtilClasses) << "Setting output format:" << static_cast<int>(format);
     D_D(DAccessibilityChecker);
     d->outputFormat = format;
 }
@@ -472,6 +530,7 @@ void DAccessibilityChecker::setOutputFormat(DAccessibilityChecker::OutputFormat 
  */
 DAccessibilityChecker::OutputFormat DAccessibilityChecker::outputFormat() const
 {
+    qCDebug(logUtilClasses) << "Getting output format";
     D_DC(DAccessibilityChecker);
     return d->outputFormat;
 }
@@ -487,6 +546,7 @@ DAccessibilityChecker::OutputFormat DAccessibilityChecker::outputFormat() const
  */
 bool DAccessibilityChecker::check()
 {
+    qCDebug(logUtilClasses) << "Starting accessibility check";
     D_D(DAccessibilityChecker);
     return d->check();
 }
@@ -501,11 +561,13 @@ bool DAccessibilityChecker::check()
  */
 void DAccessibilityChecker::start(int msec)
 {
+    qCDebug(logUtilClasses) << "Starting timer with interval:" << msec;
     D_D(DAccessibilityChecker);
 
     if (!d->checkTimer) {
         d->checkTimer = new QTimer(this);
         QObject::connect(d->checkTimer,  SIGNAL(timeout()), this, SLOT(_q_checkTimeout()));
+        qCDebug(logUtilClasses) << "Created new timer";
     }
 
     // 先立即执行 再开始定时器执行。
@@ -515,6 +577,7 @@ void DAccessibilityChecker::start(int msec)
 
 bool DAccessibilityChecker::isIgnore(DAccessibilityChecker::Role role, const QWidget *w)
 {
+    qCDebug(logUtilClasses) << "Checking if widget is ignored";
     D_D(DAccessibilityChecker);
 
     return d->isIgnore(role, w);

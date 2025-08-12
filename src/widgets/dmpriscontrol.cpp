@@ -13,6 +13,7 @@
 #include <QScrollBar>
 #include <DSizeMode>
 #include <DGuiApplicationHelper>
+#include <QLoggingCategory>
 
 static const QSize ButtonSize = {52, 52};
 static const QSize CompactButtonSize = {44, 44};
@@ -20,6 +21,8 @@ static const QSize IconSize = {36, 36};
 static constexpr int ButtonSpacing = 80;
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logMessageNotification)
 
 /*!
   \class Dtk::Widget::DMPRISControl
@@ -46,7 +49,8 @@ DMPRISControl::DMPRISControl(QWidget *parent)
       DObject(*new DMPRISControlPrivate(this))
 {
     D_D(DMPRISControl);
-
+    qCDebug(logMessageNotification) << "Construct MPRIS control"
+                                    << reinterpret_cast<const void *>(this);
     d->init();
 }
 
@@ -70,7 +74,13 @@ bool DMPRISControl::isWorking() const
  */
 void DMPRISControl::setPictureVisible(bool visible)
 {
+    qCDebug(logMessageNotification) << "Setting picture visible:" << visible;
     D_D(DMPRISControl);
+
+    if (d->m_pictureVisible == visible) {
+        qCDebug(logMessageNotification) << "Picture visibility unchanged, skipping";
+        return;
+    }
 
     d->m_pictureVisible = visible;
     d->m_picture->setVisible(visible);
@@ -83,7 +93,13 @@ void DMPRISControl::setPictureVisible(bool visible)
  */
 void DMPRISControl::setPictureSize(const QSize &size)
 {
+    qCDebug(logMessageNotification) << "Setting picture size:" << size;
     D_D(DMPRISControl);
+
+    if (d->m_picture->size() == size) {
+        qCDebug(logMessageNotification) << "Picture size unchanged, skipping";
+        return;
+    }
 
     d->m_picture->setFixedSize(size);
 }
@@ -91,7 +107,7 @@ void DMPRISControl::setPictureSize(const QSize &size)
 void DMPRISControl::showEvent(QShowEvent *event)
 {
     D_D(DMPRISControl);
-
+    qCDebug(logMessageNotification) << "Show event";
     d->_q_onPlaybackStatusChanged();
 
     QFrame::showEvent(event);
@@ -105,7 +121,7 @@ DMPRISControlPrivate::DMPRISControlPrivate(DMPRISControl *q)
 void DMPRISControlPrivate::init()
 {
     D_Q(DMPRISControl);
-
+    qCDebug(logMessageNotification) << "Init MPRIS UI";
     m_mprisMonitor    = new DMPRISMonitor(q);
     m_titleScrollArea = new QScrollArea(q);
     m_title           = new QLabel;
@@ -212,6 +228,7 @@ void DMPRISControlPrivate::_q_onPrevClicked()
     if (!m_mprisInter)
         return;
 
+    qCDebug(logMessageNotification) << "Prev clicked";
     m_mprisInter->Previous();
     m_prevBtn->setFocus();
 }
@@ -222,6 +239,7 @@ void DMPRISControlPrivate::_q_onPlayClicked()
     if (!m_mprisInter)
         return;
 
+    qCDebug(logMessageNotification) << "Play/Pause clicked";
     if (m_playStatus) {
         m_mprisInter->Pause();
     } else {
@@ -241,6 +259,7 @@ void DMPRISControlPrivate::_q_onNextClicked()
     if (!m_mprisInter)
         return;
 
+    qCDebug(logMessageNotification) << "Next clicked";
     m_mprisInter->Next();
     m_nextBtn->setFocus();
 }
@@ -249,6 +268,7 @@ void DMPRISControlPrivate::_q_onMetaDataChanged()
 {
     if (!m_mprisInter) return;
 
+    qCDebug(logMessageNotification) << "Metadata changed";
     const auto &   meta        = m_mprisInter->metadata();
     const QString &title       = meta.value("xesam:title").toString();
     const QString &artist      = meta.value("xesam:artist").toString();
@@ -282,6 +302,7 @@ void DMPRISControlPrivate::_q_onPlaybackStatusChanged()
         return;
 
     const QString stat = m_mprisInter->playbackStatus();
+    qCDebug(logMessageNotification) << "Playback status" << stat;
     if (stat == "Playing") {
         m_playStatus = true;
         m_playBtn->setIcon(DDciIcon::fromTheme("play_pause"));
@@ -295,10 +316,12 @@ void DMPRISControlPrivate::_q_loadMPRISPath(const QString &path)
 {
     D_Q(DMPRISControl);
 
+    qCDebug(logMessageNotification) << "Load MPRIS path" << path;
     DBusMPRIS *newMpris = new DBusMPRIS(path, "/org/mpris/MediaPlayer2", QDBusConnection::sessionBus(), q);
 
     // 此属性判断是否支持使用MPRIS控制 真表示能控制 假则忽略这个dbus接口
     if (!newMpris->canShowInUI()) {
+        qCDebug(logMessageNotification) << "Ignore MPRIS path (not showable)";
         newMpris->deleteLater();
         return;
     }
@@ -334,6 +357,7 @@ void DMPRISControlPrivate::_q_removeMPRISPath(const QString &path)
 {
     D_QC(DMPRISControl);
 
+    qCDebug(logMessageNotification) << "Remove MPRIS path" << path;
     m_mprisPaths.removeOne(path);
 
     if (m_lastPath != path)

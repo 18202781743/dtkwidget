@@ -5,7 +5,13 @@
 #include "dtabletwindowoptionbutton.h"
 #include "dstyleoption.h"
 
+#include <QLoggingCategory>
+
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
+}
 
 /*!
   \class Dtk::Widget::DTabletWindowOptionButton
@@ -25,17 +31,21 @@ DWIDGET_BEGIN_NAMESPACE
 DTabletWindowOptionButton::DTabletWindowOptionButton(QWidget *parent)
     : DIconButton(DStyle::SP_TitleMoreButton, parent)
 {
+    qCDebug(logBasicWidgets) << "Creating tablet window option button";
     setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
     setFlat(true);
 }
 
 QSize DTabletWindowOptionButton::sizeHint() const
 {
-    return iconSize();
+    const auto& size = iconSize();
+    qCDebug(logBasicWidgets) << "Size hint requested:" << size;
+    return size;
 }
 
 void DTabletWindowOptionButton::initStyleOption(DStyleOptionButton *option) const
 {
+    qCDebug(logBasicWidgets) << "Initializing style option";
     DIconButton::initStyleOption(option);
 
     option->features |= QStyleOptionButton::ButtonFeature(DStyleOptionButton::TitleBarButton);

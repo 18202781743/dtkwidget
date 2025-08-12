@@ -7,6 +7,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QLoggingCategory>
 
 #ifndef foreach
 #define foreach Q_FOREACH
@@ -15,6 +16,10 @@
 #include <qpa/qplatformdialoghelper.h>
 
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logDialogs)
+}
 
 /*!
 @~english
@@ -32,14 +37,15 @@ DWIDGET_BEGIN_NAMESPACE
 DFileDialog::DFileDialog(QWidget *parent, Qt::WindowFlags f)
     : QFileDialog(parent, f)
 {
-
+    qCDebug(logDialogs) << "Creating file dialog with flags";
 }
 
 DFileDialog::DFileDialog(QWidget *parent, const QString &caption,
                          const QString &directory, const QString &filter)
     : QFileDialog(parent, caption, directory, filter)
 {
-
+    qCDebug(logDialogs) << "Creating file dialog with caption:" << caption
+                        << "directory:" << directory;
 }
 
 /*!
@@ -50,8 +56,11 @@ DFileDialog::DFileDialog(QWidget *parent, const QString &caption,
  */
 void DFileDialog::addComboBox(const QString &text, const QStringList &data)
 {
-    if (data.isEmpty())
+    qCDebug(logDialogs) << "Adding combobox:" << text << "with" << data.size() << "items";
+    if (data.isEmpty()) {
+        qCWarning(logDialogs) << "Empty data provided for combobox:" << text;
         return;
+    }
 
     addComboBox(text, DComboBoxOptions {
                     false, data, data.first()
@@ -66,6 +75,8 @@ void DFileDialog::addComboBox(const QString &text, const QStringList &data)
  */
 void DFileDialog::addComboBox(const QString &text, const DFileDialog::DComboBoxOptions &options)
 {
+    qCDebug(logDialogs) << "Adding combobox with options:" << text
+                        << "editable:" << options.editable;
     QJsonObject json;
 
     json["text"] = text;
@@ -86,6 +97,7 @@ void DFileDialog::addComboBox(const QString &text, const DFileDialog::DComboBoxO
  */
 void DFileDialog::addLineEdit(const QString &text)
 {
+    qCDebug(logDialogs) << "Adding simple lineedit:" << text;
     addLineEdit(text, DLineEditOptions {
                     -1, QLineEdit::Normal, QString(), QString(), QString()
                 });
@@ -99,6 +111,8 @@ void DFileDialog::addLineEdit(const QString &text)
  */
 void DFileDialog::addLineEdit(const QString &text, const DFileDialog::DLineEditOptions &options)
 {
+    qCDebug(logDialogs) << "Adding lineedit with options:" << text
+                        << "maxLength:" << options.maxLength;
     QJsonObject json;
 
     json["text"] = text;
@@ -125,6 +139,7 @@ void DFileDialog::addLineEdit(const QString &text, const DFileDialog::DLineEditO
  */
 void DFileDialog::setAllowMixedSelection(bool on)
 {
+    qCDebug(logDialogs) << "Setting mixed selection:" << on;
     setProperty("_dtk_widget_filedialog_mixed_selection", on);
 }
 
@@ -136,7 +151,9 @@ void DFileDialog::setAllowMixedSelection(bool on)
  */
 QString DFileDialog::getComboBoxValue(const QString &text) const
 {
-    return property(QString("_dtk_widget_combobox_%1_value").arg(text).toUtf8()).toString();
+    const auto& value = property(QString("_dtk_widget_combobox_%1_value").arg(text).toUtf8()).toString();
+    qCDebug(logDialogs) << "Getting combobox value for:" << text << "result:" << value;
+    return value;
 }
 
 /*!
@@ -147,18 +164,25 @@ QString DFileDialog::getComboBoxValue(const QString &text) const
  */
 QString DFileDialog::getLineEditValue(const QString &text) const
 {
-    return property(QString("_dtk_widget_lineedit_%1_value").arg(text).toUtf8()).toString();
+    const auto& value = property(QString("_dtk_widget_lineedit_%1_value").arg(text).toUtf8()).toString();
+    qCDebug(logDialogs) << "Getting lineedit value for:" << text << "result:" << value;
+    return value;
 }
 
 void DFileDialog::setVisible(bool visible)
 {
+    qCDebug(logDialogs) << "Setting dialog visibility:" << visible;
     QFileDialogPrivate *d = static_cast<QFileDialogPrivate*>(d_ptr.data());
 
     if (d->canBeNativeDialog()) {
+        qCDebug(logDialogs) << "Using native dialog";
         QPlatformDialogHelper *helper = d->platformHelper();
 
-        if (helper)
+        if (helper) {
             helper->setProperty("_dtk_widget_QFileDialog", reinterpret_cast<quintptr>(this));
+        } else {
+            qCWarning(logDialogs) << "Platform helper not available";
+        }
     }
 
     QFileDialog::setVisible(visible);

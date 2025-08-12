@@ -6,6 +6,7 @@
 
 #include <QDebug>
 #include <QHBoxLayout>
+#include <QLoggingCategory>
 
 #include <DSettingsOption>
 #include <DPushButton>
@@ -23,6 +24,8 @@
 #include "dwindowclosebutton.h"
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logSettingsConfig)
 
 // see also: dtitlebar.cpp
 const int DefaultTitlebarHeight = 40;
@@ -53,6 +56,8 @@ public:
 DSettingsDialog::DSettingsDialog(QWidget *parent) :
     DAbstractDialog(false, parent), dd_ptr(new DSettingsDialogPrivate(this))
 {
+    qCDebug(logSettingsConfig) << "Construct settings dialog"
+                               << reinterpret_cast<const void *>(this);
     Q_D(DSettingsDialog);
 
     setObjectName("DSettingsDialog");
@@ -74,6 +79,7 @@ DSettingsDialog::DSettingsDialog(QWidget *parent) :
     d->frameBar->setMenuVisible(false);
     d->frameBar->setTitle(QString());
     d->frameBar->setAccessibleName("DSettingTitleBar");
+    qCDebug(logSettingsConfig) << "Init titlebar";
 
     d->leftFrame->setObjectName("LeftFrame");
     d->leftFrame->setAccessibleName("DSettingDialogLeftFrame");
@@ -93,6 +99,7 @@ DSettingsDialog::DSettingsDialog(QWidget *parent) :
     mainlayout->addLayout(bottomlayout);
 
     setMinimumWidth(680);
+    qCDebug(logSettingsConfig) << "Set minimum width" << 680;
 
     connect(d->leftFrame, &Navigation::selectedGroup, d->content, &Content::onScrollToGroup);
     connect(d->content, &Content::scrollToGroup, d->leftFrame, [ = ](const QString & key) {
@@ -104,6 +111,7 @@ DSettingsDialog::DSettingsDialog(QWidget *parent) :
     DApplication *dapp = qobject_cast<DApplication*>(qApp);
 
     if (dapp) {
+        qCDebug(logSettingsConfig) << "Enable keyboard adaptation";
         d->content->setAttribute(Qt::WA_ContentsMarginsRespectsSafeArea, false);
         d->content->setProperty("_dtk_NoTopLevelEnabled", true);
         qApp->acclimatizeVirtualKeyboard(d->content);
@@ -112,6 +120,7 @@ DSettingsDialog::DSettingsDialog(QWidget *parent) :
     if (DApplication::isDXcbPlatform()) {
         connect(this, &DSettingsDialog::windowIconChanged, d->frameBar, &DTitlebar::setIcon);
         connect(this, &DSettingsDialog::windowTitleChanged, d->frameBar, &DTitlebar::setTitle);
+        qCDebug(logSettingsConfig) << "Wayland titlebar binding";
     }
 }
 
@@ -130,12 +139,14 @@ DSettingsDialog::~DSettingsDialog()
 DSettingsWidgetFactory *DSettingsDialog::widgetFactory() const
 {
     Q_D(const DSettingsDialog);
+    qCDebug(logSettingsConfig) << "Get factory";
     return  d->content->widgetFactory();
 }
 
 bool DSettingsDialog::groupIsVisible(const QString &groupKey) const
 {
     Q_D(const DSettingsDialog);
+    qCDebug(logSettingsConfig) << "Query group visibility";
     return d->content->groupIsVisible(groupKey);
 }
 
@@ -148,6 +159,7 @@ bool DSettingsDialog::groupIsVisible(const QString &groupKey) const
 void DSettingsDialog::setResetVisible(bool visible)
 {
     D_D(DSettingsDialog);
+    qCDebug(logSettingsConfig) << "Set reset visible" << visible;
     DPushButton *btn = d->content->findChild<DPushButton *>("SettingsContentReset");
     if (btn == nullptr)
         return;
@@ -164,6 +176,8 @@ void DSettingsDialog::setResetVisible(bool visible)
 void DSettingsDialog::scrollToGroup(const QString &groupKey)
 {
     D_D(DSettingsDialog);
+    Q_UNUSED(groupKey)
+    qCDebug(logSettingsConfig) << "Scroll to group";
 
     d->leftFrame->onSelectGroup(groupKey);
     d->content->onScrollToGroup(groupKey);
@@ -177,6 +191,8 @@ void DSettingsDialog::scrollToGroup(const QString &groupKey)
 void DSettingsDialog::setIcon(const QIcon &icon)
 {
     D_D(DSettingsDialog);
+    Q_UNUSED(icon)
+    qCDebug(logSettingsConfig) << "Set titlebar icon";
 
     d->frameBar->setIcon(icon);
 }
@@ -189,6 +205,7 @@ void DSettingsDialog::setIcon(const QIcon &icon)
 void DSettingsDialog::updateSettings(Dtk::Core::DSettings *settings)
 {
     // TODO: limit to call once
+    qCDebug(logSettingsConfig) << "Update settings (no context)";
     updateSettings(QByteArray(), settings);
 }
 
@@ -202,6 +219,9 @@ void DSettingsDialog::updateSettings(Dtk::Core::DSettings *settings)
 void DSettingsDialog::updateSettings(const QByteArray &translateContext, Core::DSettings *settings)
 {
     Q_D(DSettingsDialog);
+    Q_UNUSED(translateContext)
+    Q_UNUSED(settings)
+    qCDebug(logSettingsConfig) << "Update settings (with context)";
     d->leftFrame->updateSettings(translateContext, settings);
     d->content->updateSettings(translateContext, settings);
     adjustSize();
@@ -210,6 +230,8 @@ void DSettingsDialog::updateSettings(const QByteArray &translateContext, Core::D
 void DSettingsDialog::setGroupVisible(const QString &groupKey, bool visible)
 {
     Q_D(DSettingsDialog);
+    Q_UNUSED(groupKey)
+    qCDebug(logSettingsConfig) << "Set group visible" << visible;
     d->leftFrame->setGroupVisible(groupKey, visible);
     d->content->setGroupVisible(groupKey, visible);
 }

@@ -4,8 +4,11 @@
 
 #include "dwindowclosebutton.h"
 #include "dstyleoption.h"
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 /*!
   \class Dtk::Widget::DWindowCloseButton
@@ -24,6 +27,8 @@ DWIDGET_BEGIN_NAMESPACE
 DWindowCloseButton::DWindowCloseButton(QWidget * parent)
     : DIconButton(parent)
 {
+    qCDebug(logBasicWidgets) << "Construct close button"
+                             << reinterpret_cast<const void *>(this);
     //QStyle::SP_TitleBarCloseButton
     auto iconEngine = new DStyledIconEngine(DDrawUtils::drawTitleBarCloseButton, QStringLiteral("TitleBarCloseButton"));
     setIcon(QIcon(iconEngine));
@@ -33,6 +38,7 @@ DWindowCloseButton::DWindowCloseButton(QWidget * parent)
 
 QSize DWindowCloseButton::sizeHint() const
 {
+    qCDebug(logBasicWidgets) << "Size hint";
     return iconSize();
 }
 
@@ -40,6 +46,7 @@ void DWindowCloseButton::initStyleOption(DStyleOptionButton *option) const
 {
     DIconButton::initStyleOption(option);
 
+    qCDebug(logBasicWidgets) << "Init style option";
     option->features |= QStyleOptionButton::ButtonFeature(DStyleOptionButton::TitleBarButton);
 }
 

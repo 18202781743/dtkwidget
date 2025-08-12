@@ -10,9 +10,12 @@
 #include <QEvent>
 #include <QIcon>
 #include <QPainter>
+#include <QLoggingCategory>
 
 DGUI_USE_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 class DShadowLinePrivate : public DCORE_NAMESPACE::DObjectPrivate
 {
@@ -33,6 +36,8 @@ DShadowLine::DShadowLine(QWidget *parent)
     : QWidget(parent)
     , DObject(*new DShadowLinePrivate(this))
 {
+    qCDebug(logBasicWidgets) << "Construct shadow line"
+                             << reinterpret_cast<const void *>(this);
     D_D(DShadowLine);
     // 在非变色龙主题下，无法通过QIcon::fromtheme访问这个图标资源
     // 为了让软件在其他非变色龙的主题上正常显示，这里不使用图标引擎，而直接使用图标
@@ -56,6 +61,7 @@ DShadowLine::DShadowLine(QWidget *parent)
 
 QSize DShadowLine::sizeHint() const
 {
+    qCDebug(logBasicWidgets) << "Size hint";
     return QSize(20, 20);
 }
 
@@ -63,6 +69,7 @@ void DShadowLine::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event)
     D_D(DShadowLine);
+    qCDebug(logBasicWidgets) << "Paint shadow";
 
     QPainter pa(this);
     pa.drawPixmap(contentsRect(), d->shadow);

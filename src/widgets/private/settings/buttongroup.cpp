@@ -7,6 +7,11 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QButtonGroup>
+#include <QLoggingCategory>
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logSettingsConfig)
+}
 
 class ButtonGroupPrivate
 {
@@ -23,6 +28,7 @@ ButtonGroup::ButtonGroup(QWidget *parent) :
     QFrame(parent), d_ptr(new ButtonGroupPrivate(this))
 {
     Q_D(ButtonGroup);
+    qCDebug(logSettingsConfig) << "Creating button group";
     setObjectName("ButtonGroup");
     d->group = new QButtonGroup;
     d->layout = new QHBoxLayout(this);
@@ -31,10 +37,12 @@ ButtonGroup::ButtonGroup(QWidget *parent) :
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     connect(d->group, static_cast<void (QButtonGroup::*)(QAbstractButton *)>(&QButtonGroup::buttonReleased),
             this, [=](QAbstractButton *) {
+              qCDebug(logSettingsConfig) << "Button released, checked ID:" << d->group->checkedId();
               Q_EMIT buttonChecked(d->group->checkedId());
             });
 #else
     connect(d->group,&QButtonGroup::buttonReleased,this, [=](QAbstractButton *){
+        qCDebug(logSettingsConfig) << "Button released, checked ID:" << d->group->checkedId();
         Q_EMIT buttonChecked(d->group->checkedId());
     });
 #endif
@@ -48,29 +56,36 @@ ButtonGroup::~ButtonGroup()
 void ButtonGroup::setCheckedButton(int id)
 {
     Q_D(ButtonGroup);
+    qCDebug(logSettingsConfig) << "Setting checked button ID:" << id;
     if (d->group->button(id)) {
         d->group->button(id)->setChecked(true);
+    } else {
+        qCWarning(logSettingsConfig) << "Button with ID" << id << "not found";
     }
 }
 
 void ButtonGroup::setButtons(const QStringList &texts)
 {
     Q_D(ButtonGroup);
+    qCDebug(logSettingsConfig) << "Setting buttons with texts:" << texts;
     int i = 0;
     for (auto text: texts) {
         auto bt = new QPushButton(text);
         bt->setCheckable(true);
 
-        if (texts.length() <= 1)
+        if (texts.length() <= 1) {
             bt->setObjectName("ButtonGroupSingle");
-        else {
-            if (i == 0)
+            qCDebug(logSettingsConfig) << "Created single button";
+        } else {
+            if (i == 0) {
                 bt->setObjectName("ButtonGroupBegin");
-            else if (i == texts.length() -1) {
-                    bt->setObjectName("ButtonGroupEnd");
+                qCDebug(logSettingsConfig) << "Created begin button";
+            } else if (i == texts.length() -1) {
+                bt->setObjectName("ButtonGroupEnd");
+                qCDebug(logSettingsConfig) << "Created end button";
             } else {
-
-                    bt->setObjectName("ButtonGroupMiddle");
+                bt->setObjectName("ButtonGroupMiddle");
+                qCDebug(logSettingsConfig) << "Created middle button";
             }
         }
         d->group->addButton(bt, i);

@@ -33,6 +33,8 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_LOGGING_CATEGORY(logListWidgets, "dtk.widgets.list")
+
 // TODO: Replace with verticalTabs in qtabbar_p.h when all versions of Qt support.
 constexpr inline static bool dtk_verticalTabs(QTabBar::Shape shape)
 {
@@ -100,11 +102,12 @@ private:
 DMovableTabWidget::DMovableTabWidget(QWidget *parent)
     : QWidget(parent)
 {
-
+    qCDebug(logListWidgets) << "DMovableTabWidget constructor called";
 }
 
 void DMovableTabWidget::setPixmap(const QPixmap &pixmap)
 {
+    qCDebug(logListWidgets) << "Setting pixmap with size:" << pixmap.size();
     m_pixmap = pixmap;
     update();
 }
@@ -112,10 +115,10 @@ void DMovableTabWidget::setPixmap(const QPixmap &pixmap)
 void DMovableTabWidget::paintEvent(QPaintEvent *e)
 {
     Q_UNUSED(e)
-
-    QPainter pa(this);
-
-    pa.drawPixmap(0, 0, m_pixmap);
+    if (!m_pixmap.isNull()) {
+        QPainter painter(this);
+        painter.drawPixmap(0, 0, m_pixmap);
+    }
 }
 
 class DTabBarPrivate : public QTabBar, public DObjectPrivate
@@ -127,6 +130,7 @@ public:
     explicit DTabBarPrivate(DTabBar* qq)
       : QTabBar(qq)
       , DObjectPrivate(qq) {
+        qCDebug(logListWidgets) << "DTabBarPrivate constructor called";
         startDragDistance = qApp->startDragDistance();
         maskColor = flashColor = QColor(0, 0, 255, 125);
 
@@ -138,6 +142,7 @@ public:
         connect(addButton, &DIconButton::clicked,
                 qq, &DTabBar::tabAddRequested);
         connect(this, &QTabBar::tabMoved, this, [this] (int from, int to) {
+            qCDebug(logListWidgets) << "Tab moved from" << from << "to" << to;
             tabMinimumSize.move(from, to);
             tabMaximumSize.move(from, to);
 
@@ -266,6 +271,7 @@ public:
 
     ~DTabBarPrivate() override
     {
+        qCDebug(logListWidgets) << "DTabBarPrivate destructor called";
         if (stretchIsRemove && stretch) {
             delete stretch;
         }
@@ -1689,7 +1695,9 @@ DTabBar::DTabBar(QWidget *parent)
     : QWidget(parent)
     , DObject(*new DTabBarPrivate(this))
 {
+    qCDebug(logListWidgets) << "Creating DTabBar with parent:" << parent;
     setAcceptDrops(true);
+    qCDebug(logListWidgets) << "DTabBar initialization completed";
 }
 
 /*!
@@ -1700,16 +1708,20 @@ DTabBar::DTabBar(QWidget *parent)
  */
 void DTabBar::setTabMinimumSize(int index, const QSize &size)
 {
+    qCDebug(logListWidgets) << "Setting minimum size for tab" << index << "to:" << size;
     D_D(DTabBar);
 
-    if (d->tabMinimumSize.at(index) == size)
+    if (d->tabMinimumSize.at(index) == size) {
+        qCDebug(logListWidgets) << "Tab minimum size unchanged, skipping update";
         return;
+    }
 
     d->tabMinimumSize[index] = size;
+    qCDebug(logListWidgets) << "Updated tab minimum size";
 
     QTabBarPrivate *dd = reinterpret_cast<QTabBarPrivate *>(qGetPtrHelper(d->d_ptr));
-
     dd->layoutDirty = true;
+    qCDebug(logListWidgets) << "Marked layout as dirty for update";
 }
 
 /*!
@@ -1720,16 +1732,20 @@ void DTabBar::setTabMinimumSize(int index, const QSize &size)
  */
 void DTabBar::setTabMaximumSize(int index, const QSize &size)
 {
+    qCDebug(logListWidgets) << "Setting maximum size for tab" << index << "to:" << size;
     D_D(DTabBar);
 
-    if (d->tabMaximumSize.at(index) == size)
+    if (d->tabMaximumSize.at(index) == size) {
+        qCDebug(logListWidgets) << "Tab maximum size unchanged, skipping update";
         return;
+    }
 
     d->tabMaximumSize[index] = size;
+    qCDebug(logListWidgets) << "Updated tab maximum size";
 
     QTabBarPrivate *dd = reinterpret_cast<QTabBarPrivate *>(qGetPtrHelper(d->d_ptr));
-
     dd->layoutDirty = true;
+    qCDebug(logListWidgets) << "Marked layout as dirty for update";
 }
 
 /*!
@@ -1764,20 +1780,26 @@ QTabBar::Shape DTabBar::shape() const
  */
 void DTabBar::setShape(QTabBar::Shape shape)
 {
+    qCDebug(logListWidgets) << "Setting tab bar shape to:" << shape;
     D_D(DTabBar);
 
     bool old_vertical = dtk_verticalTabs(d_func()->shape());
     bool new_vertical = dtk_verticalTabs(shape);
+    qCDebug(logListWidgets) << "Orientation change - old vertical:" << old_vertical << "new vertical:" << new_vertical;
 
     d->setShape(shape);
+    qCDebug(logListWidgets) << "Shape updated";
 
     if (old_vertical != new_vertical) {
+        qCDebug(logListWidgets) << "Orientation changed, updating layout";
         // 设置对应shape上的策略
         if (new_vertical) {
+            qCDebug(logListWidgets) << "Switching to vertical layout";
             d->leftScrollButton->setIcon(getArrowIcon(style(), Qt::UpArrow));
             d->rightScrollButton->setIcon(getArrowIcon(style(), Qt::DownArrow));
             d->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
         } else {
+            qCDebug(logListWidgets) << "Switching to horizontal layout";
             d->leftScrollButton->setIcon(getArrowIcon(style(), Qt::LeftArrow));
             d->rightScrollButton->setIcon(getArrowIcon(style(), Qt::RightArrow));
             d->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
@@ -1785,6 +1807,7 @@ void DTabBar::setShape(QTabBar::Shape shape)
         // 重新设置Direction
         d->layout->setDirection(shapeToDirection(shape));
         d->updateTabAlignment();
+        qCDebug(logListWidgets) << "Layout and alignment updated";
     }
 }
 
@@ -1797,7 +1820,10 @@ void DTabBar::setShape(QTabBar::Shape shape)
  */
 int DTabBar::addTab(const QString &text)
 {
-    return d_func()->addTab(text);
+    qCDebug(logListWidgets) << "Adding new tab with text:" << text;
+    int index = d_func()->addTab(text);
+    qCDebug(logListWidgets) << "New tab added at index:" << index;
+    return index;
 }
 
 /*!
@@ -1809,7 +1835,10 @@ int DTabBar::addTab(const QString &text)
  */
 int DTabBar::addTab(const QIcon &icon, const QString &text)
 {
-    return d_func()->addTab(icon, text);
+    qCDebug(logListWidgets) << "Adding new tab with icon and text:" << text;
+    int index = d_func()->addTab(icon, text);
+    qCDebug(logListWidgets) << "New tab added at index:" << index;
+    return index;
 }
 
 /*!
@@ -1825,7 +1854,10 @@ int DTabBar::addTab(const QIcon &icon, const QString &text)
  */
 int DTabBar::insertTab(int index, const QString &text)
 {
-    return d_func()->insertTab(index, text);
+    qCDebug(logListWidgets) << "Inserting tab at index" << index << "with text:" << text;
+    int actualIndex = d_func()->insertTab(index, text);
+    qCDebug(logListWidgets) << "Tab inserted at actual index:" << actualIndex;
+    return actualIndex;
 }
 
 /*!
@@ -1840,7 +1872,10 @@ int DTabBar::insertTab(int index, const QString &text)
  */
 int DTabBar::insertTab(int index, const QIcon &icon, const QString &text)
 {
-    return d_func()->insertTab(index, icon, text);
+    qCDebug(logListWidgets) << "Inserting tab at index" << index << "with icon and text:" << text;
+    int actualIndex = d_func()->insertTab(index, icon, text);
+    qCDebug(logListWidgets) << "Tab inserted at actual index:" << actualIndex;
+    return actualIndex;
 }
 
 /*!
@@ -1851,7 +1886,13 @@ int DTabBar::insertTab(int index, const QIcon &icon, const QString &text)
  */
 void DTabBar::removeTab(int index)
 {
+    qCDebug(logListWidgets) << "Removing tab at index:" << index;
+    if (index < 0 || index >= count()) {
+        qCDebug(logListWidgets) << "Invalid tab index for removal, ignoring request";
+        return;
+    }
     d_func()->removeTab(index);
+    qCDebug(logListWidgets) << "Tab removed successfully";
 }
 
 /*!
@@ -1863,7 +1904,13 @@ void DTabBar::removeTab(int index)
  */
 void DTabBar::moveTab(int from, int to)
 {
+    qCDebug(logListWidgets) << "Moving tab from index" << from << "to index" << to;
+    if (from < 0 || from >= count() || to < 0 || to >= count()) {
+        qCDebug(logListWidgets) << "Invalid tab indices for move operation, ignoring request";
+        return;
+    }
     d_func()->moveTab(from, to);
+    qCDebug(logListWidgets) << "Tab moved successfully";
 }
 
 /*!
@@ -1875,7 +1922,9 @@ void DTabBar::moveTab(int from, int to)
  */
 bool DTabBar::isTabEnabled(int index) const
 {
-    return d_func()->isTabEnabled(index);
+    const bool result = d_func()->isTabEnabled(index);
+    qCDebug(logListWidgets) << "Checking if tab" << index << "is enabled:" << result;
+    return result;
 }
 
 /*!
@@ -1887,7 +1936,13 @@ bool DTabBar::isTabEnabled(int index) const
  */
 void DTabBar::setTabEnabled(int index, bool enable)
 {
+    qCDebug(logListWidgets) << "Setting tab" << index << "enabled state to:" << enable;
+    if (index < 0 || index >= count()) {
+        qCDebug(logListWidgets) << "Invalid tab index for enable/disable operation, ignoring request";
+        return;
+    }
     d_func()->setTabEnabled(index, enable);
+    qCDebug(logListWidgets) << "Tab enabled state updated successfully";
 }
 
 /*!
@@ -1899,7 +1954,14 @@ void DTabBar::setTabEnabled(int index, bool enable)
  */
 QString DTabBar::tabText(int index) const
 {
-    return d_func()->tabText(index);
+    qCDebug(logListWidgets) << "Getting text for tab at index:" << index;
+    if (index < 0 || index >= count()) {
+        qCDebug(logListWidgets) << "Invalid tab index for text retrieval, returning empty string";
+        return QString();
+    }
+    const QString result = d_func()->tabText(index);
+    qCDebug(logListWidgets) << "Tab text retrieved:" << result;
+    return result;
 }
 
 /*!
@@ -1911,7 +1973,13 @@ QString DTabBar::tabText(int index) const
  */
 void DTabBar::setTabText(int index, const QString &text)
 {
+    qCDebug(logListWidgets) << "Setting text for tab at index" << index << "to:" << text;
+    if (index < 0 || index >= count()) {
+        qCDebug(logListWidgets) << "Invalid tab index for text update, ignoring request";
+        return;
+    }
     d_func()->setTabText(index, text);
+    qCDebug(logListWidgets) << "Tab text updated successfully";
 }
 
 /*!
@@ -1934,7 +2002,13 @@ QIcon DTabBar::tabIcon(int index) const
  */
 void DTabBar::setTabIcon(int index, const QIcon &icon)
 {
+    qCDebug(logListWidgets) << "Setting icon for tab at index:" << index;
+    if (index < 0 || index >= count()) {
+        qCDebug(logListWidgets) << "Invalid tab index for icon update, ignoring request";
+        return;
+    }
     d_func()->setTabIcon(index, icon);
+    qCDebug(logListWidgets) << "Tab icon updated successfully";
 }
 
 /*!
@@ -1945,7 +2019,10 @@ void DTabBar::setTabIcon(int index, const QIcon &icon)
  */
 Qt::TextElideMode DTabBar::elideMode() const
 {
-    return d_func()->elideMode();
+    qCDebug(logListWidgets) << "Getting current elide mode";
+    Qt::TextElideMode mode = d_func()->elideMode();
+    qCDebug(logListWidgets) << "Current elide mode:" << mode;
+    return mode;
 }
 
 /*!
@@ -1956,7 +2033,9 @@ Qt::TextElideMode DTabBar::elideMode() const
  */
 void DTabBar::setElideMode(Qt::TextElideMode mode)
 {
+    qCDebug(logListWidgets) << "Setting elide mode to:" << mode;
     d_func()->setElideMode(mode);
+    qCDebug(logListWidgets) << "Elide mode updated successfully";
 }
 
 #ifndef QT_NO_TOOLTIP

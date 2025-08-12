@@ -6,12 +6,14 @@
 
 #include <QDebug>
 #include <QPainter>
+#include <QLoggingCategory>
 #include <QPainterPath>
 #include <QKeySequence>
 #include <QKeyEvent>
 
 namespace
 {
+Q_DECLARE_LOGGING_CATEGORY(logSettingsConfig)
 
 const int MAX_WIDTH = 238;
 const int MAX_HEIGHT = 22 + 2 * 2;
@@ -53,6 +55,7 @@ public:
 
 ShortcutEdit::ShortcutEdit(QWidget *parent) : QWidget(parent), d_ptr(new ShortcutEditPrivate(this))
 {
+    qCDebug(logSettingsConfig) << "Creating shortcut edit widget";
     setFocusPolicy(Qt::ClickFocus);
 }
 
@@ -64,6 +67,7 @@ ShortcutEdit::~ShortcutEdit()
 void ShortcutEdit::setShortCut(Qt::KeyboardModifiers modifier, Qt::Key key)
 {
     Q_D(ShortcutEdit);
+    qCDebug(logSettingsConfig) << "Setting shortcut:" << int(modifier) << int(key);
     d->keyModifiers = modifier;
     d->key = key;
 

@@ -21,6 +21,8 @@
 DGUI_USE_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
 
+Q_LOGGING_CATEGORY(logUtils, "dtk.widgets.utils")
+
 #define CHANGESPLITWINDOW_VAR "_d_splitWindowOnScreenByType"
 #define GETSUPPORTSPLITWINDOW_VAR "_d_supportForSplittingWindowByType"
 
@@ -40,6 +42,7 @@ static const QSize FourSplitScreenSize(222, 158);
 // Position的mask个数
 static int numberMaskOfFlag(DSplitScreenPlaceholder::Position flag)
 {
+    qCDebug(logUtils) << "Counting mask flags for position:" << static_cast<int>(flag);
     int count = 0;
     const QVector<DSplitScreenPlaceholder::PositionFlag> flags {
         DSplitScreenPlaceholder::Left,
@@ -51,49 +54,58 @@ static int numberMaskOfFlag(DSplitScreenPlaceholder::Position flag)
         if (flag.testFlag(item))
             count++;
     }
+    qCDebug(logUtils) << "Mask count:" << count;
     return count;
 }
 static quint32 getWinId(const QWidget *window)
 {
+    qCDebug(logUtils) << "Getting window ID for widget:" << window;
     if (window) {
         const QWindow *windowHandle = window->windowHandle();
-        if (windowHandle && windowHandle->handle())
-            return windowHandle->handle()->winId();
+        if (windowHandle && windowHandle->handle()) {
+            const auto& winId = windowHandle->handle()->winId();
+            qCDebug(logUtils) << "Window ID:" << winId;
+            return winId;
+        }
     }
+    qCDebug(logUtils) << "No valid window ID found";
     return 0;
 }
 
 //### 目前接口尚不公开在 dtkgui 中，等待获取后续接口稳定再做移植
 static bool supportForSplittingWindowByType(quint32 wid, const int screenSplittingType)
 {
+    qCDebug(logUtils) << "Checking support for splitting window:" << wid << "type:" << screenSplittingType;
     bool supported = false;
 
     QFunctionPointer getSupportSplitWindow = qApp->platformFunction(GETSUPPORTSPLITWINDOW_VAR);
     if (!getSupportSplitWindow) {
-        qCWarning(dSplitScreen) << "Can't get handler for `supportForSplittingWindowByType` of platform function, "
-                                   "need to update `qt5platform-plugins` related package.";
+        qCWarning(logUtils) << "Can't get handler for `supportForSplittingWindowByType` of platform function, "
+                               "need to update `qt5platform-plugins` related package.";
     }
 
     if (getSupportSplitWindow)
         supported = reinterpret_cast<bool(*)(quint32, quint32)>(getSupportSplitWindow)(wid, static_cast<quint32>(screenSplittingType));
 
     if (!getSupportSplitWindow && !supported) {
-        qCDebug(dSplitScreen) << "Can't support splitting Window Type:[" << screenSplittingType
-                              << "] from `supportForSplittingWindowByType` of platform function.";
+        qCDebug(logUtils) << "Can't support splitting Window Type:[" << screenSplittingType
+                          << "] from `supportForSplittingWindowByType` of platform function.";
     }
+    qCDebug(logUtils) << "Support result:" << supported;
     return supported;
 }
 static void splitWindowOnScreenByType(quint32 wid, quint32 position, quint32 type)
 {
+    qCDebug(logUtils) << "Splitting window on screen, wid:" << wid << "position:" << position << "type:" << type;
     QFunctionPointer splitWindowOnScreen = qApp->platformFunction(CHANGESPLITWINDOW_VAR);
 
     if (!splitWindowOnScreen) {
-        qCWarning(dSplitScreen) << "Can't get handler for `splitWindowOnScreenByType` of platform function, "
-                                   "need to update `qt5platform-plugins` related package.";
+        qCWarning(logUtils) << "Can't get handler for `splitWindowOnScreenByType` of platform function, "
+                               "need to update `qt5platform-plugins` related package.";
     }
     if (splitWindowOnScreen) {
-        qCDebug(dSplitScreen) << "Call `splitWindowOnScreenByType` of platform function, "
-                 << "arguments of position is [" << position << "] and type is [" << type << "].";
+        qCDebug(logUtils) << "Call `splitWindowOnScreenByType` of platform function, "
+             << "arguments of position is [" << position << "] and type is [" << type << "].";
         reinterpret_cast<void(*)(quint32, quint32, quint32)>(splitWindowOnScreen)(wid, position, type);
     }
 }

@@ -8,6 +8,7 @@
 #include "diconbutton.h"
 
 #include <QDebug>
+#include <QLoggingCategory>
 #include <QPointer>
 #include <QTimer>
 #include <QFile>
@@ -25,6 +26,10 @@
 DWIDGET_BEGIN_NAMESPACE
 DCORE_USE_NAMESPACE
 
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logStyleTheme)
+}
+
 static const QString SettingsTools(u8"tools");
 static const QString SettingsAlignment(u8"alignment");
 static const QString SettingsKey(u8"key");
@@ -39,10 +44,12 @@ DTitlebarDataStore::DTitlebarDataStore(QObject *parent)
     , m_settingsGroupName("dtitlebar-settings")
     , m_settingsGroupNameSubGroup(QString("%1/%2").arg(m_settingsGroupName))
 {
+    qCDebug(logStyleTheme) << "Creating titlebar data store";
 }
 
 DTitlebarDataStore::~DTitlebarDataStore()
 {
+    qCDebug(logStyleTheme) << "Destroying titlebar data store";
     save();
     qDeleteAll(m_instances);
 }
@@ -51,6 +58,7 @@ DTitlebarDataStore *DTitlebarDataStore::instance()
 {
     static DTitlebarDataStore *dataStore = nullptr;
     if (!dataStore) {
+        qCDebug(logStyleTheme) << "Creating singleton data store instance";
         dataStore = new DTitlebarDataStore;
     }
     return dataStore;
@@ -58,9 +66,12 @@ DTitlebarDataStore *DTitlebarDataStore::instance()
 
 bool DTitlebarDataStore::load()
 {
+    qCDebug(logStyleTheme) << "Loading titlebar data store";
     const auto root = metaRoot();
-    if (root.isEmpty())
+    if (root.isEmpty()) {
+        qCWarning(logStyleTheme) << "Meta root is empty, cannot load";
         return false;
+    }
 
     m_isValid = true;
 
@@ -687,11 +698,16 @@ public:
 
     void initDisplayView()
     {
+        qCDebug(logStyleTheme) << "Initializing display view";
         D_Q(DTitlebarSettingsImpl);
 
         displayView = new DTitlebarEditPanel(q, customView);
+        qCDebug(logStyleTheme) << "Created edit panel";
         displayView->setAutoFillBackground(true);
         displayView->setBackgroundRole(QPalette::Base);
+        qCDebug(logStyleTheme) << "Set background properties";
+
+        qCDebug(logStyleTheme) << "Connecting signals";
         QObject::connect(displayView, SIGNAL(addingToolView(const QString &, const int)),
                 q, SLOT(_q_addingToolView(const QString &, const int)));
         QObject::connect(displayView, SIGNAL(removedToolView(const QString &, const int)),
@@ -700,182 +716,290 @@ public:
                 q, SLOT(_q_resetToolView()));
         QObject::connect(displayView, SIGNAL(movedToolView(const QString &, const int)),
                 q, SLOT(_q_movedToolView(const QString &, const int)));
+        qCDebug(logStyleTheme) << "Display view initialization completed";
     }
 
     bool load(const QString &path)
     {
+        qCDebug(logStyleTheme) << "Loading from path:" << path;
         if (!dataStore->isValid()) {
-            if (!dataStore->load(path))
+            qCDebug(logStyleTheme) << "Data store is invalid, attempting to load";
+            if (!dataStore->load(path)) {
+                qCDebug(logStyleTheme) << "Failed to load data store";
                 return false;
+            }
+            qCDebug(logStyleTheme) << "Data store loaded successfully";
         }
 
         // remove not existed tool.
+        qCDebug(logStyleTheme) << "Removing non-existent tools";
         dataStore->removeAllNotExistIds(factory.toolIds());
 
         D_Q(DTitlebarSettingsImpl);
+        qCDebug(logStyleTheme) << "Connecting reload signal";
         QObject::connect(ReloadSignal::instance(), SIGNAL(reload()), q, SLOT(_q_onReload()));
+        qCDebug(logStyleTheme) << "Loading custom view";
         loadCustomView(false);
+        qCDebug(logStyleTheme) << "Load completed successfully";
         return true;
     }
 
     void loadCustomView(bool isEditMode)
     {
+        qCDebug(logStyleTheme) << "Loading custom view, edit mode:" << isEditMode;
         D_Q(DTitlebarSettingsImpl);
 
         if (!customView) {
+            qCDebug(logStyleTheme) << "Creating new custom widget";
             customView = new DTitlebarCustomWidget(q);
         }
 
+        qCDebug(logStyleTheme) << "Setting edit mode and clearing widgets";
         customView->setEditMode(isEditMode);
         customView->removeAll();
 
         // load tool from cache.
-        for (auto key : dataStore->keys()) {
+        qCDebug(logStyleTheme) << "Loading tools from cache";
+        const auto& keys = dataStore->keys();
+        qCDebug(logStyleTheme) << "Found" << keys.size() << "tools to load";
+        for (auto key : keys) {
+            qCDebug(logStyleTheme) << "Adding widget for key:" << key;
             customView->addWidget(key, -1);
         }
         customView->show();
+        qCDebug(logStyleTheme) << "Custom view loading completed";
     }
 
     void loadSelectZoneView()
     {
+        qCDebug(logStyleTheme) << "Loading selection zone view";
         toolsEditPanel->removeAll();
-        for (auto id : factory.toolIds()) {
+        qCDebug(logStyleTheme) << "Cleared existing widgets";
+
+        const auto& ids = factory.toolIds();
+        qCDebug(logStyleTheme) << "Found" << ids.size() << "tools to add";
+        for (auto id : ids) {
+            qCDebug(logStyleTheme) << "Adding widget for id:" << id;
             toolsEditPanel->addWidgetToSelectionZone(id);
         }
+        qCDebug(logStyleTheme) << "Selection zone view loading completed";
     }
 
     void loadDefaultZoneView()
     {
+        qCDebug(logStyleTheme) << "Loading default zone view";
         D_Q(DTitlebarSettingsImpl);
 
+        qCDebug(logStyleTheme) << "Creating temporary title bar edit panel";
         DTitlebarCustomWidget *defaultTitleBarEditPanel = new DTitlebarCustomWidget(q);
         const QSize &size = QSize(toolsEditPanel->minimumWidth(), customView->height());
+        qCDebug(logStyleTheme) << "Setting panel size:" << size;
         defaultTitleBarEditPanel->setFixedSize(size);
-        for (auto id : dataStore->defaultIds()) {
+
+        const auto& ids = dataStore->defaultIds();
+        qCDebug(logStyleTheme) << "Found" << ids.size() << "default tools to add";
+        for (auto id : ids) {
+            qCDebug(logStyleTheme) << "Adding default widget for id:" << id;
             defaultTitleBarEditPanel->appendDefaultWidget(id);
         }
-        const QPixmap &pixmap = defaultTitleBarEditPanel->grab().scaled(size.width(), size.height() * 70 / 100);
-        toolsEditPanel->setDefaultView(pixmap, QSize(size.width(), size.height() * 70 / 100));
+
+        qCDebug(logStyleTheme) << "Creating scaled preview";
+        const QSize previewSize(size.width(), size.height() * 70 / 100);
+        const QPixmap &pixmap = defaultTitleBarEditPanel->grab().scaled(previewSize.width(), previewSize.height());
+        qCDebug(logStyleTheme) << "Setting default view with size:" << previewSize;
+        toolsEditPanel->setDefaultView(pixmap, previewSize);
+
+        qCDebug(logStyleTheme) << "Cleaning up temporary panel";
         defaultTitleBarEditPanel->deleteLater();
+        qCDebug(logStyleTheme) << "Default zone view loading completed";
     }
 
     void loadDisplayView()
     {
+        qCDebug(logStyleTheme) << "Loading display view";
         if (!displayView) {
+            qCDebug(logStyleTheme) << "Display view not initialized, creating new one";
             initDisplayView();
         }
 
+        qCDebug(logStyleTheme) << "Clearing existing widgets";
         displayView->removeAll();
-        for (auto key : dataStore->keys()) {
+
+        const auto& keys = dataStore->keys();
+        qCDebug(logStyleTheme) << "Found" << keys.size() << "widgets to add";
+        for (auto key : keys) {
+            qCDebug(logStyleTheme) << "Adding widget for key:" << key;
             displayView->addWidget(key, -1);
         }
 
+        qCDebug(logStyleTheme) << "Updating screenshot views";
         displayView->updateScreenShotedViews();
+        qCDebug(logStyleTheme) << "Adjusting display view layout";
         adjustDisplayView();
+        qCDebug(logStyleTheme) << "Display view loading completed";
     }
 
     void adjustDisplayView()
     {
+        qCDebug(logStyleTheme) << "Adjusting display view";
         if (displayView) {
+            qCDebug(logStyleTheme) << "Setting parent widget";
             displayView->setParent(customView->parentWidget());
+            qCDebug(logStyleTheme) << "Setting size to:" << customView->size();
             displayView->setFixedSize(customView->size());
+            qCDebug(logStyleTheme) << "Moving to position:" << customView->pos();
             displayView->move(customView->pos());
+            qCDebug(logStyleTheme) << "Raising view to top";
             displayView->raise();
+            qCDebug(logStyleTheme) << "Starting screenshot";
             Q_EMIT displayView->startScreenShot();
+            qCDebug(logStyleTheme) << "Showing display view";
             displayView->show();
+        } else {
+            qCDebug(logStyleTheme) << "Display view is null, skipping adjustment";
         }
+        qCDebug(logStyleTheme) << "Display view adjustment completed";
     }
 
     void addBuiltinTools()
     {
+        qCDebug(logStyleTheme) << "Adding builtin tools";
+        qCDebug(logStyleTheme) << "Creating spacer tool";
         auto spacer = new DTitleBarToolSpacer(dataStore);
         factory.add(spacer);
+        qCDebug(logStyleTheme) << "Creating stretch tool";
         auto stretch = new DTitleBarToolStretch();
         factory.add(stretch);
+        qCDebug(logStyleTheme) << "Builtin tools added successfully";
     }
 
     void showEditPanel()
     {
-        loadCustomView(true); // load the real view in title bar
-        loadDisplayView(); // load the editable view in title bar
+        qCDebug(logStyleTheme) << "Showing edit panel";
+        qCDebug(logStyleTheme) << "Loading real view in title bar";
+        loadCustomView(true);
+        qCDebug(logStyleTheme) << "Loading editable view in title bar";
+        loadDisplayView();
+        qCDebug(logStyleTheme) << "Loading selection zone";
         loadSelectZoneView();
+        qCDebug(logStyleTheme) << "Loading default zone";
         loadDefaultZoneView();
 
+        qCDebug(logStyleTheme) << "Showing and focusing tools edit panel";
         toolsEditPanel->show();
         toolsEditPanel->setFocus();
+        qCDebug(logStyleTheme) << "Edit panel display completed";
     }
 
     void removeTool(const QString &key)
     {
+        qCDebug(logStyleTheme) << "Removing tool with key:" << key;
         factory.remove(key);
         if (!dataStore->contains(key)) {
-            qDebug() << "The tool doesn't exist in factory, tool key: " << key;
+            qCDebug(logStyleTheme) << "Tool not found in data store, skipping removal";
             return;
         }
+        qCDebug(logStyleTheme) << "Removing tool from data store";
         dataStore->remove(key);
+        qCDebug(logStyleTheme) << "Tool removal completed";
     }
 
     void _q_addingToolView(const QString &id, const int pos)
     {
+        qCDebug(logStyleTheme) << "Adding tool view - id:" << id << "position:" << pos;
         D_QC(DTitlebarSettingsImpl);
-        qDebug() << Q_FUNC_INFO << id << pos;
-        if (!factory.contains(id))
+
+        if (!factory.contains(id)) {
+            qCDebug(logStyleTheme) << "Tool not found in factory, skipping";
             return;
+        }
 
         if (!q->isSpacerToolById(id)) {
-            if (dataStore->isExistTheId(id))
+            if (dataStore->isExistTheId(id)) {
+                qCDebug(logStyleTheme) << "Non-spacer tool already exists, skipping";
                 return;
+            }
         }
+
+        qCDebug(logStyleTheme) << "Inserting tool into data store";
         dataStore->insert(id, pos);
+        qCDebug(logStyleTheme) << "Saving data store";
         dataStore->save();
+        qCDebug(logStyleTheme) << "Emitting reload signal";
         Q_EMIT ReloadSignal::instance()->reload();
+        qCDebug(logStyleTheme) << "Tool view addition completed";
     }
 
     void _q_removedToolView(const QString &key, const int pos)
     {
-        qDebug() << Q_FUNC_INFO << key << pos;
+        qCDebug(logStyleTheme) << "Removing tool view - key:" << key << "position:" << pos;
+        qCDebug(logStyleTheme) << "Removing from data store";
         dataStore->remove(key);
+        qCDebug(logStyleTheme) << "Saving data store";
         dataStore->save();
+        qCDebug(logStyleTheme) << "Emitting reload signal";
         Q_EMIT ReloadSignal::instance()->reload();
+        qCDebug(logStyleTheme) << "Tool view removal completed";
     }
 
     void _q_movedToolView(const QString &key, const int pos)
     {
-        qDebug() << Q_FUNC_INFO << key << pos;
+        qCDebug(logStyleTheme) << "Moving tool view - key:" << key << "to position:" << pos;
+        qCDebug(logStyleTheme) << "Moving in data store";
         dataStore->move(key, pos);
+        qCDebug(logStyleTheme) << "Saving data store";
         dataStore->save();
+        qCDebug(logStyleTheme) << "Emitting reload signal";
         Q_EMIT ReloadSignal::instance()->reload();
+        qCDebug(logStyleTheme) << "Tool view move completed";
     }
 
     void _q_resetToolView()
     {
-        qDebug() << Q_FUNC_INFO;
+        qCDebug(logStyleTheme) << "Resetting tool view";
+        qCDebug(logStyleTheme) << "Resetting data store";
         dataStore->reset();
+        qCDebug(logStyleTheme) << "Emitting reload signal";
         Q_EMIT ReloadSignal::instance()->reload();
+        qCDebug(logStyleTheme) << "Tool view reset completed";
     }
 
     void _q_confirmBtnClicked()
     {
-        qDebug() << Q_FUNC_INFO << this;
+        qCDebug(logStyleTheme) << "Confirm button clicked";
+        qCDebug(logStyleTheme) << "Saving data store";
         dataStore->save();
+        qCDebug(logStyleTheme) << "Disabling edit mode";
         customView->setEditMode(false);
+        qCDebug(logStyleTheme) << "Reloading widgets";
         customView->reloadWidgets();
+        qCDebug(logStyleTheme) << "Hiding display view";
         displayView->setVisible(false);
+        qCDebug(logStyleTheme) << "Confirm action completed";
     }
 
     void _q_onReload()
     {
-        qDebug() << Q_FUNC_INFO << this;
-        loadCustomView(customView->editMode());
+        qCDebug(logStyleTheme) << "Reload signal received";
+        const bool editMode = customView->editMode();
+        qCDebug(logStyleTheme) << "Reloading custom view with edit mode:" << editMode;
+        loadCustomView(editMode);
+        qCDebug(logStyleTheme) << "Reload completed";
     }
 
     QWidget *tryCreateToolsEditPanel()
     {
+        qCDebug(logStyleTheme) << "Attempting to create tools edit panel";
         D_Q(DTitlebarSettingsImpl);
         if (!toolsEditPanel) {
+            qCDebug(logStyleTheme) << "Creating new tools edit panel";
             toolsEditPanel = new DToolbarEditPanel(q);
+            qCDebug(logStyleTheme) << "Connecting confirm button signal";
             QObject::connect(toolsEditPanel.data(), SIGNAL(confirmBtnClicked()),
                     q, SLOT(_q_confirmBtnClicked()));
+            qCDebug(logStyleTheme) << "Tools edit panel created successfully";
+        } else {
+            qCDebug(logStyleTheme) << "Using existing tools edit panel";
         }
         return toolsEditPanel;
     }

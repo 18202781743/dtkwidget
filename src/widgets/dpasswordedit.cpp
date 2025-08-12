@@ -14,9 +14,12 @@
 #include <QTimer>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QLoggingCategory>
 
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 /*!
 @~english
@@ -38,6 +41,7 @@ DWIDGET_BEGIN_NAMESPACE
 DPasswordEdit::DPasswordEdit(QWidget *parent)
     : DLineEdit(*new DPasswordEditPrivate(this), parent)
 {
+    qCDebug(logBasicWidgets) << "DPasswordEdit constructor called with parent:" << (parent ? "valid" : "null");
     D_D(DPasswordEdit);
 
     d->init();
@@ -55,7 +59,9 @@ DPasswordEdit::DPasswordEdit(QWidget *parent)
  */
 bool DPasswordEdit::isEchoMode() const
 {
-    return lineEdit()->echoMode() == QLineEdit::Normal;
+    const auto& isNormal = lineEdit()->echoMode() == QLineEdit::Normal;
+    qCDebug(logBasicWidgets) << "isEchoMode called, returning:" << isNormal;
+    return isNormal;
 }
 
 /*!
@@ -66,7 +72,9 @@ bool DPasswordEdit::isEchoMode() const
  */
 void DPasswordEdit::setEchoMode(QLineEdit::EchoMode mode)
 {
+    qCDebug(logBasicWidgets) << "setEchoMode called with mode:" << mode;
     if (mode != echoMode()) {
+        qCDebug(logBasicWidgets) << "echo mode changed, updating";
         DLineEdit::setEchoMode(mode);
 
         // To inform the style sheet system that our style sheet needs
@@ -76,10 +84,14 @@ void DPasswordEdit::setEchoMode(QLineEdit::EchoMode mode)
         D_D(DPasswordEdit);
 
         if (isEchoMode()) {
+            qCDebug(logBasicWidgets) << "setting hide password icon";
             d->togglePasswordVisibleButton->setIcon(DStyle::standardIcon(style(), DStyle::SP_HidePassword));
         } else {
+            qCDebug(logBasicWidgets) << "setting show password icon";
             d->togglePasswordVisibleButton->setIcon(DStyle::standardIcon(style(),DStyle::SP_ShowPassword));
         }
+    } else {
+        qCDebug(logBasicWidgets) << "echo mode unchanged, returning early";
     }
 }
 
@@ -90,6 +102,7 @@ void DPasswordEdit::setEchoMode(QLineEdit::EchoMode mode)
  */
 void DPasswordEdit::setEchoButtonIsVisible(bool visible)
 {
+    qCDebug(logBasicWidgets) << "setEchoButtonIsVisible called with visible:" << visible;
     D_D(DPasswordEdit);
 
     d->togglePasswordVisibleButton->setVisible(visible);
@@ -104,12 +117,16 @@ void DPasswordEdit::setEchoButtonIsVisible(bool visible)
 bool DPasswordEdit::echoButtonIsVisible() const
 {
     D_DC(DPasswordEdit);
-    return d->togglePasswordVisibleButton->isVisible();
+    const auto& visible = d->togglePasswordVisibleButton->isVisible();
+    qCDebug(logBasicWidgets) << "echoButtonIsVisible called, returning:" << visible;
+    return visible;
 }
 
 void DPasswordEdit::changeEvent(QEvent *event)
 {
+    qCDebug(logBasicWidgets) << "changeEvent called with event type:" << event->type();
     if (event->type() == QEvent::StyleChange) {
+        qCDebug(logBasicWidgets) << "style changed, updating button properties";
         D_D(DPasswordEdit);
         d->togglePasswordVisibleButton->setFixedWidth(d->defaultButtonWidth());
         d->togglePasswordVisibleButton->setIconSize(d->defaultIconSize());
@@ -125,6 +142,7 @@ DPasswordEditPrivate::DPasswordEditPrivate(DPasswordEdit *q)
 
 void DPasswordEditPrivate::init()
 {
+    qCDebug(logBasicWidgets) << "DPasswordEditPrivate::init called";
     D_Q(DPasswordEdit);
 
     q->lineEdit()->setEchoMode(QLineEdit::Password);
@@ -145,12 +163,15 @@ void DPasswordEditPrivate::init()
 
 void DPasswordEditPrivate::_q_toggleEchoMode()
 {
+    qCDebug(logBasicWidgets) << "_q_toggleEchoMode called";
     D_Q(DPasswordEdit);
 
     if (q->isEchoMode()) {
+        qCDebug(logBasicWidgets) << "switching to password mode";
         togglePasswordVisibleButton->setIcon(DStyle::standardIcon(q->style(),DStyle::SP_ShowPassword));
         q->setEchoMode(q->lineEdit()->Password);
     } else {
+        qCDebug(logBasicWidgets) << "switching to normal mode";
         togglePasswordVisibleButton->setIcon(DStyle::standardIcon(q->style(), DStyle::SP_HidePassword));
         q->setEchoMode(q->lineEdit()->Normal);
     }

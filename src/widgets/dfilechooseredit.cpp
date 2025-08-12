@@ -12,7 +12,11 @@
 #include <QGuiApplication>
 #include <private/qguiapplication_p.h>
 #include <QWindow>
+#include <QLoggingCategory>
+
 DWIDGET_BEGIN_NAMESPACE
+
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
 
 /*!
 @~english
@@ -70,6 +74,7 @@ DWIDGET_BEGIN_NAMESPACE
 DFileChooserEdit::DFileChooserEdit(QWidget *parent)
     : DLineEdit(*new DFileChooserEditPrivate(this), parent)
 {
+    qCDebug(logBasicWidgets) << "Creating DFileChooserEdit with parent:" << parent;
     D_D(DFileChooserEdit);
 
     d->init();
@@ -88,8 +93,9 @@ DFileChooserEdit::DFileChooserEdit(QWidget *parent)
 DFileChooserEdit::DialogDisplayPosition DFileChooserEdit::dialogDisplayPosition() const
 {
     D_DC(DFileChooserEdit);
-
-    return d->dialogDisplayPosition;
+    const auto& position = d->dialogDisplayPosition;
+    qCDebug(logBasicWidgets) << "Current dialog display position:" << static_cast<int>(position);
+    return position;
 }
 
 /*!
@@ -102,6 +108,7 @@ DFileChooserEdit::DialogDisplayPosition DFileChooserEdit::dialogDisplayPosition(
  */
 void DFileChooserEdit::setDialogDisplayPosition(DFileChooserEdit::DialogDisplayPosition dialogDisplayPosition)
 {
+    qCDebug(logBasicWidgets) << "Setting dialog display position:" << static_cast<int>(dialogDisplayPosition);
     D_D(DFileChooserEdit);
 
     d->dialogDisplayPosition = dialogDisplayPosition;
@@ -109,6 +116,7 @@ void DFileChooserEdit::setDialogDisplayPosition(DFileChooserEdit::DialogDisplayP
 
 void DFileChooserEdit::setFileDialog(QFileDialog *fileDialog)
 {
+    qCDebug(logBasicWidgets) << "Setting file dialog:" << fileDialog;
     D_D(DFileChooserEdit);
 
     d->dialog = fileDialog;
@@ -117,21 +125,25 @@ void DFileChooserEdit::setFileDialog(QFileDialog *fileDialog)
 QFileDialog *DFileChooserEdit::fileDialog() const
 {
     D_DC(DFileChooserEdit);
-
-    return d->dialog;
+    const auto& dialog = d->dialog;
+    qCDebug(logBasicWidgets) << "Current file dialog:" << dialog;
+    return dialog;
 }
 
 void DFileChooserEdit::initDialog()
 {
+    qCDebug(logBasicWidgets) << "Initializing file dialog";
     D_D(DFileChooserEdit);
 
     if (d->dialog) {
+        qCDebug(logBasicWidgets) << "Dialog already exists, skipping initialization";
         return;
     }
 
     d->dialog = new QFileDialog(this);
     d->dialog->setAcceptMode(QFileDialog::AcceptOpen);
     d->dialog->setFileMode(QFileDialog::ExistingFile);
+    qCDebug(logBasicWidgets) << "File dialog created with default settings";
 }
 
 /*!
@@ -142,9 +154,11 @@ void DFileChooserEdit::initDialog()
  */
 void DFileChooserEdit::setFileMode(QFileDialog::FileMode mode)
 {
+    qCDebug(logBasicWidgets) << "Setting file mode:" << static_cast<int>(mode);
     D_D(DFileChooserEdit);
 
     if (!d->dialog) {
+        qCDebug(logBasicWidgets) << "Dialog not initialized, initializing first";
         initDialog();
     }
     d->dialog->setFileMode(mode);
@@ -166,9 +180,12 @@ QFileDialog::FileMode DFileChooserEdit::fileMode() const
     D_DC(DFileChooserEdit);
 
     if (!d->dialog) {
+        qCDebug(logBasicWidgets) << "Dialog not initialized, returning AnyFile mode";
         return QFileDialog::FileMode::AnyFile;
     }
-    return d->dialog->fileMode();
+    const auto& mode = d->dialog->fileMode();
+    qCDebug(logBasicWidgets) << "Current file mode:" << static_cast<int>(mode);
+    return mode;
 }
 
 /*!
@@ -179,9 +196,11 @@ QFileDialog::FileMode DFileChooserEdit::fileMode() const
  */
 void  DFileChooserEdit::setNameFilters(const QStringList &filters)
 {
+    qCDebug(logBasicWidgets) << "Setting name filters:" << filters;
     D_D(DFileChooserEdit);
 
     if (!d->dialog) {
+        qCDebug(logBasicWidgets) << "Dialog not initialized, initializing first";
         initDialog();
     }
     d->dialog->setNameFilters(filters);
@@ -205,16 +224,21 @@ QStringList DFileChooserEdit::nameFilters() const
     D_DC(DFileChooserEdit);
 
     if (!d->dialog) {
+        qCDebug(logBasicWidgets) << "Dialog not initialized, returning empty filter list";
         return QStringList();
     }
-    return d->dialog->nameFilters();
+    const auto& filters = d->dialog->nameFilters();
+    qCDebug(logBasicWidgets) << "Current name filters:" << filters;
+    return filters;
 }
 
 void DFileChooserEdit::setDirectoryUrl(const QUrl &directory)
 {
+    qCDebug(logBasicWidgets) << "Setting directory URL:" << directory;
     D_D(DFileChooserEdit);
 
     if (!d->dialog) {
+        qCDebug(logBasicWidgets) << "Dialog not initialized, initializing first";
         initDialog();
     }
     d->dialog->setDirectoryUrl(directory);
@@ -225,19 +249,24 @@ QUrl DFileChooserEdit::directoryUrl()
     D_D(DFileChooserEdit);
 
     if (!d->dialog) {
+        qCDebug(logBasicWidgets) << "Dialog not initialized, initializing first";
         initDialog();
     }
-    return d->dialog->directoryUrl();
+    const auto& url = d->dialog->directoryUrl();
+    qCDebug(logBasicWidgets) << "Current directory URL:" << url;
+    return url;
 }
 
 
 DFileChooserEditPrivate::DFileChooserEditPrivate(DFileChooserEdit *q)
     : DLineEditPrivate(q)
 {
+    qCDebug(logBasicWidgets) << "Creating DFileChooserEditPrivate";
 }
 
 void DFileChooserEditPrivate::init()
 {
+    qCDebug(logBasicWidgets) << "Initializing DFileChooserEdit";
     D_Q(DFileChooserEdit);
 
     QList<QWidget *> list;
@@ -260,17 +289,21 @@ void DFileChooserEditPrivate::init()
     q->setClearButtonEnabled(true);
 
     q->connect(btn, SIGNAL(clicked()), q, SLOT(_q_showFileChooserDialog()));
+    qCDebug(logBasicWidgets) << "DFileChooserEdit initialization completed";
 }
 
 void DFileChooserEditPrivate::_q_showFileChooserDialog()
 {
+    qCDebug(logBasicWidgets) << "Showing file chooser dialog";
     D_Q(DFileChooserEdit);
 
     if (!dialog) {
+        qCDebug(logBasicWidgets) << "Dialog not initialized, initializing first";
         q->initDialog();
     }
 
     if (dialogDisplayPosition == DFileChooserEdit::CurrentMonitorCenter) {
+        qCDebug(logBasicWidgets) << "Positioning dialog at current monitor center";
         QPoint pos = QCursor::pos();
 
         for (QScreen *screen : qApp->screens()) {
@@ -286,26 +319,32 @@ void DFileChooserEditPrivate::_q_showFileChooserDialog()
     q->dialogOpened();
 
     if (!dialog) {
-        qWarning("init filedialog failed!!");
+        qCWarning(logBasicWidgets) << "Failed to initialize file dialog";
         return;
     }
 
     // 多次打开时有时会出现 filedialog 不显示的问题 exec 前确保没显示否则不调用 helper->show
-    if (dialog->isVisible())
+    if (dialog->isVisible()) {
+        qCDebug(logBasicWidgets) << "Dialog is visible, hiding it first";
         dialog->setVisible(false);
+    }
 
     int code = dialog->exec();
+    qCDebug(logBasicWidgets) << "Dialog execution completed with code:" << code;
 
     if (code == QDialog::Accepted && !dialog->selectedFiles().isEmpty()) {
         const QString fileName = dialog->selectedFiles().first();
+        qCDebug(logBasicWidgets) << "File selected:" << fileName;
 
         q->setText(fileName);
         Q_EMIT q->fileChoosed(fileName);
     }
 
     // exec 后如果 filedialog 还阻塞了应用就要隐藏掉
-    if (qApp->modalWindow() == dialog->windowHandle())
+    if (qApp->modalWindow() == dialog->windowHandle()) {
+        qCDebug(logBasicWidgets) << "Hiding modal window";
         QGuiApplicationPrivate::hideModalWindow(dialog->windowHandle());
+    }
 
     q->dialogClosed(code);
 }

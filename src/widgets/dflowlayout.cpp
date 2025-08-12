@@ -7,17 +7,21 @@
 
 #include "dflowlayout.h"
 #include "private/dflowlayout_p.h"
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logContainers, "dtk.widgets.containers")
 
 DWIDGET_BEGIN_NAMESPACE
 
 DFlowLayoutPrivate::DFlowLayoutPrivate(DFlowLayout *qq) :
     DObjectPrivate(qq)
 {
-
+    qCDebug(logContainers) << "Creating DFlowLayoutPrivate";
 }
 
 QSize DFlowLayoutPrivate::doLayout(const QRect &rect, bool testOnly) const
 {
+    qCDebug(logContainers) << "Doing layout, rect:" << rect << "testOnly:" << testOnly;
     D_QC(DFlowLayout);
 
     if(!testOnly) {
@@ -180,18 +184,19 @@ DFlowLayout::DFlowLayout(QWidget *parent) :
     QLayout(parent),
     DObject(*new DFlowLayoutPrivate(this))
 {
-
+    qCDebug(logContainers) << "Creating DFlowLayout with parent";
 }
 
 DFlowLayout::DFlowLayout() :
     QLayout(),
     DObject(*new DFlowLayoutPrivate(this))
 {
-
+    qCDebug(logContainers) << "Creating DFlowLayout without parent";
 }
 
 DFlowLayout::~DFlowLayout()
 {
+    qCDebug(logContainers) << "Destroying DFlowLayout";
     QLayoutItem *item;
 
     while ((item = takeAt(0)))
@@ -212,6 +217,7 @@ DFlowLayout::~DFlowLayout()
  */
 void DFlowLayout::insertItem(int index, QLayoutItem *item)
 {
+    qCDebug(logContainers) << "Inserting item at index:" << index;
     d_func()->itemList.insert(index, item);
 
     Q_EMIT countChanged(count());
@@ -229,6 +235,7 @@ void DFlowLayout::insertItem(int index, QLayoutItem *item)
  */
 void DFlowLayout::insertWidget(int index, QWidget *widget)
 {
+    qCDebug(logContainers) << "Inserting widget at index:" << index;
     addChildWidget(widget);
     insertItem(index, new QWidgetItemV2(widget));
 }
@@ -359,6 +366,7 @@ void DFlowLayout::addSpacerItem(QSpacerItem *spacerItem)
  */
 void DFlowLayout::addItem(QLayoutItem *item)
 {
+    qCDebug(logContainers) << "Adding item to layout";
     insertItem(count(), item);
 }
 
@@ -372,9 +380,11 @@ void DFlowLayout::addItem(QLayoutItem *item)
  */
 bool DFlowLayout::hasHeightForWidth() const
 {
+    qCDebug(logContainers) << "Checking if layout has height for width";
     D_DC(DFlowLayout);
-
-    return d->flow == DFlowLayout::Flow::LeftToRight;
+    bool hasHeight = d->flow == DFlowLayout::Flow::LeftToRight;
+    qCDebug(logContainers) << "Has height for width:" << hasHeight;
+    return hasHeight;
 }
 
 /*!
@@ -387,15 +397,19 @@ bool DFlowLayout::hasHeightForWidth() const
  */
 int DFlowLayout::heightForWidth(int width) const
 {
+    qCDebug(logContainers) << "Calculating height for width:" << width;
     D_DC(DFlowLayout);
 
     QWidget *parentWidget = this->parentWidget();
 
     if(parentWidget && width == parentWidget->width()) {
+        qCDebug(logContainers) << "Using cached size hint height:" << d->sizeHint.height();
         return d->sizeHint.height();
     }
 
-    return d->doLayout(QRect(0, 0, width, 0), true).height();
+    int height = d->doLayout(QRect(0, 0, width, 0), true).height();
+    qCDebug(logContainers) << "Calculated height:" << height;
+    return height;
 }
 
 /*!
@@ -404,6 +418,7 @@ int DFlowLayout::heightForWidth(int width) const
  */
 int DFlowLayout::count() const
 {
+    qCDebug(logContainers) << "Getting count:" << d_func()->itemList.count();
     return d_func()->itemList.count();
 }
 
@@ -434,11 +449,15 @@ QSize DFlowLayout::minimumSize() const
  */
 void DFlowLayout::setGeometry(const QRect &rect)
 {
-    if(rect == geometry())
+    qCDebug(logContainers) << "Setting geometry to:" << rect;
+    if(rect == geometry()) {
+        qCDebug(logContainers) << "Geometry unchanged, skipping";
         return;
+    }
 
-    QLayout::setGeometry(QRect(rect.topLeft(),
-                               d_func()->doLayout(rect, false)));
+    QSize layoutSize = d_func()->doLayout(rect, false);
+    qCDebug(logContainers) << "Layout calculated size:" << layoutSize;
+    QLayout::setGeometry(QRect(rect.topLeft(), layoutSize));
 }
 
 /*
@@ -533,6 +552,7 @@ DFlowLayout::Flow DFlowLayout::flow() const
  */
 void DFlowLayout::setHorizontalSpacing(int horizontalSpacing)
 {
+    qCDebug(logContainers) << "Setting horizontal spacing to:" << horizontalSpacing;
     D_D(DFlowLayout);
 
     if(horizontalSpacing == d->horizontalSpacing)
@@ -555,6 +575,7 @@ void DFlowLayout::setHorizontalSpacing(int horizontalSpacing)
  */
 void DFlowLayout::setVerticalSpacing(int verticalSpacing)
 {
+    qCDebug(logContainers) << "Setting vertical spacing to:" << verticalSpacing;
     D_D(DFlowLayout);
 
     if(verticalSpacing == d->verticalSpacing)
@@ -589,6 +610,7 @@ void DFlowLayout::setSpacing(int spacing)
  */
 void DFlowLayout::setFlow(Flow direction)
 {
+    qCDebug(logContainers) << "Setting flow direction to:" << direction;
     D_D(DFlowLayout);
 
     if (d->flow == direction)

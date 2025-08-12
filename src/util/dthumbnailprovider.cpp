@@ -24,6 +24,8 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_DECLARE_LOGGING_CATEGORY(logUtilClasses)
+
 #define FORMAT ".png"
 #define THUMBNAIL_PATH \
     DCORE_NAMESPACE::DStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + "/thumbnails"
@@ -77,16 +79,17 @@ QSet<QString> DThumbnailProviderPrivate::hasThumbnailMimeHash;
 DThumbnailProviderPrivate::DThumbnailProviderPrivate(DThumbnailProvider *qq)
     : DObjectPrivate(qq)
 {
-
+    qCDebug(logUtilClasses) << "DThumbnailProviderPrivate created";
 }
 
 void DThumbnailProviderPrivate::init()
 {
-
+    qCDebug(logUtilClasses) << "Initializing DThumbnailProviderPrivate";
 }
 
 QString DThumbnailProviderPrivate::sizeToFilePath(DThumbnailProvider::Size size) const
 {
+    qCDebug(logUtilClasses) << "Converting size to file path:" << static_cast<int>(size);
     switch (size)
     {
     case DThumbnailProvider::Small:
@@ -163,6 +166,7 @@ bool DThumbnailProvider::hasThumbnail(const QMimeType &mimeType) const
 QString DThumbnailProvider::thumbnailFilePath(const QFileInfo &info, Size size) const
 {
     Q_D(const DThumbnailProvider);
+    qCDebug(logUtilClasses) << "Getting thumbnail file path for size:" << static_cast<int>(size);
 
     const QString &absolutePath = info.absolutePath();
     const QString &absoluteFilePath = info.absoluteFilePath();
@@ -200,6 +204,7 @@ QString DThumbnailProvider::thumbnailFilePath(const QFileInfo &info, Size size) 
 QString DThumbnailProvider::createThumbnail(const QFileInfo &info, DThumbnailProvider::Size size)
 {
     Q_D(DThumbnailProvider);
+    qCDebug(logUtilClasses) << "Creating thumbnail for size:" << static_cast<int>(size);
 
     d->errorString.clear();
 
@@ -315,6 +320,7 @@ QString DThumbnailProvider::createThumbnail(const QFileInfo &info, DThumbnailPro
 
 void DThumbnailProvider::appendToProduceQueue(const QFileInfo &info, DThumbnailProvider::Size size, DThumbnailProvider::CallBack callback)
 {
+    qCDebug(logUtilClasses) << "Appending to produce queue for size:" << static_cast<int>(size);
     DThumbnailProviderPrivate::ProduceInfo produceInfo;
 
     produceInfo.fileInfo = info;
@@ -339,6 +345,7 @@ void DThumbnailProvider::appendToProduceQueue(const QFileInfo &info, DThumbnailP
 
 void DThumbnailProvider::removeInProduceQueue(const QFileInfo &info, DThumbnailProvider::Size size)
 {
+    qCDebug(logUtilClasses) << "Removing from produce queue for size:" << static_cast<int>(size);
     Q_D(DThumbnailProvider);
 
     if (isRunning())
@@ -389,12 +396,14 @@ DThumbnailProvider::DThumbnailProvider(QObject *parent)
     : QThread(parent)
     , DObject(*new DThumbnailProviderPrivate(this))
 {
+    qCDebug(logUtilClasses) << "DThumbnailProvider created";
     d_func()->init();
 }
 
 DThumbnailProvider::~DThumbnailProvider()
 {
     Q_D(DThumbnailProvider);
+    qCDebug(logUtilClasses) << "DThumbnailProvider destroyed";
 
     d->running = false;
     d->waitCondition.wakeAll();

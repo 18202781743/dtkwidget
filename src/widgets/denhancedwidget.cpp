@@ -6,12 +6,17 @@
 #include <QResizeEvent>
 
 #include "denhancedwidget.h"
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logContainers, "dtk.widgets.containers")
 
 DWIDGET_BEGIN_NAMESPACE
 
 class DEnhancedWidgetPrivate
 {
-    explicit DEnhancedWidgetPrivate(DEnhancedWidget *qq): q_ptr(qq) {}
+    explicit DEnhancedWidgetPrivate(DEnhancedWidget *qq): q_ptr(qq) {
+        qCDebug(logContainers) << "DEnhancedWidgetPrivate created";
+    }
 
     QSize old_size;
     QPoint old_pos;
@@ -150,9 +155,10 @@ DEnhancedWidget::DEnhancedWidget(QWidget *w, QObject *parent):
     QObject(parent),
     d_ptr(new DEnhancedWidgetPrivate(this))
 {
+    qCDebug(logContainers) << "DEnhancedWidget created";
     if (w) {
         Q_D(DEnhancedWidget);
-
+        qCDebug(logContainers) << "Setting target widget and installing event filter";
         d->target = w;
         w->installEventFilter(this);
     }
@@ -160,20 +166,21 @@ DEnhancedWidget::DEnhancedWidget(QWidget *w, QObject *parent):
 
 DEnhancedWidget::~DEnhancedWidget()
 {
+    qCDebug(logContainers) << "DEnhancedWidget destroyed";
     delete d_ptr;
 }
 
 QWidget *DEnhancedWidget::target() const
 {
     Q_D(const DEnhancedWidget);
-
+    qCDebug(logContainers) << "Getting enhanced widget target";
     return d->target;
 }
 
 bool DEnhancedWidget::enabled() const
 {
     Q_D(const DEnhancedWidget);
-
+    qCDebug(logContainers) << "Getting enhanced widget enabled state";
     return d->enabled;
 }
 
@@ -186,15 +193,18 @@ bool DEnhancedWidget::enabled() const
 void DEnhancedWidget::setTarget(QWidget *target)
 {
     Q_D(DEnhancedWidget);
-
+    qCDebug(logContainers) << "Setting enhanced widget target";
     if (d->target == target) {
+        qCDebug(logContainers) << "Target unchanged, skipping update";
         return;
     }
 
     if (d->enabled && d->target) {
+        qCDebug(logContainers) << "Removing event filter from old target";
         d->target->removeEventFilter(this);
     }
     if (d->enabled && target) {
+        qCDebug(logContainers) << "Installing event filter to new target";
         target->installEventFilter(this);
     }
     d->target = target;
@@ -210,15 +220,18 @@ void DEnhancedWidget::setTarget(QWidget *target)
 void DEnhancedWidget::setEnabled(bool enabled)
 {
     Q_D(DEnhancedWidget);
-
+    qCDebug(logContainers) << "Setting enhanced widget enabled:" << enabled;
     if (d->enabled == enabled) {
+        qCDebug(logContainers) << "Enabled state unchanged, skipping update";
         return;
     }
 
     if (d->target) {
         if (enabled) {
+            qCDebug(logContainers) << "Installing event filter";
             d->target->installEventFilter(this);
         } else {
+            qCDebug(logContainers) << "Removing event filter";
             d->target->removeEventFilter(this);
         }
     }
@@ -229,63 +242,83 @@ void DEnhancedWidget::setEnabled(bool enabled)
 
 bool DEnhancedWidget::eventFilter(QObject *o, QEvent *e)
 {
+    qCDebug(logContainers) << "Enhanced widget event filter, type:" << e->type();
     Q_D(DEnhancedWidget);
 
     if (o == d->target) {
+        qCDebug(logContainers) << "Event from target widget";
         switch (e->type()) {
         case QEvent::Resize: {
+            qCDebug(logContainers) << "Resize event received";
             QResizeEvent *event = static_cast<QResizeEvent *>(e);
             if (event) {
                 QSize size = event->size();
+                qCDebug(logContainers) << "New size:" << size << "old size:" << d->old_size;
 
                 if (size.width() != d->old_size.width()) {
+                    qCDebug(logContainers) << "Width changed from" << d->old_size.width() << "to" << size.width();
                     Q_EMIT widthChanged(size.width());
                 }
 
                 if (size.height() != d->old_size.height()) {
+                    qCDebug(logContainers) << "Height changed from" << d->old_size.height() << "to" << size.height();
                     Q_EMIT heightChanged(size.height());
                 }
 
                 if (size != d->old_size) {
+                    qCDebug(logContainers) << "Size changed, emitting sizeChanged signal";
                     Q_EMIT sizeChanged(size);
                 }
 
                 d->old_size = size;
+            } else {
+                qCDebug(logContainers) << "Invalid resize event";
             }
 
             break;
         }
         case QEvent::Move: {
+            qCDebug(logContainers) << "Move event received";
             QMoveEvent *event = static_cast<QMoveEvent *>(e);
 
             if (event) {
                 QPoint pos = event->pos();
+                qCDebug(logContainers) << "New position:" << pos << "old position:" << d->old_pos;
 
                 if (pos.x() != d->old_pos.x()) {
+                    qCDebug(logContainers) << "X changed from" << d->old_pos.x() << "to" << pos.x();
                     Q_EMIT xChanged(pos.x());
                 }
 
                 if (pos.y() != d->old_pos.y()) {
+                    qCDebug(logContainers) << "Y changed from" << d->old_pos.y() << "to" << pos.y();
                     Q_EMIT yChanged(pos.y());
                 }
 
                 if (pos != d->old_pos) {
+                    qCDebug(logContainers) << "Position changed, emitting positionChanged signal";
                     Q_EMIT positionChanged(pos);
                 }
 
                 d->old_pos = pos;
+            } else {
+                qCDebug(logContainers) << "Invalid move event";
             }
 
             break;
         }
         case QEvent::Show: {
+            qCDebug(logContainers) << "Show event received, emitting showed signal";
             Q_EMIT showed();
 
             break;
         }
         default:
+            qCDebug(logContainers) << "Other event type, ignoring";
             break;
         }
+    } else {
+        qCDebug(logContainers) << "Event not from target widget";
     }
 
     return false;

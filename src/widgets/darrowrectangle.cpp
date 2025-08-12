@@ -22,12 +22,17 @@
 #include <QApplication>
 #include <QScreen>
 #include <QEvent>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_DECLARE_LOGGING_CATEGORY(logWindowPlatform)
+
 static bool isDwayland()
 {
-    return qApp->platformName() == "dwayland" || qApp->property("_d_isDwayland").toBool();
+    const auto& isDwayland = qApp->platformName() == "dwayland" || qApp->property("_d_isDwayland").toBool();
+    qCDebug(logWindowPlatform) << "Checking if platform is dwayland:" << isDwayland;
+    return isDwayland;
 }
 /*!
 @~english
@@ -87,6 +92,7 @@ DArrowRectangle::DArrowRectangle(ArrowDirection direction, QWidget *parent) :
     QWidget(parent),
     DObject(*new DArrowRectanglePrivate(direction, this))
 {
+    qCDebug(logWindowPlatform) << "Creating DArrowRectangle with direction:" << static_cast<int>(direction) << "parent:" << parent;
     D_D(DArrowRectangle);
 
     d->init(FloatWindow);
@@ -107,6 +113,7 @@ DArrowRectangle::DArrowRectangle(ArrowDirection direction, FloatMode floatMode, 
     QWidget(parent),
     DObject(*new DArrowRectanglePrivate(direction, this))
 {
+    qCDebug(logWindowPlatform) << "Creating DArrowRectangle with direction:" << static_cast<int>(direction) << "floatMode:" << static_cast<int>(floatMode) << "parent:" << parent;
     D_D(DArrowRectangle);
 
     d->init(floatMode);
@@ -124,6 +131,7 @@ DArrowRectangle::DArrowRectangle(ArrowDirection direction, FloatMode floatMode, 
  */
 void DArrowRectangle::show(int x, int y)
 {
+    qCDebug(logWindowPlatform) << "Showing DArrowRectangle at position:" << x << y;
     D_D(DArrowRectangle);
 
     d->show(x, y);
@@ -137,6 +145,7 @@ void DArrowRectangle::show(int x, int y)
  */
 void DArrowRectangle::setContent(QWidget *content)
 {
+    qCDebug(logWindowPlatform) << "Setting content widget:" << content;
     D_D(DArrowRectangle);
 
     d->setContent(content);
@@ -151,8 +160,9 @@ void DArrowRectangle::setContent(QWidget *content)
 QWidget *DArrowRectangle::getContent() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_content;
+    const auto& content = d->m_content;
+    qCDebug(logWindowPlatform) << "Getting content widget:" << content;
+    return content;
 }
 
 /*!
@@ -162,6 +172,7 @@ QWidget *DArrowRectangle::getContent() const
  */
 void DArrowRectangle::resizeWithContent()
 {
+    qCDebug(logWindowPlatform) << "Resizing DArrowRectangle with content";
     D_D(DArrowRectangle);
 
     d->resizeWithContent();
@@ -211,68 +222,95 @@ QSize DArrowRectangle::getFixedSize()
  */
 void DArrowRectangle::move(int x, int y)
 {
+    qCDebug(logWindowPlatform) << "Moving DArrowRectangle to position:" << x << y;
     D_D(DArrowRectangle);
 
     switch (d->m_arrowDirection) {
     case ArrowLeft:
     case ArrowRight:
+        qCDebug(logWindowPlatform) << "Using vertical move for left/right arrow";
         d->verticalMove(x, y);
         break;
     case ArrowTop:
     case ArrowBottom:
+        qCDebug(logWindowPlatform) << "Using horizontal move for top/bottom arrow";
         d->horizontalMove(x, y);
         break;
     default:
+        qCDebug(logWindowPlatform) << "Using default QWidget move";
         QWidget::move(x, y);
         break;
     }
+    qCDebug(logWindowPlatform) << "Move completed";
 }
 
 // override methods
 void DArrowRectangle::paintEvent(QPaintEvent *e)
 {
+    qCDebug(logWindowPlatform) << "Paint event received";
     D_D(DArrowRectangle);
 
     d->paintEvent(e);
+    qCDebug(logWindowPlatform) << "Paint event handled";
 }
 
 void DArrowRectangle::resizeEvent(QResizeEvent *e)
 {
+    qCDebug(logWindowPlatform) << "Resize event received, new size:" << e->size();
     D_D(DArrowRectangle);
 
     d->resizeEvent(e);
+    qCDebug(logWindowPlatform) << "Resize event handled";
 }
 
 bool DArrowRectangle::event(QEvent *e)
 {
+    qCDebug(logWindowPlatform) << "Event received, type:" << e->type();
     switch (e->type()) {
-    case QEvent::WindowDeactivate:  Q_EMIT windowDeactivate();    break;
+    case QEvent::WindowDeactivate:  
+        qCDebug(logWindowPlatform) << "Window deactivate event, emitting signal";
+        Q_EMIT windowDeactivate();    
+        break;
     case QEvent::Polish: {
+        qCDebug(logWindowPlatform) << "Polish event, checking radius";
         D_D(DArrowRectangle);
-        if (d->m_radius < 0)
+        if (d->m_radius < 0) {
             d->m_radius = DStyleHelper(style()).pixelMetric(DStyle::PM_TopLevelWindowRadius);
+            qCDebug(logWindowPlatform) << "Updated radius to:" << d->m_radius;
+        }
         break;
     }
     default:;
     }
 
-    return QWidget::event(e);
+    const auto& result = QWidget::event(e);
+    qCDebug(logWindowPlatform) << "Event handled, result:" << result;
+    return result;
 }
 
 const QRect DArrowRectanglePrivate::currentScreenRect(const int x, const int y)
 {
+    qCDebug(logWindowPlatform) << "Getting screen rect for position:" << x << y;
     if (floatMode == DArrowRectangle::FloatWidget) {
+        qCDebug(logWindowPlatform) << "Using float widget mode";
         D_Q(DArrowRectangle);
         if (q->windowType() == Qt::Widget && q->parentWidget()) {
-            return q->parentWidget()->rect();
+            const auto& rect = q->parentWidget()->rect();
+            qCDebug(logWindowPlatform) << "Using parent widget rect:" << rect;
+            return rect;
         }
     }
 
-    for (QScreen *screen : qApp->screens())
+    qCDebug(logWindowPlatform) << "Searching for screen containing point";
+    for (QScreen *screen : qApp->screens()) {
         if (screen->geometry().contains(x, y)) {
-            return screen->geometry();
+            const auto& rect = screen->geometry();
+            qCDebug(logWindowPlatform) << "Found screen with geometry:" << rect;
+            return rect;
         }
+    }
 
+    qCDebug(logWindowPlatform) << "No screen found containing point, returning empty rect";
     return QRect();
 }
 
@@ -288,17 +326,20 @@ const QRect DArrowRectanglePrivate::currentScreenRect(const int x, const int y)
 qreal DArrowRectangle::shadowYOffset() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_shadowYOffset;
+    const auto& offset = d->m_shadowYOffset;
+    qCDebug(logWindowPlatform) << "Getting shadow Y offset:" << offset;
+    return offset;
 }
 
 void DArrowRectangle::setShadowYOffset(const qreal &shadowYOffset)
 {
+    qCDebug(logWindowPlatform) << "Setting shadow Y offset:" << shadowYOffset;
     D_D(DArrowRectangle);
 
     d->m_shadowYOffset = shadowYOffset;
 
     if (d->m_handle) {
+        qCDebug(logWindowPlatform) << "Updating handle shadow offset";
         d->m_handle->setShadowOffset(QPoint(d->m_shadowXOffset, shadowYOffset));
     }
 }
@@ -311,8 +352,10 @@ void DArrowRectangle::setShadowYOffset(const qreal &shadowYOffset)
  */
 void DArrowRectangle::setLeftRightRadius(bool enable)
 {
+    qCDebug(logWindowPlatform) << "Setting left-right radius enabled:" << enable;
     D_D(DArrowRectangle);
     d->leftRightRadius = enable;
+    qCDebug(logWindowPlatform) << "Left-right radius set successfully";
 }
 
 /*!
@@ -323,10 +366,13 @@ void DArrowRectangle::setLeftRightRadius(bool enable)
  */
 void DArrowRectangle::setRadiusArrowStyleEnable(bool enable)
 {
+    qCDebug(logWindowPlatform) << "Setting radius arrow style enabled:" << enable;
     D_D(DArrowRectangle);
     d->radiusArrowStyleEnable = enable;
+    qCDebug(logWindowPlatform) << "Setting arrow dimensions for radius style - width:40 height:24";
     setArrowWidth(40);
     setArrowHeight(24);
+    qCDebug(logWindowPlatform) << "Radius arrow style set successfully";
 }
 
 /*!
@@ -338,7 +384,10 @@ void DArrowRectangle::setRadiusArrowStyleEnable(bool enable)
  */
 void DArrowRectangle::setRadiusForceEnable(bool enable)
 {
+    qCDebug(logWindowPlatform) << "Setting radius force enabled:" << enable;
     setProperty("_d_radius_force", enable);
+    qCDebug(logWindowPlatform) << "Radius force property set successfully";
+}
 }
 
 /*!
@@ -353,17 +402,20 @@ void DArrowRectangle::setRadiusForceEnable(bool enable)
 qreal DArrowRectangle::shadowXOffset() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_shadowXOffset;
+    const auto& offset = d->m_shadowXOffset;
+    qCDebug(logWindowPlatform) << "Getting shadow X offset:" << offset;
+    return offset;
 }
 
 void DArrowRectangle::setShadowXOffset(const qreal &shadowXOffset)
 {
+    qCDebug(logWindowPlatform) << "Setting shadow X offset:" << shadowXOffset;
     D_D(DArrowRectangle);
 
     d->m_shadowXOffset = shadowXOffset;
 
     if (d->m_handle) {
+        qCDebug(logWindowPlatform) << "Updating handle shadow offset";
         d->m_handle->setShadowOffset(QPoint(shadowXOffset, d->m_shadowYOffset));
     }
 }
@@ -379,17 +431,20 @@ void DArrowRectangle::setShadowXOffset(const qreal &shadowXOffset)
 qreal DArrowRectangle::shadowBlurRadius() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_shadowBlurRadius;
+    const auto& radius = d->m_shadowBlurRadius;
+    qCDebug(logWindowPlatform) << "Getting shadow blur radius:" << radius;
+    return radius;
 }
 
 void DArrowRectangle::setShadowBlurRadius(const qreal &shadowBlurRadius)
 {
+    qCDebug(logWindowPlatform) << "Setting shadow blur radius:" << shadowBlurRadius;
     D_D(DArrowRectangle);
 
     d->m_shadowBlurRadius = shadowBlurRadius;
 
     if (d->m_handle) {
+        qCDebug(logWindowPlatform) << "Updating handle shadow radius";
         d->m_handle->setShadowRadius(shadowBlurRadius);
     }
 }
@@ -405,17 +460,20 @@ void DArrowRectangle::setShadowBlurRadius(const qreal &shadowBlurRadius)
 QColor DArrowRectangle::borderColor() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_borderColor;
+    const auto& color = d->m_borderColor;
+    qCDebug(logWindowPlatform) << "Getting border color:" << color;
+    return color;
 }
 
 void DArrowRectangle::setBorderColor(const QColor &borderColor)
 {
+    qCDebug(logWindowPlatform) << "Setting border color:" << borderColor;
     D_D(DArrowRectangle);
 
     d->m_borderColor = borderColor;
 
     if (d->m_handle) {
+        qCDebug(logWindowPlatform) << "Updating handle border color";
         d->m_handle->setBorderColor(borderColor);
     }
 }
@@ -431,17 +489,20 @@ void DArrowRectangle::setBorderColor(const QColor &borderColor)
 int DArrowRectangle::borderWidth() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_borderWidth;
+    const auto& width = d->m_borderWidth;
+    qCDebug(logWindowPlatform) << "Getting border width:" << width;
+    return width;
 }
 
 void DArrowRectangle::setBorderWidth(int borderWidth)
 {
+    qCDebug(logWindowPlatform) << "Setting border width:" << borderWidth;
     D_D(DArrowRectangle);
 
     d->m_borderWidth = borderWidth;
 
     if (d->m_handle) {
+        qCDebug(logWindowPlatform) << "Updating handle border width";
         d->m_handle->setBorderWidth(borderWidth);
     }
 }
@@ -457,8 +518,9 @@ void DArrowRectangle::setBorderWidth(int borderWidth)
 QColor DArrowRectangle::backgroundColor() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_backgroundColor;
+    const auto& color = d->m_backgroundColor;
+    qCDebug(logWindowPlatform) << "Getting background color:" << color;
+    return color;
 }
 
 /*!
@@ -472,19 +534,23 @@ QColor DArrowRectangle::backgroundColor() const
 DArrowRectangle::ArrowDirection DArrowRectangle::arrowDirection() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_arrowDirection;
+    const auto& direction = d->m_arrowDirection;
+    qCDebug(logWindowPlatform) << "Getting arrow direction:" << static_cast<int>(direction);
+    return direction;
 }
 
 void DArrowRectangle::setBackgroundColor(const QColor &backgroundColor)
 {
+    qCDebug(logWindowPlatform) << "Setting background color:" << backgroundColor;
     D_D(DArrowRectangle);
 
     d->m_backgroundColor = backgroundColor;
 
     bool isFloatWindow = d->floatMode == FloatWindow;
     if ((d->m_handle || (isFloatWindow && isDwayland())) && d->m_backgroundColor.toRgb().alpha() < 255) {
+        qCDebug(logWindowPlatform) << "Background is semi-transparent, setting up blur effect";
         if (!d->m_blurBackground) {
+            qCDebug(logWindowPlatform) << "Creating new blur background widget";
             d->m_blurBackground = new DBlurEffectWidget(this);
             d->m_blurBackground->setBlendMode(DBlurEffectWidget::BehindWindowBlend);
             d->m_blurBackground->resize(size());
@@ -492,9 +558,11 @@ void DArrowRectangle::setBackgroundColor(const QColor &backgroundColor)
             d->m_blurBackground->show();
         }
 
+        qCDebug(logWindowPlatform) << "Setting blur background mask color";
         d->m_blurBackground->setMaskColor(d->m_backgroundColor);
     } else {
         if (d->m_blurBackground) {
+            qCDebug(logWindowPlatform) << "Removing blur background";
             d->m_blurBackground->hide();
             d->m_blurBackground->setParent(0);
             delete d->m_blurBackground;
@@ -515,10 +583,14 @@ void DArrowRectangle::setBackgroundColor(const QColor &backgroundColor)
  */
 void DArrowRectangle::setBackgroundColor(DBlurEffectWidget::MaskColorType type)
 {
+    qCDebug(logWindowPlatform) << "Setting background color type:" << static_cast<int>(type);
     D_D(DArrowRectangle);
 
     if (d->m_blurBackground) {
+        qCDebug(logWindowPlatform) << "Setting blur background mask color type";
         d->m_blurBackground->setMaskColor(type);
+    } else {
+        qCDebug(logWindowPlatform) << "No blur background exists, skipping";
     }
 }
 
@@ -533,8 +605,9 @@ void DArrowRectangle::setBackgroundColor(DBlurEffectWidget::MaskColorType type)
 int DArrowRectangle::radius() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_radius;
+    const auto& radius = d->m_radius;
+    qCDebug(logWindowPlatform) << "Getting radius:" << radius;
+    return radius;
 }
 
 /*!
@@ -562,8 +635,9 @@ bool DArrowRectangle::radiusForceEnabled() const
 int DArrowRectangle::arrowHeight() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_arrowHeight;
+    const auto& height = d->m_arrowHeight;
+    qCDebug(logWindowPlatform) << "Getting arrow height:" << height;
+    return height;
 }
 
 /*!
@@ -578,8 +652,9 @@ int DArrowRectangle::arrowHeight() const
 int DArrowRectangle::arrowWidth() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_arrowWidth;
+    const auto& width = d->m_arrowWidth;
+    qCDebug(logWindowPlatform) << "Getting arrow width:" << width;
+    return width;
 }
 
 /*!
@@ -594,8 +669,9 @@ int DArrowRectangle::arrowWidth() const
 int DArrowRectangle::arrowX() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_arrowX;
+    const auto& x = d->m_arrowX;
+    qCDebug(logWindowPlatform) << "Getting arrow X coordinate:" << x;
+    return x;
 }
 
 /*!
@@ -610,8 +686,9 @@ int DArrowRectangle::arrowX() const
 int DArrowRectangle::arrowY() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_arrowY;
+    const auto& y = d->m_arrowY;
+    qCDebug(logWindowPlatform) << "Getting arrow Y coordinate:" << y;
+    return y;
 }
 
 /*!
@@ -630,8 +707,9 @@ int DArrowRectangle::arrowY() const
 int DArrowRectangle::margin() const
 {
     D_DC(DArrowRectangle);
-
-    return d->m_margin;
+    const auto& margin = d->m_margin;
+    qCDebug(logWindowPlatform) << "Getting margin:" << margin;
+    return margin;
 }
 
 /*!
@@ -644,6 +722,7 @@ int DArrowRectangle::margin() const
  */
 void DArrowRectangle::setArrowDirection(ArrowDirection value)
 {
+    qCDebug(logWindowPlatform) << "Setting arrow direction:" << static_cast<int>(value);
     D_D(DArrowRectangle);
 
     d->m_arrowDirection = value;
@@ -657,6 +736,7 @@ void DArrowRectangle::setArrowDirection(ArrowDirection value)
  */
 void DArrowRectangle::setWidth(int value)
 {
+    qCDebug(logWindowPlatform) << "Setting width:" << value;
     setFixedWidth(value);
 }
 
@@ -668,6 +748,7 @@ void DArrowRectangle::setWidth(int value)
  */
 void DArrowRectangle::setHeight(int value)
 {
+    qCDebug(logWindowPlatform) << "Setting height:" << value;
     setFixedHeight(value);
 }
 
@@ -681,6 +762,7 @@ void DArrowRectangle::setHeight(int value)
  */
 void DArrowRectangle::setRadius(int value)
 {
+    qCDebug(logWindowPlatform) << "Setting radius:" << value;
     D_D(DArrowRectangle);
 
     d->m_radius = value;
@@ -696,6 +778,7 @@ void DArrowRectangle::setRadius(int value)
  */
 void DArrowRectangle::setArrowHeight(int value)
 {
+    qCDebug(logWindowPlatform) << "Setting arrow height:" << value;
     D_D(DArrowRectangle);
 
     d->m_arrowHeight = value;
@@ -711,6 +794,7 @@ void DArrowRectangle::setArrowHeight(int value)
  */
 void DArrowRectangle::setArrowWidth(int value)
 {
+    qCDebug(logWindowPlatform) << "Setting arrow width:" << value;
     D_D(DArrowRectangle);
 
     d->m_arrowWidth = value;
@@ -726,6 +810,7 @@ void DArrowRectangle::setArrowWidth(int value)
  */
 void DArrowRectangle::setArrowX(int value)
 {
+    qCDebug(logWindowPlatform) << "Setting arrow X:" << value;
     D_D(DArrowRectangle);
 
     d->m_arrowX = value;
@@ -741,9 +826,11 @@ void DArrowRectangle::setArrowX(int value)
  */
 void DArrowRectangle::setArrowY(int value)
 {
+    qCDebug(logWindowPlatform) << "Setting arrow Y:" << value;
     D_D(DArrowRectangle);
 
     d->m_arrowY = value;
+    qCDebug(logWindowPlatform) << "Arrow Y set successfully";
 }
 
 /*!
@@ -756,6 +843,7 @@ void DArrowRectangle::setArrowY(int value)
  */
 void DArrowRectangle::setMargin(int value)
 {
+    qCDebug(logWindowPlatform) << "Setting margin:" << value;
     D_D(DArrowRectangle);
 
     d->m_margin = value;
@@ -763,21 +851,31 @@ void DArrowRectangle::setMargin(int value)
 
 QPainterPath DArrowRectanglePrivate::getLeftCornerPath()
 {
+    qCDebug(logWindowPlatform) << "Getting left corner path";
     D_Q(DArrowRectangle);
 
     QRect rect = q->rect();
+    qCDebug(logWindowPlatform) << "Initial rect:" << rect;
 
     if (!m_handle) {
+        qCDebug(logWindowPlatform) << "No handle, calculating margins";
         qreal delta = q->shadowBlurRadius() + m_shadowDistance;
+        qCDebug(logWindowPlatform) << "Delta for margins:" << delta;
 
-        if (DApplication::isDXcbPlatform())
+        if (DApplication::isDXcbPlatform()) {
+            qCDebug(logWindowPlatform) << "Using DXcb platform margins";
             rect = rect.marginsRemoved(QMargins((DArrowRectangle::FloatWidget == floatMode) ? 0 : delta, delta, delta - q->margin(), delta));
-        else {
+        } else {
+            qCDebug(logWindowPlatform) << "Using non-DXcb platform margins";
             QMargins margins((DArrowRectangle::FloatWidget == floatMode) ? 0 : 0, delta,
                              (DArrowRectangle::FloatWidget == floatMode) ? delta - q->margin() : delta *2, delta);
             if (rect.width() > (margins.left() + margins.right()) &&
-                rect.height() > (margins.top() + margins.bottom()))
+                rect.height() > (margins.top() + margins.bottom())) {
+                qCDebug(logWindowPlatform) << "Rect is large enough, removing margins";
                 rect = rect.marginsRemoved(margins);
+            } else {
+                qCDebug(logWindowPlatform) << "Rect too small for margins";
+            }
         }
     }
 
@@ -786,63 +884,98 @@ QPainterPath DArrowRectanglePrivate::getLeftCornerPath()
     QPoint topRight(rect.x() + rect.width(), rect.y());
     QPoint bottomRight(rect.x() + rect.width(), rect.y() + rect.height());
     QPoint bottomLeft(rect.x() + m_arrowHeight, rect.y() + rect.height());
+    qCDebug(logWindowPlatform) << "Corner points - corner:" << cornerPoint << "topLeft:" << topLeft 
+                              << "topRight:" << topRight << "bottomRight:" << bottomRight 
+                              << "bottomLeft:" << bottomLeft;
+
     int radius = m_radius > (rect.height() / 2) ? (rect.height() / 2) : m_radius;
     int arrowWidth = m_arrowWidth - m_arrowHeight;
     int widgetRadius = rect.height() > 4 * radius ? 2 * radius : radius;
+    qCDebug(logWindowPlatform) << "Calculated dimensions - radius:" << radius 
+                              << "arrowWidth:" << arrowWidth << "widgetRadius:" << widgetRadius;
+
     if (!radiusEnabled()) {
+        qCDebug(logWindowPlatform) << "Radius disabled, setting to 0";
         radius = 0;
     }
 
     QPainterPath border;
+    qCDebug(logWindowPlatform) << "Creating border path";
     border.moveTo(topLeft.x() + arrowWidth, topLeft.y());
+    qCDebug(logWindowPlatform) << "Drawing top edge";
     border.lineTo(topRight.x() - radius, topRight.y());
+    qCDebug(logWindowPlatform) << "Drawing top-right corner arc";
     border.arcTo(topRight.x() - 2 * radius, topRight.y(), 2 * radius, 2 * radius, 90, -90);
+    qCDebug(logWindowPlatform) << "Drawing right edge";
     border.lineTo(bottomRight.x(), bottomRight.y() - radius);
+    qCDebug(logWindowPlatform) << "Drawing bottom-right corner arc";
     border.arcTo(bottomRight.x() - 2 * radius, bottomRight.y() - 2 * radius, 2 * radius, 2 * radius, 0, -90);
 
     if (radiusArrowStyleEnable) {
+        qCDebug(logWindowPlatform) << "Using radius arrow style";
         border.lineTo(bottomLeft.x() + radius, bottomLeft.y());
+        qCDebug(logWindowPlatform) << "Drawing bottom-left corner arc";
         border.arcTo(bottomLeft.x(), bottomLeft.y() - widgetRadius, widgetRadius, widgetRadius, -90, -90);
+        qCDebug(logWindowPlatform) << "Drawing path to arrow start";
         border.lineTo(bottomLeft.x(), cornerPoint.y() + m_arrowWidth / 2 + radius / 2);
 
+        qCDebug(logWindowPlatform) << "Drawing first cubic curve for arrow";
         border.cubicTo(QPointF(bottomLeft.x(), cornerPoint.y() + m_arrowWidth / 2 + radius / 2),
                        QPointF(bottomLeft.x(), cornerPoint.y() + m_arrowWidth / 2),
                        QPointF(cornerPoint.x() + m_arrowHeight / 2, cornerPoint.y() + m_arrowWidth / 4.5));
 
+        qCDebug(logWindowPlatform) << "Drawing second cubic curve for arrow";
         border.cubicTo(QPointF(cornerPoint.x() + m_arrowHeight / 2, cornerPoint.y() + m_arrowWidth / 4.5),
                        QPointF(cornerPoint),
                        QPointF(cornerPoint.x() + m_arrowHeight / 2, cornerPoint.y() - m_arrowWidth / 4.5));
 
+        qCDebug(logWindowPlatform) << "Drawing third cubic curve for arrow";
         border.cubicTo(QPointF(cornerPoint.x() + m_arrowHeight / 2, cornerPoint.y() - m_arrowWidth / 4.5),
                        QPointF(cornerPoint.x() + m_arrowHeight, cornerPoint.y() - m_arrowWidth / 2),
                        QPointF(topLeft.x(), cornerPoint.y() - m_arrowWidth / 2 - radius / 2));
 
+        qCDebug(logWindowPlatform) << "Drawing path to top-left corner";
         border.lineTo(topLeft.x(), cornerPoint.y() - m_arrowWidth / 2 - radius / 2);
+        qCDebug(logWindowPlatform) << "Drawing top-left corner arc";
         border.arcTo(topLeft.x(), topLeft.y(), widgetRadius, widgetRadius, -180, -90);
 
+        qCDebug(logWindowPlatform) << "Completing border path";
         border.lineTo(topLeft.x() + radius, topLeft.y());
     } else {
+        qCDebug(logWindowPlatform) << "Using standard arrow style";
         if (leftRightRadius) {
+            qCDebug(logWindowPlatform) << "Drawing with left-right radius";
             border.lineTo(bottomLeft.x() + radius, bottomLeft.y());
+            qCDebug(logWindowPlatform) << "Drawing bottom-left corner arc";
             border.arcTo(bottomLeft.x(), bottomLeft.y() - widgetRadius, widgetRadius, widgetRadius, -90, -90);
+            qCDebug(logWindowPlatform) << "Drawing path to arrow start";
             border.lineTo(bottomLeft.x(), cornerPoint.y() + m_arrowWidth / 2);
         } else {
+            qCDebug(logWindowPlatform) << "Drawing without left-right radius";
             border.lineTo(bottomLeft.x(), bottomLeft.y());
 
-            if (cornerPoint.y() > m_arrowWidth)
+            if (cornerPoint.y() > m_arrowWidth) {
+                qCDebug(logWindowPlatform) << "Drawing extended bottom path";
                 border.lineTo(bottomLeft.x(), cornerPoint.y() + m_arrowWidth / 2);
+            }
         }
 
+        qCDebug(logWindowPlatform) << "Drawing arrow point";
         border.lineTo(cornerPoint);
 
         if (leftRightRadius) {
+            qCDebug(logWindowPlatform) << "Drawing top path with radius";
             border.lineTo(topLeft.x(), cornerPoint.y() - m_arrowWidth / 2);
             border.lineTo(topLeft.x(), topLeft.y() + radius);
+            qCDebug(logWindowPlatform) << "Drawing top-left corner arc";
             border.arcTo(topLeft.x(), topLeft.y(), widgetRadius, widgetRadius, -180, -90);
         } else {
-            if (cornerPoint.y() > m_arrowWidth)
+            if (cornerPoint.y() > m_arrowWidth) {
+                qCDebug(logWindowPlatform) << "Drawing extended top path";
                 border.lineTo(topLeft.x(), cornerPoint.y() - m_arrowWidth / 2);
+            }
 
+            qCDebug(logWindowPlatform) << "Drawing final top edge";
             border.lineTo(topLeft.x(), topLeft.y());
         }
     }
@@ -852,20 +985,30 @@ QPainterPath DArrowRectanglePrivate::getLeftCornerPath()
 
 QPainterPath DArrowRectanglePrivate::getRightCornerPath()
 {
+    qCDebug(logWindowPlatform) << "Getting right corner path";
     D_Q(DArrowRectangle);
 
     QRect rect = q->rect();
+    qCDebug(logWindowPlatform) << "Initial rect:" << rect;
 
     if (!m_handle) {
+        qCDebug(logWindowPlatform) << "No handle, calculating margins";
         qreal delta = q->shadowBlurRadius() + m_shadowDistance;
+        qCDebug(logWindowPlatform) << "Delta for margins:" << delta;
 
-        if (DApplication::isDXcbPlatform())
+        if (DApplication::isDXcbPlatform()) {
+            qCDebug(logWindowPlatform) << "Using DXcb platform margins";
             rect = rect.marginsRemoved(QMargins((DArrowRectangle::FloatWidget == floatMode) ? delta - q->margin() : delta, delta, (DArrowRectangle::FloatWidget == floatMode) ? 0 : delta, delta));
-        else {
+        } else {
+            qCDebug(logWindowPlatform) << "Using non-DXcb platform margins";
             QMargins margins((DArrowRectangle::FloatWidget == floatMode) ? delta -q->margin() : delta *2, delta, (DArrowRectangle::FloatWidget == floatMode) ? 0 : 0, delta);
             if (rect.width() > (margins.left() + margins.right()) &&
-                rect.height() > (margins.top() + margins.bottom()))
+                rect.height() > (margins.top() + margins.bottom())) {
+                qCDebug(logWindowPlatform) << "Rect is large enough, removing margins";
                 rect = rect.marginsRemoved(margins);
+            } else {
+                qCDebug(logWindowPlatform) << "Rect too small for margins";
+            }
         }
     }
 
@@ -874,36 +1017,54 @@ QPainterPath DArrowRectanglePrivate::getRightCornerPath()
     QPoint topRight(rect.x() + rect.width() - m_arrowHeight, rect.y());
     QPoint bottomRight(rect.x() + rect.width() - m_arrowHeight, rect.y() + rect.height());
     QPoint bottomLeft(rect.x(), rect.y() + rect.height());
+    qCDebug(logWindowPlatform) << "Corner points - corner:" << cornerPoint << "topLeft:" << topLeft 
+                              << "topRight:" << topRight << "bottomRight:" << bottomRight 
+                              << "bottomLeft:" << bottomLeft;
+
     int radius = this->m_radius > (rect.height() / 2) ? rect.height() / 2 : this->m_radius;
     int widgetRadius = rect.height() >= 4 * radius ? 2 * radius : radius;
+    qCDebug(logWindowPlatform) << "Calculated dimensions - radius:" << radius 
+                              << "widgetRadius:" << widgetRadius;
 
     if (!radiusEnabled()) {
+        qCDebug(logWindowPlatform) << "Radius disabled, setting to 0";
         radius = 0;
     }
 
     QPainterPath border;
+    qCDebug(logWindowPlatform) << "Creating border path";
     border.moveTo(topLeft.x(), topLeft.y());
 
     if (radiusArrowStyleEnable) {
+        qCDebug(logWindowPlatform) << "Using radius arrow style";
+        qCDebug(logWindowPlatform) << "Drawing top edge";
         border.lineTo(topRight.x() - radius, topRight.y());
+        qCDebug(logWindowPlatform) << "Drawing top-right corner arc";
         border.arcTo(topRight.x() - widgetRadius, topRight.y(), widgetRadius, widgetRadius, 90, -90);
+        qCDebug(logWindowPlatform) << "Drawing path to arrow start";
         border.lineTo(topRight.x(), cornerPoint.y() - m_arrowWidth / 2 - radius / 2);
 
+        qCDebug(logWindowPlatform) << "Drawing first cubic curve for arrow";
         border.cubicTo(QPointF(topRight.x(), cornerPoint.y() - m_arrowWidth / 2 - radius / 2),
                        QPointF(topRight.x(), cornerPoint.y() - m_arrowWidth / 2),
                        QPointF(cornerPoint.x() - m_arrowHeight / 2, cornerPoint.y() - m_arrowWidth / 4.5));
 
+        qCDebug(logWindowPlatform) << "Drawing second cubic curve for arrow";
         border.cubicTo(QPointF(cornerPoint.x() - m_arrowHeight / 2, cornerPoint.y() - m_arrowWidth / 4.5),
                        QPointF(cornerPoint),
                        QPointF(cornerPoint.x() - m_arrowHeight / 2, cornerPoint.y() + m_arrowWidth / 4.5));
 
+        qCDebug(logWindowPlatform) << "Drawing third cubic curve for arrow";
         border.cubicTo(QPointF(cornerPoint.x() - m_arrowHeight / 2, cornerPoint.y() + m_arrowWidth / 4.5),
                        QPointF(bottomRight.x(), cornerPoint.y() + m_arrowWidth / 2),
                        QPointF(bottomRight.x(), cornerPoint.y() + m_arrowWidth / 2 + radius / 2));
 
+        qCDebug(logWindowPlatform) << "Drawing path to bottom-right corner";
         border.lineTo(bottomRight.x(), cornerPoint.y() + m_arrowWidth / 2 + radius / 2);
+        qCDebug(logWindowPlatform) << "Drawing bottom-right corner arc";
         border.arcTo(bottomRight.x() - widgetRadius, bottomRight.y() - widgetRadius, widgetRadius, widgetRadius, 0, -90);
 
+        qCDebug(logWindowPlatform) << "Drawing bottom edge";
         border.lineTo(bottomRight.x() - radius, bottomRight.y());
     } else {
         if (leftRightRadius) {
@@ -942,20 +1103,31 @@ QPainterPath DArrowRectanglePrivate::getRightCornerPath()
 
 QPainterPath DArrowRectanglePrivate::getTopCornerPath()
 {
+    qCDebug(logWindowPlatform) << "Getting top corner path";
     D_Q(DArrowRectangle);
 
     QRect rect = q->rect();
+    qCDebug(logWindowPlatform) << "Initial rect:" << rect;
 
     if (!m_handle) {
+        qCDebug(logWindowPlatform) << "No handle, calculating margins";
         qreal delta = q->shadowBlurRadius() + m_shadowDistance;
-        if (DApplication::isDXcbPlatform())
+        qCDebug(logWindowPlatform) << "Delta for margins:" << delta;
+
+        if (DApplication::isDXcbPlatform()) {
+            qCDebug(logWindowPlatform) << "Using DXcb platform margins";
             rect = rect.marginsRemoved(QMargins(delta, (DArrowRectangle::FloatWidget == floatMode) ? 0 : delta,
                                                 delta, (DArrowRectangle::FloatWidget == floatMode) ? delta -q->margin() : delta));
-        else {
+        } else {
+            qCDebug(logWindowPlatform) << "Using non-DXcb platform margins";
             QMargins margins(delta, 0, delta, (DArrowRectangle::FloatWidget == floatMode) ? delta - q->margin() : delta * 2);
             if (rect.width() > (margins.left() + margins.right()) &&
-                rect.height() > (margins.top() + margins.bottom()))
+                rect.height() > (margins.top() + margins.bottom())) {
+                qCDebug(logWindowPlatform) << "Rect is large enough, removing margins";
                 rect = rect.marginsRemoved(margins);
+            } else {
+                qCDebug(logWindowPlatform) << "Rect too small for margins";
+            }
         }
     }
 
@@ -964,41 +1136,68 @@ QPainterPath DArrowRectanglePrivate::getTopCornerPath()
     QPoint topRight(rect.x() + rect.width(), rect.y() + m_arrowHeight);
     QPoint bottomRight(rect.x() + rect.width(), rect.y() + rect.height());
     QPoint bottomLeft(rect.x(), rect.y() + rect.height());
+    qCDebug(logWindowPlatform) << "Corner points - corner:" << cornerPoint << "topLeft:" << topLeft 
+                              << "topRight:" << topRight << "bottomRight:" << bottomRight 
+                              << "bottomLeft:" << bottomLeft;
+
     int radius = this->m_radius > (rect.height() / 2 - m_arrowHeight) ? rect.height() / 2 - m_arrowHeight : this->m_radius;
+    qCDebug(logWindowPlatform) << "Calculated radius:" << radius;
+
     if (!radiusEnabled()) {
+        qCDebug(logWindowPlatform) << "Radius disabled, setting to 0";
         radius = 0;
     }
 
     QPainterPath border;
+    qCDebug(logWindowPlatform) << "Creating border path";
     border.moveTo(topLeft.x() + radius, topLeft.y());
 
     if (radiusArrowStyleEnable) {
+        qCDebug(logWindowPlatform) << "Using radius arrow style";
+        qCDebug(logWindowPlatform) << "Drawing path to arrow start";
         border.lineTo(cornerPoint.x() - m_arrowWidth / 2 - radius / 2, cornerPoint.y() + m_arrowHeight);
+
+        qCDebug(logWindowPlatform) << "Drawing first cubic curve for arrow";
         border.cubicTo(QPointF(cornerPoint.x() - m_arrowWidth / 2 - radius / 2, topLeft.y()),
                        QPointF(cornerPoint.x() - m_arrowWidth / 2, topLeft.y()),
                        QPointF(cornerPoint.x() - m_arrowWidth / 4.5, cornerPoint.y() + m_arrowHeight / 2));
 
+        qCDebug(logWindowPlatform) << "Drawing second cubic curve for arrow";
         border.cubicTo(QPointF(cornerPoint.x() - m_arrowWidth / 4.5, cornerPoint.y() + m_arrowHeight / 2),
                        QPointF(cornerPoint),
                        QPointF(cornerPoint.x() + m_arrowWidth / 4.5, cornerPoint.y() + m_arrowHeight / 2));
 
+        qCDebug(logWindowPlatform) << "Drawing third cubic curve for arrow";
         border.cubicTo(QPointF(cornerPoint.x() + m_arrowWidth / 4.5, cornerPoint.y() + m_arrowHeight / 2),
                        QPointF(cornerPoint.x() + m_arrowWidth / 2, topLeft.y()),
                        QPointF(cornerPoint.x() + m_arrowWidth / 2 + radius / 2, cornerPoint.y() + m_arrowHeight));
+        qCDebug(logWindowPlatform) << "Drawing path to arrow end";
         border.lineTo(cornerPoint.x() + m_arrowWidth / 2 + radius / 2, cornerPoint.y() + m_arrowHeight);
     } else {
+        qCDebug(logWindowPlatform) << "Using standard arrow style";
+        qCDebug(logWindowPlatform) << "Drawing left side of arrow";
         border.lineTo(cornerPoint.x() - m_arrowWidth / 2, cornerPoint.y() + m_arrowHeight);
+        qCDebug(logWindowPlatform) << "Drawing arrow point";
         border.lineTo(cornerPoint);
+        qCDebug(logWindowPlatform) << "Drawing right side of arrow";
         border.lineTo(cornerPoint.x() + m_arrowWidth / 2, cornerPoint.y() + m_arrowHeight);
     }
 
+    qCDebug(logWindowPlatform) << "Drawing top edge";
     border.lineTo(topRight.x() - radius, topRight.y());
+    qCDebug(logWindowPlatform) << "Drawing top-right corner arc";
     border.arcTo(topRight.x() - 2 * radius, topRight.y(), 2 * radius, 2 * radius, 90, -90);
+    qCDebug(logWindowPlatform) << "Drawing right edge";
     border.lineTo(bottomRight.x(), bottomRight.y() - radius);
+    qCDebug(logWindowPlatform) << "Drawing bottom-right corner arc";
     border.arcTo(bottomRight.x() - 2 * radius, bottomRight.y() - 2 * radius, 2 * radius, 2 * radius, 0, -90);
+    qCDebug(logWindowPlatform) << "Drawing bottom edge";
     border.lineTo(bottomLeft.x() + radius, bottomLeft.y());
+    qCDebug(logWindowPlatform) << "Drawing bottom-left corner arc";
     border.arcTo(bottomLeft.x(), bottomLeft.y() - 2 * radius, 2 * radius, 2 * radius, - 90, -90);
+    qCDebug(logWindowPlatform) << "Drawing left edge";
     border.lineTo(topLeft.x(), topLeft.y() + radius);
+    qCDebug(logWindowPlatform) << "Drawing top-left corner arc";
     border.arcTo(topLeft.x(), topLeft.y(), 2 * radius, 2 * radius, 180, -90);
 
     return border;
@@ -1006,20 +1205,30 @@ QPainterPath DArrowRectanglePrivate::getTopCornerPath()
 
 QPainterPath DArrowRectanglePrivate::getBottomCornerPath()
 {
+    qCDebug(logWindowPlatform) << "Getting bottom corner path";
     D_QC(DArrowRectangle);
 
     QRect rect = q->rect();
+    qCDebug(logWindowPlatform) << "Initial rect:" << rect;
 
     if (!m_handle) {
+        qCDebug(logWindowPlatform) << "No handle, calculating margins";
         qreal delta = q->shadowBlurRadius() + m_shadowDistance;
+        qCDebug(logWindowPlatform) << "Delta for margins:" << delta;
 
-        if (DApplication::isDXcbPlatform())
+        if (DApplication::isDXcbPlatform()) {
+            qCDebug(logWindowPlatform) << "Using DXcb platform margins";
             rect = rect.marginsRemoved(QMargins(delta, (DArrowRectangle::FloatWidget == floatMode) ? delta -q->margin() : delta, delta, (DArrowRectangle::FloatWidget == floatMode) ? 0 : delta));
-        else {
+        } else {
+            qCDebug(logWindowPlatform) << "Using non-DXcb platform margins";
             QMargins margins(delta, (DArrowRectangle::FloatWidget == floatMode) ? delta - q->margin() : delta *2, delta, 0);
             if (rect.width() > (margins.left() + margins.right()) &&
-                rect.height() > (margins.top() + margins.bottom()))
+                rect.height() > (margins.top() + margins.bottom())) {
+                qCDebug(logWindowPlatform) << "Rect is large enough, removing margins";
                 rect = rect.marginsRemoved(margins);
+            } else {
+                qCDebug(logWindowPlatform) << "Rect too small for margins";
+            }
         }
     }
 
@@ -1028,43 +1237,69 @@ QPainterPath DArrowRectanglePrivate::getBottomCornerPath()
     QPoint topRight(rect.x() + rect.width(), rect.y());
     QPoint bottomRight(rect.x() + rect.width(), rect.y() + rect.height() - m_arrowHeight);
     QPoint bottomLeft(rect.x(), rect.y() + rect.height() - m_arrowHeight);
+    qCDebug(logWindowPlatform) << "Corner points - corner:" << cornerPoint << "topLeft:" << topLeft 
+                              << "topRight:" << topRight << "bottomRight:" << bottomRight 
+                              << "bottomLeft:" << bottomLeft;
+
     int radius = this->m_radius > (rect.height() / 2 - m_arrowHeight) ? rect.height() / 2 - m_arrowHeight : this->m_radius;
+    qCDebug(logWindowPlatform) << "Calculated radius:" << radius;
+
     if (!radiusEnabled()) {
+        qCDebug(logWindowPlatform) << "Radius disabled, setting to 0";
         radius = 0;
     }
 
     QPainterPath border;
+    qCDebug(logWindowPlatform) << "Creating border path";
     border.moveTo(topLeft.x() + radius, topLeft.y());
+    qCDebug(logWindowPlatform) << "Drawing top edge";
     border.lineTo(topRight.x() - radius, topRight.y());
+    qCDebug(logWindowPlatform) << "Drawing top-right corner arc";
     border.arcTo(topRight.x() - 2 * radius, topRight.y(), 2 * radius, 2 * radius, 90, -90);
+    qCDebug(logWindowPlatform) << "Drawing right edge";
     border.lineTo(bottomRight.x(), bottomRight.y() - radius);
+    qCDebug(logWindowPlatform) << "Drawing bottom-right corner arc";
     border.arcTo(bottomRight.x() - 2 * radius, bottomRight.y() - 2 * radius, 2 * radius, 2 * radius, 0, -90);
 
     if (radiusArrowStyleEnable) {
+        qCDebug(logWindowPlatform) << "Using radius arrow style";
+        qCDebug(logWindowPlatform) << "Drawing path to arrow start";
         border.lineTo(cornerPoint.x() + m_arrowWidth / 2 + radius / 2, cornerPoint.y() - m_arrowHeight);
 
+        qCDebug(logWindowPlatform) << "Drawing first cubic curve for arrow";
         border.cubicTo(QPointF(cornerPoint.x() + m_arrowWidth / 2 + radius / 2, cornerPoint.y() - m_arrowHeight),
                        QPointF(cornerPoint.x() + m_arrowWidth / 2, bottomRight.y()),
                        QPointF(cornerPoint.x() + m_arrowWidth / 4.5, cornerPoint.y() - m_arrowHeight / 2));
 
+        qCDebug(logWindowPlatform) << "Drawing second cubic curve for arrow";
         border.cubicTo(QPointF(cornerPoint.x() + m_arrowWidth / 4.5 , cornerPoint.y() - m_arrowHeight / 2),
                        QPointF(cornerPoint),
                        QPointF(cornerPoint.x() - m_arrowWidth / 4.5 , cornerPoint.y() - m_arrowHeight / 2));
 
+        qCDebug(logWindowPlatform) << "Drawing third cubic curve for arrow";
         border.cubicTo(QPointF(cornerPoint.x() - m_arrowWidth / 4.5 , cornerPoint.y() - m_arrowHeight / 2),
                        QPointF(cornerPoint.x() - m_arrowWidth / 2, bottomLeft.y()),
                        QPointF(cornerPoint.x() - m_arrowWidth / 2 - radius / 2, cornerPoint.y() - m_arrowHeight));
 
+        qCDebug(logWindowPlatform) << "Drawing path to arrow end";
         border.lineTo(cornerPoint.x() - m_arrowWidth / 2 - radius / 2, cornerPoint.y() - m_arrowHeight);
     } else {
+        qCDebug(logWindowPlatform) << "Using standard arrow style";
+        qCDebug(logWindowPlatform) << "Drawing right side of arrow";
         border.lineTo(cornerPoint.x() + m_arrowWidth / 2, cornerPoint.y() - m_arrowHeight);
+        qCDebug(logWindowPlatform) << "Drawing arrow point";
         border.lineTo(cornerPoint);
+        qCDebug(logWindowPlatform) << "Drawing left side of arrow";
         border.lineTo(cornerPoint.x() - m_arrowWidth / 2, cornerPoint.y() - m_arrowHeight);
     }
 
+    qCDebug(logWindowPlatform) << "Drawing bottom edge";
     border.lineTo(bottomLeft.x() + radius, bottomLeft.y());
+    qCDebug(logWindowPlatform) << "Drawing bottom-left corner arc";
     border.arcTo(bottomLeft.x(), bottomLeft.y() - 2 * radius, 2 * radius, 2 * radius, -90, -90);
+    qCDebug(logWindowPlatform) << "Drawing left edge";
     border.lineTo(topLeft.x(), topLeft.y() + radius);
+    qCDebug(logWindowPlatform) << "Drawing top-left corner arc";
     border.arcTo(topLeft.x(), topLeft.y(), 2 * radius, 2 * radius, 180, -90);
 
     return border;
@@ -1072,103 +1307,136 @@ QPainterPath DArrowRectanglePrivate::getBottomCornerPath()
 
 void DArrowRectanglePrivate::verticalMove(int x, int y)
 {
+    qCDebug(logWindowPlatform) << "Vertical move to position:" << x << y;
     D_Q(DArrowRectangle);
 
     const QRect dRect = currentScreenRect(x, y);
     qreal delta = m_handle ? 0 : (q->shadowBlurRadius() - m_shadowDistance);
+    qCDebug(logWindowPlatform) << "Screen rect:" << dRect << "delta:" << delta;
 
     int lRelativeY = y - dRect.y() - (q->height() - delta) / 2;
     int rRelativeY = y - dRect.y() + (q->height() - delta) / 2 - dRect.height();
     int absoluteY = 0;
+    qCDebug(logWindowPlatform) << "Relative positions - left:" << lRelativeY << "right:" << rRelativeY;
 
     if (lRelativeY < 0) { //out of screen in top side
+        qCDebug(logWindowPlatform) << "Out of screen in top side";
         //arrowY use relative coordinates
         q->setArrowY(q->height() / 2 - delta + lRelativeY);
         absoluteY = dRect.y() - delta;
     } else if (rRelativeY > 0) { //out of screen in bottom side
+        qCDebug(logWindowPlatform) << "Out of screen in bottom side";
         q->setArrowY(q->height() / 2 - delta / 2 + rRelativeY);
         absoluteY = dRect.y() + dRect.height() - q->height() + delta;
     } else {
+        qCDebug(logWindowPlatform) << "Within screen bounds";
         q->setArrowY(0);
         absoluteY = y - q->height() / 2;
     }
 
+    qCDebug(logWindowPlatform) << "Final absolute Y position:" << absoluteY;
     switch (m_arrowDirection) {
     case DArrowRectangle::ArrowLeft:
+        qCDebug(logWindowPlatform) << "Moving with left arrow to:" << x << absoluteY;
         q->QWidget::move(x, absoluteY);
         break;
     case DArrowRectangle::ArrowRight:
+        qCDebug(logWindowPlatform) << "Moving with right arrow to:" << (x - q->width()) << absoluteY;
         q->QWidget::move(x - q->width(), absoluteY);
         break;
     default:
+        qCDebug(logWindowPlatform) << "Ignoring move for invalid arrow direction";
         break;
     }
+    qCDebug(logWindowPlatform) << "Vertical move completed";
 }
 
 void DArrowRectanglePrivate::horizontalMove(int x, int y)
 {
+    qCDebug(logWindowPlatform) << "Horizontal move to position:" << x << y;
     D_Q(DArrowRectangle);
 
     const QRect dRect = currentScreenRect(x, y);
     qreal delta = m_handle ? 0 : (q->shadowBlurRadius() - m_shadowDistance);
+    qCDebug(logWindowPlatform) << "Screen rect:" << dRect << "delta:" << delta;
 
     int lRelativeX = x - dRect.x() - (q->width() - delta) / 2;
     int rRelativeX = x - dRect.x() + (q->width() - delta) / 2 - dRect.width();
     int absoluteX = 0;
+    qCDebug(logWindowPlatform) << "Relative positions - left:" << lRelativeX << "right:" << rRelativeX;
 
     if (lRelativeX < 0) { //out of screen in left side
+        qCDebug(logWindowPlatform) << "Out of screen in left side";
         //arrowX use relative coordinates
         q->setArrowX((q->width() - delta) / 2 + lRelativeX);
         absoluteX = dRect.x() - delta;
     } else if (rRelativeX > 0) { //out of screen in right side
+        qCDebug(logWindowPlatform) << "Out of screen in right side";
         q->setArrowX(q->width() / 2 - delta * 2 + rRelativeX);
         absoluteX = dRect.x() + dRect.width() - q->width() + delta;
     } else {
+        qCDebug(logWindowPlatform) << "Within screen bounds";
         q->setArrowX(0);
         absoluteX = x - (m_arrowX > 0 ? m_arrowX : (q->width() / 2));
     }
 
+    qCDebug(logWindowPlatform) << "Final absolute X position:" << absoluteX;
     switch (m_arrowDirection) {
     case DArrowRectangle::ArrowTop:
+        qCDebug(logWindowPlatform) << "Moving with top arrow to:" << absoluteX << y;
         q->QWidget::move(absoluteX, y);
         break;
     case DArrowRectangle::ArrowBottom:
+        qCDebug(logWindowPlatform) << "Moving with bottom arrow to:" << absoluteX << (y - q->height());
         q->QWidget::move(absoluteX, y - q->height());
         break;
     default:
+        qCDebug(logWindowPlatform) << "Ignoring move for invalid arrow direction";
         break;
     }
+    qCDebug(logWindowPlatform) << "Horizontal move completed";
 }
 
 void DArrowRectanglePrivate::updateClipPath()
 {
+    qCDebug(logWindowPlatform) << "Updating clip path";
     D_Q(DArrowRectangle);
 
-    if (!isDwayland() && !m_handle)
+    if (!isDwayland() && !m_handle) {
+        qCDebug(logWindowPlatform) << "Skipping clip path update - not Wayland and no handle";
         return;
+    }
 
     QPainterPath path;
+    qCDebug(logWindowPlatform) << "Getting path for arrow direction:" << static_cast<int>(m_arrowDirection);
 
     switch (m_arrowDirection) {
     case DArrowRectangle::ArrowLeft:
+        qCDebug(logWindowPlatform) << "Using left corner path";
         path = getLeftCornerPath();
         break;
     case DArrowRectangle::ArrowRight:
+        qCDebug(logWindowPlatform) << "Using right corner path";
         path = getRightCornerPath();
         break;
     case DArrowRectangle::ArrowTop:
+        qCDebug(logWindowPlatform) << "Using top corner path";
         path = getTopCornerPath();
         break;
     case DArrowRectangle::ArrowBottom:
+        qCDebug(logWindowPlatform) << "Using bottom corner path";
         path = getBottomCornerPath();
         break;
     default:
+        qCDebug(logWindowPlatform) << "Using default right corner path";
         path = getRightCornerPath();
     }
 
     if (m_handle) {
+        qCDebug(logWindowPlatform) << "Setting clip path on handle";
         m_handle->setClipPath(path);
     } else if (DArrowRectangle::FloatWindow == floatMode && isDwayland()) {
+        qCDebug(logWindowPlatform) << "Setting clip path for Wayland float window";
         // clipPath without handle
         QPainterPathStroker stroker;
         stroker.setCapStyle(Qt::RoundCap);
@@ -1177,13 +1445,17 @@ void DArrowRectanglePrivate::updateClipPath()
         QPainterPath outPath = stroker.createStroke(path);
         QPolygon polygon = outPath.united(path).toFillPolygon().toPolygon();
 
+        qCDebug(logWindowPlatform) << "Setting window mask";
         q->clearMask();
         q->setMask(polygon);
-        if (m_blurBackground)
+        if (m_blurBackground) {
+            qCDebug(logWindowPlatform) << "Setting blur background mask path";
             m_blurBackground->setMaskPath(path);
+        }
 
         if (QWidget *widget = q->window()) {
             if (QWindow *w = widget->windowHandle()) {
+                qCDebug(logWindowPlatform) << "Setting window blur paths";
                 QList<QPainterPath> painterPaths;
                 painterPaths << outPath.united(path);
                 // 背景模糊也要设置一个 path
@@ -1192,241 +1464,379 @@ void DArrowRectanglePrivate::updateClipPath()
             }
         }
     }
+    qCDebug(logWindowPlatform) << "Clip path update completed";
 }
 
 bool DArrowRectanglePrivate::radiusEnabled()
 {
+    qCDebug(logWindowPlatform) << "Checking if radius is enabled";
     D_Q(DArrowRectangle);
-    if (q->radiusForceEnabled())
+    if (q->radiusForceEnabled()) {
+        qCDebug(logWindowPlatform) << "Radius force enabled, returning true";
         return true;
+    }
 
     if (m_wmHelper && !m_wmHelper->hasComposite()) {
+        qCDebug(logWindowPlatform) << "No composite available, radius disabled";
         return false;
     }
 
+    qCDebug(logWindowPlatform) << "Radius enabled by default";
     return true;
 }
 
 DArrowRectangle::~DArrowRectangle()
 {
-
+    qCDebug(logWindowPlatform) << "Destroying DArrowRectangle";
 }
 
 Dtk::Widget::DArrowRectanglePrivate::DArrowRectanglePrivate(DArrowRectangle::ArrowDirection direction, DArrowRectangle *q)
     : DObjectPrivate(q)
     , m_arrowDirection(direction)
 {
+    qCDebug(logWindowPlatform) << "Creating DArrowRectanglePrivate with direction:" << static_cast<int>(direction);
     if (direction == DArrowRectangle::ArrowLeft || direction == DArrowRectangle::ArrowRight) {
+        qCDebug(logWindowPlatform) << "Setting arrow dimensions for left/right direction";
         m_arrowWidth = 16;
         m_arrowHeight = 16;
     }
+    qCDebug(logWindowPlatform) << "DArrowRectanglePrivate created";
 }
 
 void DArrowRectanglePrivate::init(DArrowRectangle::FloatMode mode)
 {
+    qCDebug(logWindowPlatform) << "Initializing DArrowRectanglePrivate with mode:" << static_cast<int>(mode);
     D_Q(DArrowRectangle);
 
     floatMode = mode;
 
     if (floatMode) {
+        qCDebug(logWindowPlatform) << "Setting up float mode window flags";
         q->setWindowFlags(Qt::Widget);
         q->setAttribute(Qt::WA_TranslucentBackground);
+        qCDebug(logWindowPlatform) << "Float mode window flags set: Qt::Widget, WA_TranslucentBackground";
     } else {
+        qCDebug(logWindowPlatform) << "Setting up non-float mode window flags";
         q->setWindowFlags(Qt::FramelessWindowHint | Qt::ToolTip);
         q->setAttribute(Qt::WA_TranslucentBackground);
+        qCDebug(logWindowPlatform) << "Non-float mode window flags set: FramelessWindowHint | ToolTip, WA_TranslucentBackground";
     }
 
-    if (!DWindowManagerHelper::instance()->hasBlurWindow()
-                    && DGuiApplicationHelper::instance()->isTabletEnvironment()) {
+    const bool hasBlurWindow = DWindowManagerHelper::instance()->hasBlurWindow();
+    const bool isTablet = DGuiApplicationHelper::instance()->isTabletEnvironment();
+    qCDebug(logWindowPlatform) << "Environment check - hasBlurWindow:" << hasBlurWindow << "isTablet:" << isTablet;
+
+    if (!hasBlurWindow && isTablet) {
+        qCDebug(logWindowPlatform) << "Disabling translucent background for tablet environment without blur";
         q->setAttribute(Qt::WA_TranslucentBackground, false);
     }
 
     if (DApplication::isDXcbPlatform() && (DArrowRectangle::FloatWindow == floatMode)) {
+        qCDebug(logWindowPlatform) << "Setting up DXcb float window";
         m_handle = new DPlatformWindowHandle(q, q);
         m_handle->setTranslucentBackground(true);
+        qCDebug(logWindowPlatform) << "DPlatformWindowHandle created with translucent background";
 
         m_blurBackground = new DBlurEffectWidget(q);
         m_blurBackground->setBlendMode(DBlurEffectWidget::BehindWindowBlend);
         m_blurBackground->setAccessibleName("DArrowRectangleBlurBackground");
+        qCDebug(logWindowPlatform) << "Blur background widget created with blend mode:" << static_cast<int>(DBlurEffectWidget::BehindWindowBlend);
 
         m_wmHelper = DWindowManagerHelper::instance();
 
+        qCDebug(logWindowPlatform) << "Connecting composite change signal";
         q->connect(m_wmHelper, &DWindowManagerHelper::hasCompositeChanged, q, [q, this](){
+            qCDebug(logWindowPlatform) << "Composite changed, updating window";
             q->update();
             this->updateClipPath();
         }, Qt::QueuedConnection);
+        qCDebug(logWindowPlatform) << "Composite change signal connected with QueuedConnection";
     } else if (DArrowRectangle::FloatWidget == floatMode) {
+        qCDebug(logWindowPlatform) << "Setting up float widget mode";
         DGraphicsGlowEffect *glowEffect = new DGraphicsGlowEffect;
         glowEffect->setBlurRadius(q->shadowBlurRadius());
         glowEffect->setDistance(m_shadowDistance);
         glowEffect->setXOffset(q->shadowXOffset());
         glowEffect->setYOffset(q->shadowYOffset());
+        qCDebug(logWindowPlatform) << "Glow effect configured - blurRadius:" << q->shadowBlurRadius() 
+                                  << "distance:" << m_shadowDistance << "xOffset:" << q->shadowXOffset() 
+                                  << "yOffset:" << q->shadowYOffset();
         q->setGraphicsEffect(glowEffect);
+        qCDebug(logWindowPlatform) << "Glow effect applied to widget";
     } else {
 #ifndef QT_DEBUG
-        qDebug() << "wayland:" << isDwayland() << "floatMode:" << floatMode;
+        qCDebug(logWindowPlatform) << "Using default mode - wayland:" << isDwayland() << "floatMode:" << floatMode;
 #endif
     }
+    qCDebug(logWindowPlatform) << "Initialization completed successfully";
 }
 
 void DArrowRectanglePrivate::show(int x, int y)
 {
+    qCDebug(logWindowPlatform) << "Showing DArrowRectangle at position:" << x << y << "with float mode:" << static_cast<int>(floatMode);
     D_Q(DArrowRectangle);
 
     // if show with FloatMode, must has a parent
     if (DArrowRectangle::FloatWidget == floatMode && !q->parentWidget()) {
         qCritical() << q << "Must has parentWidget when show in FloatWidget mode";
+        qCDebug(logWindowPlatform) << "Error: Missing parent widget in float widget mode, current parent:" << q->parentWidget();
         Q_ASSERT_X(q->parentWidget(), "DArrowRectanglePrivate::show", "Must has parentWidget when show in FloatWidget mode");
     }
 
+    qCDebug(logWindowPlatform) << "Resizing with content, current size:" << q->size();
     q->resizeWithContent();
+    qCDebug(logWindowPlatform) << "Size after resize:" << q->size();
 
+    qCDebug(logWindowPlatform) << "Updating last position from:" << m_lastPos << "to:" << QPoint(x, y);
     m_lastPos = QPoint(x, y);
+    qCDebug(logWindowPlatform) << "Moving widget to position:" << x << y;
     q->move(x, y);//Overload function
-    if (!q->isVisible()) {
+
+    const bool wasVisible = q->isVisible();
+    if (!wasVisible) {
+        qCDebug(logWindowPlatform) << "Widget not visible, showing and activating window";
         q->QWidget::show();
         q->QWidget::activateWindow();
+        qCDebug(logWindowPlatform) << "Widget visibility state changed from hidden to shown";
+    } else {
+        qCDebug(logWindowPlatform) << "Widget already visible, skipping show/activate";
     }
 
+    qCDebug(logWindowPlatform) << "Updating widget appearance";
     q->update();
+    qCDebug(logWindowPlatform) << "Updating clip path for current geometry:" << q->geometry();
     updateClipPath();
+    qCDebug(logWindowPlatform) << "Show operation completed successfully";
 }
 
 void DArrowRectanglePrivate::setContent(QWidget *content)
 {
+    qCDebug(logWindowPlatform) << "Setting content widget:" << content << "previous content:" << m_content;
     D_Q(DArrowRectangle);
 
     if (!content) {
+        qCDebug(logWindowPlatform) << "Content widget is null, returning without changes";
         return;
     }
 
     m_content = content;
+    qCDebug(logWindowPlatform) << "Setting parent for content widget to:" << q;
     m_content->setParent(q);
+    qCDebug(logWindowPlatform) << "Showing content widget";
     m_content->show();
+    qCDebug(logWindowPlatform) << "Content widget visibility state:" << m_content->isVisible();
 
-    qreal delta = (m_handle ? 0 : q->shadowBlurRadius() + m_shadowDistance);
-    qreal deltaMargin = (m_handle ? 0 : q->shadowBlurRadius() + m_shadowDistance) + q->margin();
+    const bool hasHandle = m_handle != nullptr;
+    qCDebug(logWindowPlatform) << "Calculating deltas with handle:" << hasHandle;
+    qreal delta = (hasHandle ? 0 : q->shadowBlurRadius() + m_shadowDistance);
+    qreal deltaMargin = (hasHandle ? 0 : q->shadowBlurRadius() + m_shadowDistance) + q->margin();
+    qCDebug(logWindowPlatform) << "Calculated deltas - base:" << delta << "margin:" << deltaMargin 
+                              << "shadowBlurRadius:" << q->shadowBlurRadius() 
+                              << "shadowDistance:" << m_shadowDistance 
+                              << "margin:" << q->margin();
 
+    qCDebug(logWindowPlatform) << "Resizing widget with new content, current size:" << q->size();
     q->resizeWithContent();
+    qCDebug(logWindowPlatform) << "Size after resize:" << q->size();
 
+    const bool isDXcb = DApplication::isDXcbPlatform();
+    const bool isFloatWidget = DArrowRectangle::FloatWidget == floatMode;
+    qCDebug(logWindowPlatform) << "Positioning content - isDXcb:" << isDXcb 
+                              << "isFloatWidget:" << isFloatWidget 
+                              << "arrowDirection:" << static_cast<int>(m_arrowDirection);
+
+    QPoint newPos;
     switch (m_arrowDirection) {
     case DArrowRectangle::ArrowLeft:
-        if (DApplication::isDXcbPlatform())
-            m_content->move(m_arrowHeight + ((DArrowRectangle::FloatWidget == floatMode) ? q->margin() : deltaMargin), deltaMargin);
-        else
-            m_content->move(m_arrowHeight + q->margin(), deltaMargin);
+        if (isDXcb) {
+            qCDebug(logWindowPlatform) << "Calculating left arrow position (DXcb)";
+            newPos = QPoint(m_arrowHeight + (isFloatWidget ? q->margin() : deltaMargin), deltaMargin);
+        } else {
+            qCDebug(logWindowPlatform) << "Calculating left arrow position (non-DXcb)";
+            newPos = QPoint(m_arrowHeight + q->margin(), deltaMargin);
+        }
         break;
     case DArrowRectangle::ArrowRight:
-        if (DApplication::isDXcbPlatform())
-            m_content->move((DArrowRectangle::FloatWidget == floatMode) ? deltaMargin - q->margin() : deltaMargin, deltaMargin);
-        else
-            m_content->move((DArrowRectangle::FloatWidget == floatMode) ? delta : delta *2 + q->margin(), deltaMargin);
+        if (isDXcb) {
+            qCDebug(logWindowPlatform) << "Calculating right arrow position (DXcb)";
+            newPos = QPoint(isFloatWidget ? deltaMargin - q->margin() : deltaMargin, deltaMargin);
+        } else {
+            qCDebug(logWindowPlatform) << "Calculating right arrow position (non-DXcb)";
+            newPos = QPoint(isFloatWidget ? delta : delta * 2 + q->margin(), deltaMargin);
+        }
         break;
     case DArrowRectangle::ArrowTop:
-        if (DApplication::isDXcbPlatform())
-            m_content->move(deltaMargin, ((DArrowRectangle::FloatWidget == floatMode) ? q->margin() : deltaMargin) + m_arrowHeight);
-        else
-            m_content->move(deltaMargin, m_arrowHeight + deltaMargin - delta);
+        if (isDXcb) {
+            qCDebug(logWindowPlatform) << "Calculating top arrow position (DXcb)";
+            newPos = QPoint(deltaMargin, (isFloatWidget ? q->margin() : deltaMargin) + m_arrowHeight);
+        } else {
+            qCDebug(logWindowPlatform) << "Calculating top arrow position (non-DXcb)";
+            newPos = QPoint(deltaMargin, m_arrowHeight + deltaMargin - delta);
+        }
         break;
     case DArrowRectangle::ArrowBottom:
-        if (DApplication::isDXcbPlatform())
-            m_content->move(deltaMargin, ((DArrowRectangle::FloatWidget == floatMode) ? deltaMargin -q->margin() : deltaMargin));
-        else
-            m_content->move(deltaMargin, (DArrowRectangle::FloatWidget == floatMode) ? delta : deltaMargin + delta);
+        if (isDXcb) {
+            qCDebug(logWindowPlatform) << "Calculating bottom arrow position (DXcb)";
+            newPos = QPoint(deltaMargin, (isFloatWidget ? deltaMargin - q->margin() : deltaMargin));
+        } else {
+            qCDebug(logWindowPlatform) << "Calculating bottom arrow position (non-DXcb)";
+            newPos = QPoint(deltaMargin, isFloatWidget ? delta : deltaMargin + delta);
+        }
         break;
     }
 
+    qCDebug(logWindowPlatform) << "Moving content from:" << m_content->pos() << "to:" << newPos;
+    m_content->move(newPos);
+    qCDebug(logWindowPlatform) << "Content positioned at:" << m_content->pos() 
+                              << "with geometry:" << m_content->geometry();
+
+    qCDebug(logWindowPlatform) << "Updating widget appearance";
     q->update();
+    qCDebug(logWindowPlatform) << "Content setup completed successfully";
 }
 
 void DArrowRectanglePrivate::resizeWithContent()
 {
+    qCDebug(logWindowPlatform) << "Resizing with content, current size:" << m_content->size();
     D_Q(DArrowRectangle);
 
     if (m_content.isNull()) {
+        qCDebug(logWindowPlatform) << "Content is null, skipping resize operation";
         return;
     }
 
-    q->setFixedSize(q->getFixedSize());
+    const auto& newSize = q->getFixedSize();
+    qCDebug(logWindowPlatform) << "Calculated new fixed size:" << newSize 
+                              << "based on content size:" << m_content->size()
+                              << "and current widget size:" << q->size();
+    q->setFixedSize(newSize);
+    qCDebug(logWindowPlatform) << "Fixed size set successfully, new widget size:" << q->size();
 
 #ifdef Q_OS_LINUX
     const qreal ratio = qApp->devicePixelRatio();
-    if (!m_handle && !floatMode && DGUI_NAMESPACE::DGuiApplicationHelper::instance()->isXWindowPlatform()) {
+    qCDebug(logWindowPlatform) << "Device pixel ratio for X11 shape calculations:" << ratio;
+
+    const bool hasHandle = m_handle != nullptr;
+    const bool isXWindowPlatform = DGUI_NAMESPACE::DGuiApplicationHelper::instance()->isXWindowPlatform();
+    qCDebug(logWindowPlatform) << "Platform check - hasHandle:" << hasHandle 
+                              << "floatMode:" << static_cast<int>(floatMode)
+                              << "isXWindowPlatform:" << isXWindowPlatform;
+
+    if (!hasHandle && !floatMode && isXWindowPlatform) {
+        qCDebug(logWindowPlatform) << "Setting up X11 shape for content";
         XRectangle m_contentXRect;
-        m_contentXRect.x = m_content->pos().x() * ratio;
-        m_contentXRect.y = m_content->pos().y() * ratio;
-        m_contentXRect.width = m_content->width() * ratio;
-        m_contentXRect.height = m_content->height() * ratio;
-        XShapeCombineRectangles(QX11Info::display(), q->winId(), ShapeInput,
-                                0,
-                                0,
-                                &m_contentXRect, 1, ShapeSet, YXBanded);
+        const QPoint contentPos = m_content->pos();
+        const QSize contentSize = m_content->size();
+        
+        m_contentXRect.x = contentPos.x() * ratio;
+        m_contentXRect.y = contentPos.y() * ratio;
+        m_contentXRect.width = contentSize.width() * ratio;
+        m_contentXRect.height = contentSize.height() * ratio;
+        
+        qCDebug(logWindowPlatform) << "X11 shape rectangle - position:" << QPoint(m_contentXRect.x, m_contentXRect.y)
+                                  << "size:" << QSize(m_contentXRect.width, m_contentXRect.height)
+                                  << "from content position:" << contentPos
+                                  << "and size:" << contentSize;
+
+        const WId windowId = q->winId();
+        qCDebug(logWindowPlatform) << "Setting X11 shape on window:" << windowId;
+        XShapeCombineRectangles(QX11Info::display(), windowId, ShapeInput,
+                                0, 0, &m_contentXRect, 1, ShapeSet, YXBanded);
+        qCDebug(logWindowPlatform) << "X11 shape set successfully on window:" << windowId;
+    } else {
+        qCDebug(logWindowPlatform) << "Skipping X11 shape setup - not needed for current configuration";
     }
 #endif
+    qCDebug(logWindowPlatform) << "Resize with content operation completed successfully";
 }
 
 void DArrowRectanglePrivate::paintEvent(QPaintEvent *e)
 {
+    qCDebug(logWindowPlatform) << "Paint event received for rect:" << e->rect();
     D_Q(DArrowRectangle);
+
     if (m_blurBackground) {
+        qCDebug(logWindowPlatform) << "Blur background widget exists, skipping direct painting";
         return;
     }
 
     QColor bk_color;
-
     if (!m_backgroundColor.isValid()) {
         bk_color = qApp->palette().window().color();
+        qCDebug(logWindowPlatform) << "Using window color from application palette:" << bk_color;
     } else {
         bk_color = m_backgroundColor;
+        qCDebug(logWindowPlatform) << "Using custom background color:" << bk_color 
+                                  << "alpha:" << bk_color.alpha();
     }
 
     QPainter painter(q);
+    qCDebug(logWindowPlatform) << "Painter created for widget:" << q;
 
     if (m_handle) {
+        qCDebug(logWindowPlatform) << "Using handle-based painting for rect:" << e->rect();
         painter.fillRect(e->rect(), bk_color);
+        qCDebug(logWindowPlatform) << "Rectangle filled with color:" << bk_color;
     } else {
+        qCDebug(logWindowPlatform) << "Using path-based painting with antialiasing";
         painter.setRenderHint(QPainter::Antialiasing);
 
         QPainterPath border;
+        qCDebug(logWindowPlatform) << "Getting border path for arrow direction:" << static_cast<int>(m_arrowDirection)
+                                  << "current widget geometry:" << q->geometry();
 
         switch (m_arrowDirection) {
         case DArrowRectangle::ArrowLeft:
+            qCDebug(logWindowPlatform) << "Creating left corner path";
             border = getLeftCornerPath();
             break;
         case DArrowRectangle::ArrowRight:
+            qCDebug(logWindowPlatform) << "Creating right corner path";
             border = getRightCornerPath();
             break;
         case DArrowRectangle::ArrowTop:
+            qCDebug(logWindowPlatform) << "Creating top corner path";
             border = getTopCornerPath();
             break;
         case DArrowRectangle::ArrowBottom:
+            qCDebug(logWindowPlatform) << "Creating bottom corner path";
             border = getBottomCornerPath();
             break;
         default:
+            qCDebug(logWindowPlatform) << "Using default right corner path for unknown direction";
             border = getRightCornerPath();
         }
 
+        qCDebug(logWindowPlatform) << "Setting clip path and filling with background color";
         painter.setClipPath(border);
         painter.fillPath(border, QBrush(bk_color));
 
+        qCDebug(logWindowPlatform) << "Configuring border stroke - color:" << m_borderColor 
+                                  << "width:" << m_borderWidth;
         QPen strokePen;
         strokePen.setColor(m_borderColor);
         strokePen.setWidth(m_borderWidth);
+        qCDebug(logWindowPlatform) << "Drawing border path with configured pen";
         painter.strokePath(border, strokePen);
     }
+    qCDebug(logWindowPlatform) << "Paint event completed successfully";
 }
 
 void DArrowRectanglePrivate::resizeEvent(QResizeEvent *e)
 {
+    qCDebug(logWindowPlatform) << "Resize event received, new size:" << e->size();
     D_Q(DArrowRectangle);
 
     q->QWidget::resizeEvent(e);
 
     if (m_blurBackground) {
+        qCDebug(logWindowPlatform) << "Resizing blur background";
         m_blurBackground->resize(e->size());
     }
 
+    qCDebug(logWindowPlatform) << "Updating clip path";
     updateClipPath();
+    qCDebug(logWindowPlatform) << "Resize event completed";
 }
 
 DWIDGET_END_NAMESPACE

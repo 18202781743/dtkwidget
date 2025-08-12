@@ -16,6 +16,9 @@
 #include <QScrollArea>
 #include <QUrl>
 #include <QtMath>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(logDialogs)
 
 DWIDGET_BEGIN_NAMESPACE
 
@@ -30,6 +33,7 @@ DFeatureItemWidget::DFeatureItemWidget(const QIcon &icon, const QString &name,
     , m_featureNameLabel(new QLabel(name))
     , m_featureDescriptionLabel(new QLabel(description))
 {
+    qCDebug(logDialogs) << "DFeatureItemWidget created with name:" << name;
     m_featureDescriptionLabel->setWordWrap(true);
     DFontSizeManager *fontManager =  DFontSizeManager::instance();
     fontManager->bind(m_featureNameLabel, DFontSizeManager::T5, QFont::DemiBold);
@@ -63,15 +67,18 @@ DFeatureItemWidget::DFeatureItemWidget(const QIcon &icon, const QString &name,
 
 DFeatureItemWidget::~DFeatureItemWidget()
 {
+    qCDebug(logDialogs) << "DFeatureItemWidget destroyed";
 }
 
 void DFeatureItemWidget::setDescriptionLabelWidth(const int width)
 {
+    qCDebug(logDialogs) << "Setting description label width:" << width;
     m_featureDescriptionLabel->setFixedWidth(width);
 }
 
 int DFeatureItemWidget::descriptionLabelWidth()
 {
+    qCDebug(logDialogs) << "Getting description label width";
     auto fontMetrics = m_featureDescriptionLabel->fontMetrics();
     auto size = fontMetrics.size(Qt::TextShowMnemonic, m_featureDescriptionLabel->text());
     return size.width();
@@ -84,10 +91,12 @@ DFeatureItemPrivate::DFeatureItemPrivate(Core::DObject *qq, const QIcon &icon,
     , m_name(name)
     , m_description(description)
 {
+    qCDebug(logDialogs) << "DFeatureItemPrivate created with name:" << name;
 }
 
 DFeatureItemPrivate::~DFeatureItemPrivate()
 {
+    qCDebug(logDialogs) << "DFeatureItemPrivate destroyed";
 }
 
 DFeatureItem::DFeatureItem(const QIcon &icon, const QString &name,
@@ -95,6 +104,7 @@ DFeatureItem::DFeatureItem(const QIcon &icon, const QString &name,
     : QObject(parent)
     , DObject(*new DFeatureItemPrivate(this, icon, name, description))
 {
+    qCDebug(logDialogs) << "DFeatureItem created with name:" << name;
 }
 
 DFeatureItem::~DFeatureItem()

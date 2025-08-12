@@ -10,8 +10,10 @@
 #include <QWidget>
 #include <QPainter>
 #include <QEvent>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logProgressAnimation)
 
 /*!
   \class Dtk::Widget::DTickEffect
@@ -54,6 +56,7 @@ DTickEffect::DTickEffect(QWidget *widget, QWidget *parent)
     : QGraphicsEffect(parent)
     , DObject(*new DTickEffectPrivate(this))
 {
+    qCDebug(logProgressAnimation) << "create dtickeffect";
     D_D(DTickEffect);
 
     widget->setGraphicsEffect(this);
@@ -69,6 +72,7 @@ DTickEffect::DTickEffect(QWidget *widget, QWidget *parent)
 
 void DTickEffect::draw(QPainter *painter)
 {
+    qCDebug(logProgressAnimation) << "draw tickeffect";
     D_D(DTickEffect);
 
     QPoint offset;
@@ -106,6 +110,8 @@ void DTickEffect::draw(QPainter *painter)
 
 bool DTickEffect::eventFilter(QObject *watched, QEvent *event)
 {
+    qCDebug(logProgressAnimation) << "filter" << static_cast<void*>(watched)
+                                  << static_cast<int>(event->type());
     D_D(DTickEffect);
 
     if (watched == d->content && event->type() == QEvent::Resize) {
@@ -121,6 +127,7 @@ bool DTickEffect::eventFilter(QObject *watched, QEvent *event)
  */
 void DTickEffect::play()
 {
+    qCDebug(logProgressAnimation) << "play";
     D_D(DTickEffect);
 
     d->runAnimation->start();
@@ -134,6 +141,7 @@ void DTickEffect::play()
  */
 void DTickEffect::stop()
 {
+    qCDebug(logProgressAnimation) << "stop";
     D_D(DTickEffect);
 
     d->runAnimation->stop();
@@ -147,6 +155,7 @@ void DTickEffect::stop()
  */
 void DTickEffect::pause()
 {
+    qCDebug(logProgressAnimation) << "pause";
     D_D(DTickEffect);
 
     d->runAnimation->pause();
@@ -160,6 +169,7 @@ void DTickEffect::pause()
  */
 void DTickEffect::resume()
 {
+    qCDebug(logProgressAnimation) << "resume";
     D_D(DTickEffect);
 
     d->runAnimation->resume();
@@ -174,6 +184,7 @@ void DTickEffect::resume()
  */
 void DTickEffect::setDirection(DTickEffect::Direction direction)
 {
+    qCDebug(logProgressAnimation) << "set direction" << static_cast<int>(direction);
     D_D(DTickEffect);
 
     if (d->direction == direction)

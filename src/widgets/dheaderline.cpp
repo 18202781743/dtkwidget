@@ -4,8 +4,11 @@
 
 #include "dheaderline.h"
 #include "dthememanager.h"
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 /*!
     \class Dtk::Widget::DHeaderLine
@@ -27,6 +30,8 @@ DWIDGET_BEGIN_NAMESPACE
 
 DHeaderLine::DHeaderLine(QWidget *parent) : DBaseLine(parent)
 {
+    qCDebug(logBasicWidgets) << "Construct header line"
+                             << reinterpret_cast<const void *>(this);
     setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
     setFixedHeight(EXPAND_HEADER_HEIGHT);
     m_titleLabel = new QLabel(this);
@@ -42,6 +47,8 @@ DHeaderLine::DHeaderLine(QWidget *parent) : DBaseLine(parent)
  */
 void DHeaderLine::setTitle(const QString &title)
 {
+    Q_UNUSED(title)
+    qCDebug(logBasicWidgets) << "Set title";
     m_titleLabel->setText(title);
 }
 
@@ -54,6 +61,8 @@ void DHeaderLine::setTitle(const QString &title)
  */
 void DHeaderLine::setContent(QWidget *content)
 {
+    qCDebug(logBasicWidgets) << "Set right content"
+                             << reinterpret_cast<const void *>(content);
     DBaseLine::setRightContent(content);
     setFixedHeight(CONTENT_HEADER_HEIGHT);
 }
@@ -66,6 +75,7 @@ void DHeaderLine::setContent(QWidget *content)
  */
 QString DHeaderLine::title() const
 {
+    qCDebug(logBasicWidgets) << "Get title";
     return m_titleLabel->text();
 }
 

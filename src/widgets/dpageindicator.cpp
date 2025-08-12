@@ -10,8 +10,11 @@
 
 #include <QDebug>
 #include <QPainter>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logListWidgets)
 
 /*!
   \class Dtk::Widget::DPageIndicator
@@ -49,6 +52,7 @@ DPageIndicator::DPageIndicator(QWidget *parent)
     : QWidget(parent),
       DObject(*new DPageIndicatorPrivate(this), this)
 {
+    qCDebug(logListWidgets) << "Creating DPageIndicator with parent:" << parent;
     setMinimumHeight(d_func()->pointRadius * 2);
 }
 
@@ -63,12 +67,14 @@ DPageIndicator::DPageIndicator(QWidget *parent)
 int DPageIndicator::pageCount() const
 {
     D_DC(DPageIndicator);
-
-    return d->pageCount;
+    const auto& count = d->pageCount;
+    qCDebug(logListWidgets) << "Current page count:" << count;
+    return count;
 }
 
 void DPageIndicator::setPageCount(const int count)
 {
+    qCDebug(logListWidgets) << "Setting page count:" << count;
     D_D(DPageIndicator);
 
     d->setPageCount(count);
@@ -84,6 +90,7 @@ void DPageIndicator::setPageCount(const int count)
  */
 void DPageIndicator::nextPage()
 {
+    qCDebug(logListWidgets) << "Moving to next page";
     D_D(DPageIndicator);
 
     d->nextPage();
@@ -99,6 +106,7 @@ void DPageIndicator::nextPage()
  */
 void DPageIndicator::previousPage()
 {
+    qCDebug(logListWidgets) << "Moving to previous page";
     D_D(DPageIndicator);
 
     d->previousPage();
@@ -106,6 +114,7 @@ void DPageIndicator::previousPage()
 
 void DPageIndicator::setCurrentPage(const int index)
 {
+    qCDebug(logListWidgets) << "Setting current page:" << index;
     D_D(DPageIndicator);
 
     d->setCurrentPage(index);
@@ -122,8 +131,9 @@ void DPageIndicator::setCurrentPage(const int index)
 int DPageIndicator::currentPageIndex() const
 {
     D_DC(DPageIndicator);
-
-    return d->currentPage;
+    const auto& index = d->currentPage;
+    qCDebug(logListWidgets) << "Current page index:" << index;
+    return index;
 }
 
 /*!
@@ -137,12 +147,14 @@ int DPageIndicator::currentPageIndex() const
 QColor DPageIndicator::pointColor() const
 {
     D_DC(DPageIndicator);
-
-    return d->pointColor;
+    const auto& color = d->pointColor;
+    qCDebug(logListWidgets) << "Current point color:" << color;
+    return color;
 }
 
 void DPageIndicator::setPointColor(QColor color)
 {
+    qCDebug(logListWidgets) << "Setting point color:" << color;
     D_D(DPageIndicator);
 
     d->pointColor = color;
@@ -159,12 +171,14 @@ void DPageIndicator::setPointColor(QColor color)
 QColor DPageIndicator::secondaryPointColor() const
 {
     D_DC(DPageIndicator);
-
-    return d->secondaryPointColor;
+    const auto& color = d->secondaryPointColor;
+    qCDebug(logListWidgets) << "Current secondary point color:" << color;
+    return color;
 }
 
 void DPageIndicator::setSecondaryPointColor(QColor color)
 {
+    qCDebug(logListWidgets) << "Setting secondary point color:" << color;
     D_D(DPageIndicator);
 
     d->secondaryPointColor = color;
@@ -181,11 +195,14 @@ void DPageIndicator::setSecondaryPointColor(QColor color)
 int DPageIndicator::pointRadius() const
 {
     D_DC(DPageIndicator);
-    return  d->pointRadius;
+    const auto& radius = d->pointRadius;
+    qCDebug(logListWidgets) << "Current point radius:" << radius;
+    return radius;
 }
 
 void DPageIndicator::setPointRadius(int size)
 {
+    qCDebug(logListWidgets) << "Setting point radius:" << size;
     D_D(DPageIndicator);
     d->pointRadius = size;
 }
@@ -201,11 +218,14 @@ void DPageIndicator::setPointRadius(int size)
 int DPageIndicator::secondaryPointRadius() const
 {
     D_DC(DPageIndicator);
-    return  d->secondaryPointRadius;
+    const auto& radius = d->secondaryPointRadius;
+    qCDebug(logListWidgets) << "Current secondary point radius:" << radius;
+    return radius;
 }
 
 void DPageIndicator::setSecondaryPointRadius(int size)
 {
+    qCDebug(logListWidgets) << "Setting secondary point radius:" << size;
     D_D(DPageIndicator);
     d->secondaryPointRadius = size;
 }
@@ -221,17 +241,21 @@ void DPageIndicator::setSecondaryPointRadius(int size)
 int DPageIndicator::pointDistance() const
 {
     D_DC(DPageIndicator);
-    return  d->pointDistance;
+    const auto& distance = d->pointDistance;
+    qCDebug(logListWidgets) << "Current point distance:" << distance;
+    return distance;
 }
 
 void DPageIndicator::setPointDistance(int distance)
 {
+    qCDebug(logListWidgets) << "Setting point distance:" << distance;
     D_D(DPageIndicator);
     d->pointDistance = distance;
 }
 
 void DPageIndicator::paintEvent(QPaintEvent *e)
 {
+    qCDebug(logListWidgets) << "Painting page indicator";
     QWidget::paintEvent(e);
 
     const int w = width();
@@ -245,10 +269,13 @@ void DPageIndicator::paintEvent(QPaintEvent *e)
     QColor currentPtColor = d->pointColor;
     QColor nonCurrentPtColor = d->secondaryPointColor;
 
-    if (!d->pointColor.isValid())
+    if (!d->pointColor.isValid()) {
+        qCDebug(logListWidgets) << "Using palette highlight color for current point";
         currentPtColor = this->palette().highlight().color();
+    }
 
     if (!d->secondaryPointColor.isValid()) {
+        qCDebug(logListWidgets) << "Using palette button color for secondary point";
         nonCurrentPtColor = this->palette().button().color();
     }
 
@@ -257,6 +284,7 @@ void DPageIndicator::paintEvent(QPaintEvent *e)
     painter.setPen(Qt::transparent);
     for (int i(0); i != d->pageCount; ++i) {
         if (d->currentPage == i) {
+            qCDebug(logListWidgets) << "Drawing current page indicator at index:" << i;
             painter.setBrush(currentPtColor);
             painter.drawEllipse(offset + QPoint(d->pointDistance / 2 + d->pointDistance * i, 0),
                                 d->pointRadius, d->pointRadius);
@@ -273,11 +301,12 @@ DPageIndicatorPrivate::DPageIndicatorPrivate(DPageIndicator *q)
     , pageCount(3)
     , currentPage(1)
 {
-
+    qCDebug(logListWidgets) << "Creating DPageIndicatorPrivate with default values";
 }
 
 void DPageIndicatorPrivate::setPageCount(const int count)
 {
+    qCDebug(logListWidgets) << "Setting page count in private:" << count;
     pageCount = count;
 
     D_Q(DPageIndicator);
@@ -287,6 +316,7 @@ void DPageIndicatorPrivate::setPageCount(const int count)
 
 void DPageIndicatorPrivate::nextPage()
 {
+    qCDebug(logListWidgets) << "Moving to next page in private, current:" << currentPage;
     currentPage = (pageCount == 0) ? 0 : (currentPage + 1) % pageCount;
 
     D_Q(DPageIndicator);
@@ -296,6 +326,7 @@ void DPageIndicatorPrivate::nextPage()
 
 void DPageIndicatorPrivate::previousPage()
 {
+    qCDebug(logListWidgets) << "Moving to previous page in private, current:" << currentPage;
     currentPage = (currentPage ? currentPage : pageCount) - 1;
 
     D_Q(DPageIndicator);
@@ -305,8 +336,9 @@ void DPageIndicatorPrivate::previousPage()
 
 void DPageIndicatorPrivate::setCurrentPage(const int index)
 {
+    qCDebug(logListWidgets) << "Setting current page in private:" << index;
     if (index < -1 || index >= pageCount) {
-        qWarning() << "index out of bounds: " << index << ", max is " << pageCount;
+        qCWarning(logListWidgets) << "Index out of bounds:" << index << "max is" << pageCount;
         return;
     }
 

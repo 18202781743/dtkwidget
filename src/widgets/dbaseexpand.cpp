@@ -7,8 +7,13 @@
 #include "dboxwidget.h"
 
 #include <QResizeEvent>
+#include <QLoggingCategory>
 #if DTK_VERSION < DTK_VERSION_CHECK(6, 0, 0, 0)
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logUtils)
+}
 
 class DBaseExpandPrivate
 {
@@ -125,7 +130,7 @@ DBaseExpand::DBaseExpand(QWidget *parent)
     : QWidget(parent)
     , d_private(new DBaseExpandPrivate(this))
 {
-
+    qCDebug(logUtils) << "Creating base expand widget";
 }
 
 DBaseExpand::~DBaseExpand()
@@ -142,7 +147,9 @@ DBaseExpand::~DBaseExpand()
 void DBaseExpand::setHeader(QWidget *header)
 {
     Q_D(DBaseExpand);
+    qCDebug(logUtils) << "Setting header widget";
     if (!header) {
+        qCWarning(logUtils) << "Null header widget provided";
         return;
     }
 
@@ -165,8 +172,9 @@ void DBaseExpand::setHeader(QWidget *header)
 void DBaseExpand::setContent(QWidget *content, Qt::Alignment alignment)
 {
     Q_D(DBaseExpand);
-
+    qCDebug(logUtils) << "Setting content widget with alignment:" << int(alignment);
     if (!content) {
+        qCWarning(logUtils) << "Null content widget provided";
         return;
     }
 
@@ -217,8 +225,9 @@ void DBaseExpand::setHeaderHeight(int height)
 void DBaseExpand::setExpand(bool value)
 {
     Q_D(DBaseExpand);
-
+    qCDebug(logUtils) << "Setting base expand state:" << value;
     if (d->m_expand == value) {
+        qCDebug(logUtils) << "Expand state unchanged";
         return;
     }
 

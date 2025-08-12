@@ -9,11 +9,14 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_DECLARE_LOGGING_CATEGORY(logUtilClasses)
+
 DRegionMonitor::DRegionMonitor(QObject *parent)
     : QObject(parent)
     , DObject(*new DRegionMonitorPrivate(this, this))
 {
     D_D(DRegionMonitor);
+    qCDebug(logUtilClasses) << "DRegionMonitor created";
 
     connect(d->guiRegionMonitor, &GuiDRegionMonitor::buttonPress, this, &DRegionMonitor::buttonPress);
     connect(d->guiRegionMonitor, &GuiDRegionMonitor::buttonRelease, this, &DRegionMonitor::buttonRelease);
@@ -29,42 +32,49 @@ DRegionMonitor::DRegionMonitor(QObject *parent)
 bool DRegionMonitor::registered() const
 {
     D_DC(DRegionMonitor);
+    qCDebug(logUtilClasses) << "Checking if region monitor is registered";
     return d->guiRegionMonitor->registered();
 }
 
 QRegion DRegionMonitor::watchedRegion() const
 {
     D_DC(DRegionMonitor);
+    qCDebug(logUtilClasses) << "Getting watched region";
     return d->guiRegionMonitor->watchedRegion();
 }
 
 DRegionMonitor::CoordinateType DRegionMonitor::coordinateType() const
 {
     D_DC(DRegionMonitor);
+    qCDebug(logUtilClasses) << "Getting coordinate type";
     return static_cast<DRegionMonitor::CoordinateType>(d->guiRegionMonitor->coordinateType());
 }
 
 void DRegionMonitor::registerRegion()
 {
     D_D(DRegionMonitor);
+    qCDebug(logUtilClasses) << "Registering region monitor";
     d->guiRegionMonitor->registerRegion();
 }
 
 void DRegionMonitor::unregisterRegion()
 {
     D_D(DRegionMonitor);
+    qCDebug(logUtilClasses) << "Unregistering region monitor";
     d->guiRegionMonitor->unregisterRegion();
 }
 
 void DRegionMonitor::setWatchedRegion(const QRegion &region)
 {
     D_D(DRegionMonitor);
+    qCDebug(logUtilClasses) << "Setting watched region";
     d->guiRegionMonitor->setWatchedRegion(region);
 }
 
 void DRegionMonitor::setCoordinateType(DRegionMonitor::CoordinateType type)
 {
     D_D(DRegionMonitor);
+    qCDebug(logUtilClasses) << "Setting coordinate type:" << static_cast<int>(type);
     auto guiType = static_cast<GuiDRegionMonitor::CoordinateType>(type);
     d->guiRegionMonitor->setCoordinateType(guiType);
 }
@@ -73,10 +83,12 @@ DRegionMonitorPrivate::DRegionMonitorPrivate(DObject *qq, QObject *parent /* = n
     : DObjectPrivate(qq)
     , guiRegionMonitor(new GuiDRegionMonitor(parent))
 {
+    qCDebug(logUtilClasses) << "DRegionMonitorPrivate created";
 }
 
 DRegionMonitorPrivate::~DRegionMonitorPrivate()
 {
+    qCDebug(logUtilClasses) << "DRegionMonitorPrivate destroyed";
 }
 
 DWIDGET_END_NAMESPACE

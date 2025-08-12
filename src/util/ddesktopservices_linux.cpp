@@ -6,6 +6,7 @@
 #include <QtDBus/QtDBus>
 #include <QDebug>
 #include <QFile>
+#include <QLoggingCategory>
 
 #include <DDesktopServices>
 using DGuiDesktopServices = DTK_GUI_NAMESPACE::DDesktopServices;
@@ -13,8 +14,13 @@ using DGuiSystemSoundEffect = DGuiDesktopServices::SystemSoundEffect;
 
 DWIDGET_BEGIN_NAMESPACE
 
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logUtilClasses)
+}
+
 bool DDesktopServices::showFolder(QString localFilePath, const QString &startupId)
 {
+    qCDebug(logUtilClasses) << "Showing folder:" << localFilePath;
     return DGuiDesktopServices::showFolder(localFilePath, startupId);
 }
 
@@ -75,6 +81,7 @@ bool DDesktopServices::showFileItems(const QList<QUrl> urls, const QString &star
 
 bool DDesktopServices::trash(QString localFilePath)
 {
+    qCDebug(logUtilClasses) << "Moving to trash:" << localFilePath;
     return DGuiDesktopServices::trash(localFilePath);
 }
 

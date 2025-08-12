@@ -5,6 +5,9 @@
 #include "danchors.h"
 
 #include "denhancedwidget.h"
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
 
 DWIDGET_BEGIN_NAMESPACE
 
@@ -379,9 +382,12 @@ public:
 class DAnchorsBasePrivate : public QSharedData
 {
 public:
-    DAnchorsBasePrivate(DAnchorsBase *qq): q_ptr(qq) {}
+    DAnchorsBasePrivate(DAnchorsBase *qq): q_ptr(qq) {
+        qCDebug(logBasicWidgets) << "DAnchorsBasePrivate created";
+    }
     ~DAnchorsBasePrivate()
     {
+        qCDebug(logBasicWidgets) << "DAnchorsBasePrivate destroyed";
         delete top;
         delete bottom;
         delete left;
@@ -392,9 +398,11 @@ public:
 
     static void setWidgetAnchorsBase(const QWidget *w, DAnchorsBase *b)
     {
+        qCDebug(logBasicWidgets) << "Setting widget anchors base";
         if (w) {
             DAnchorsBase *bb = widgetMap.value(w, NULL);
             if (bb) {
+                qCDebug(logBasicWidgets) << "Removing existing anchors base";
                 bb->deleteLater();
             }
             widgetMap[w] = b;
@@ -402,10 +410,12 @@ public:
     }
     static DAnchorsBase *getWidgetAnchorsBase(const QWidget *w)
     {
+        qCDebug(logBasicWidgets) << "Getting widget anchors base";
         return widgetMap.value(w, NULL);
     }
     static void removeWidgetAnchorsBase(const QWidget *w, const DAnchorsBase *b)
     {
+        qCDebug(logBasicWidgets) << "Removing widget anchors base";
         if (w && b && widgetMap.value(w, NULL) == b) {
             widgetMap.remove(w);
         }
@@ -451,7 +461,10 @@ public:
 
     bool isBindable(const DAnchorInfo *info) const
     {
+        qCDebug(logBasicWidgets) << "Checking if anchor is bindable for type:" << static_cast<int>(info->type);
+        
         if (fill->target() || centerIn->target()) {
+            qCDebug(logBasicWidgets) << "Not bindable: fill or centerIn is already set";
             return false;
         }
 
@@ -460,153 +473,230 @@ public:
         bool tmp1 = ((int)q->isBinding(top) + (int)q->isBinding(verticalCenter) + (int)q->isBinding(bottom)) < 2;
         bool tmp2 = ((int)q->isBinding(left) + (int)q->isBinding(horizontalCenter) + (int)q->isBinding(right)) < 2;
 
+        qCDebug(logBasicWidgets) << "Vertical bindings count < 2:" << tmp1;
+        qCDebug(logBasicWidgets) << "Horizontal bindings count < 2:" << tmp2;
+
         switch (info->type) {
         case Qt::AnchorTop://Deliberate
         case Qt::AnchorBottom://Deliberate
         case Qt::AnchorHorizontalCenter:
+            qCDebug(logBasicWidgets) << "Checking vertical binding:" << tmp1;
             return tmp1;
         case Qt::AnchorLeft://Deliberate
         case Qt::AnchorRight://Deliberate
         case Qt::AnchorVerticalCenter:
+            qCDebug(logBasicWidgets) << "Checking horizontal binding:" << tmp2;
             return tmp2;
         default:
+            qCDebug(logBasicWidgets) << "Invalid anchor type";
             return false;
         }
     }
 
     qreal getValueByInfo(const DAnchorInfo *info)
     {
+        qCDebug(logBasicWidgets) << "Getting value for anchor type:" << static_cast<int>(info->type);
         DAnchorsRect rect = info->base->target()->geometry();
+        qCDebug(logBasicWidgets) << "Target geometry:" << rect;
 
+        qreal value = 0;
         switch (info->type) {
         case Qt::AnchorTop:
-            return rect.top();
+            value = rect.top();
+            qCDebug(logBasicWidgets) << "Top value:" << value;
+            break;
         case Qt::AnchorBottom:
-            return rect.bottom() + 1;
+            value = rect.bottom() + 1;
+            qCDebug(logBasicWidgets) << "Bottom value:" << value;
+            break;
         case Qt::AnchorHorizontalCenter:
-            return rect.horizontalCenter();
+            value = rect.horizontalCenter();
+            qCDebug(logBasicWidgets) << "Horizontal center value:" << value;
+            break;
         case Qt::AnchorLeft:
-            return rect.left();
+            value = rect.left();
+            qCDebug(logBasicWidgets) << "Left value:" << value;
+            break;
         case Qt::AnchorRight:
-            return rect.right() + 1;
+            value = rect.right() + 1;
+            qCDebug(logBasicWidgets) << "Right value:" << value;
+            break;
         case Qt::AnchorVerticalCenter:
-            return rect.verticalCenter();
+            value = rect.verticalCenter();
+            qCDebug(logBasicWidgets) << "Vertical center value:" << value;
+            break;
         default:
-            return 0;
+            qCDebug(logBasicWidgets) << "Invalid anchor type, returning 0";
+            break;
         }
+        return value;
     }
 
     void setValueByInfo(qreal value, const DAnchorInfo *info)
     {
+        qCDebug(logBasicWidgets) << "Setting value:" << value << "for anchor type:" << (info ? static_cast<int>(info->type) : -1);
+        
         if (!info) {
+            qCDebug(logBasicWidgets) << "Invalid info pointer, skipping";
             return;
         }
 
         switch (info->type) {
         case Qt::AnchorTop:
+            qCDebug(logBasicWidgets) << "Setting top anchor to:" << value;
             info->base->setTop(value, Qt::AnchorTop);
             break;
         case Qt::AnchorBottom:
+            qCDebug(logBasicWidgets) << "Setting bottom anchor to:" << value - 1;
             info->base->setBottom(value - 1, Qt::AnchorTop);
             break;
         case Qt::AnchorHorizontalCenter:
+            qCDebug(logBasicWidgets) << "Setting horizontal center anchor to:" << value;
             info->base->setHorizontalCenter(value, Qt::AnchorLeft);
             break;
         case Qt::AnchorLeft:
+            qCDebug(logBasicWidgets) << "Setting left anchor to:" << value;
             info->base->setLeft(value, Qt::AnchorRight);
             break;
         case Qt::AnchorRight:
+            qCDebug(logBasicWidgets) << "Setting right anchor to:" << value - 1;
             info->base->setRight(value - 1, Qt::AnchorLeft);
             break;
         case Qt::AnchorVerticalCenter:
+            qCDebug(logBasicWidgets) << "Setting vertical center anchor to:" << value;
             info->base->setVerticalCenter(value, Qt::AnchorLeft);
             break;
         default:
+            qCDebug(logBasicWidgets) << "Invalid anchor type, no action taken";
             break;
         }
     }
 
     qreal getTargetValueByInfo(const DAnchorInfo *info)
     {
+        qCDebug(logBasicWidgets) << "Getting target value for anchor type:" << static_cast<int>(info->type);
+        
         if (!info->targetInfo) {
+            qCDebug(logBasicWidgets) << "No target info, using direct value";
             return getValueByInfo(info);
         }
 
         qreal value = getValueByInfo(info->targetInfo);
+        qCDebug(logBasicWidgets) << "Base target value:" << value;
+        
         bool isParent = info->base->target()->parentWidget() == info->targetInfo->base->target();
+        qCDebug(logBasicWidgets) << "Target is parent:" << isParent;
+        
         int topValue = isParent ? -info->targetInfo->base->target()->geometry().top() : 0;
         int leftValue = isParent ? -info->targetInfo->base->target()->geometry().left() : 0;
+        qCDebug(logBasicWidgets) << "Parent offset - top:" << topValue << "left:" << leftValue;
 
+        qreal result = 0;
         switch (info->type) {
         case Qt::AnchorTop: {
             int offset = topMargin == 0 ? margins : topMargin;
-            return value + offset + topValue;
+            result = value + offset + topValue;
+            qCDebug(logBasicWidgets) << "Top anchor - offset:" << offset << "final value:" << result;
+            break;
         }
         case Qt::AnchorBottom: {
             int offset = bottomMargin == 0 ? margins : bottomMargin;
-            return value - offset + topValue - 1;
+            result = value - offset + topValue - 1;
+            qCDebug(logBasicWidgets) << "Bottom anchor - offset:" << offset << "final value:" << result;
+            break;
         }
         case Qt::AnchorHorizontalCenter: {
             int offset = horizontalCenterOffset;
-            return value + offset + leftValue;
+            result = value + offset + leftValue;
+            qCDebug(logBasicWidgets) << "Horizontal center anchor - offset:" << offset << "final value:" << result;
+            break;
         }
         case Qt::AnchorLeft: {
             int offset = leftMargin == 0 ? margins : leftMargin;
-            return value + offset + leftValue;
+            result = value + offset + leftValue;
+            qCDebug(logBasicWidgets) << "Left anchor - offset:" << offset << "final value:" << result;
+            break;
         }
         case Qt::AnchorRight: {
             int offset = rightMargin == 0 ? margins : rightMargin;
-            return value - offset + leftValue - 1;
+            result = value - offset + leftValue - 1;
+            qCDebug(logBasicWidgets) << "Right anchor - offset:" << offset << "final value:" << result;
+            break;
         }
         case Qt::AnchorVerticalCenter: {
             int offset = verticalCenterOffset;
-            return value + offset + topValue;
+            result = value + offset + topValue;
+            qCDebug(logBasicWidgets) << "Vertical center anchor - offset:" << offset << "final value:" << result;
+            break;
         }
         default:
-            return 0;
+            qCDebug(logBasicWidgets) << "Invalid anchor type, returning 0";
+            break;
         }
+        return result;
     }
 
     const DAnchorsRect getWidgetRect(const QWidget *w) const
     {
+        qCDebug(logBasicWidgets) << "Getting widget rect for widget:" << w;
+        
         if (!w) {
+            qCDebug(logBasicWidgets) << "Widget is null, returning empty rect";
             return DAnchorsRect();
         }
 
         if (extendWidget && extendWidget->target()->parentWidget() == w) {
+            qCDebug(logBasicWidgets) << "Widget is parent of extended widget, returning rect:" << w->rect();
             return w->rect();
         }
 
+        qCDebug(logBasicWidgets) << "Returning widget geometry:" << w->geometry();
         return w->geometry();
     }
 
     int horizontalAnchorCount() const
     {
+        qCDebug(logBasicWidgets) << "Counting horizontal anchors";
         Q_Q(const DAnchorsBase);
 
         int count = 0;
-        if(q->isBinding(left))
+        if(q->isBinding(left)) {
+            qCDebug(logBasicWidgets) << "Left anchor is bound";
             ++count;
-        if(q->isBinding(horizontalCenter))
+        }
+        if(q->isBinding(horizontalCenter)) {
+            qCDebug(logBasicWidgets) << "Horizontal center anchor is bound";
             ++count;
-        if(q->isBinding(right))
+        }
+        if(q->isBinding(right)) {
+            qCDebug(logBasicWidgets) << "Right anchor is bound";
             ++count;
+        }
 
+        qCDebug(logBasicWidgets) << "Total horizontal anchors:" << count;
         return count;
     }
 
     int verticalAnchorCount() const
     {
+        qCDebug(logBasicWidgets) << "Counting vertical anchors";
         Q_Q(const DAnchorsBase);
 
         int count = 0;
-        if(q->isBinding(top))
+        if(q->isBinding(top)) {
+            qCDebug(logBasicWidgets) << "Top anchor is bound";
             ++count;
-        if(q->isBinding(verticalCenter))
+        }
+        if(q->isBinding(verticalCenter)) {
+            qCDebug(logBasicWidgets) << "Vertical center anchor is bound";
             ++count;
-        if(q->isBinding(bottom))
+        }
+        if(q->isBinding(bottom)) {
+            qCDebug(logBasicWidgets) << "Bottom anchor is bound";
             ++count;
+        }
 
+        qCDebug(logBasicWidgets) << "Total vertical anchors:" << count;
         return count;
     }
 
@@ -652,6 +742,7 @@ QMap<const QWidget *, DAnchorsBase *> DAnchorsBasePrivate::widgetMap;
 DAnchorsBase::DAnchorsBase(QWidget *w):
     QObject(w)
 {
+    qCDebug(logBasicWidgets) << "Constructing DAnchorsBase for widget:" << w;
     init(w);
 }
 
@@ -665,11 +756,13 @@ DAnchorsBase::DAnchorsBase(QWidget *w):
  */
 DAnchorsBase::~DAnchorsBase()
 {
+    qCDebug(logBasicWidgets) << "Destroying DAnchorsBase";
     DAnchorsBasePrivate::removeWidgetAnchorsBase(target(), this);
 }
 
 QWidget *DAnchorsBase::target() const
 {
+    qCDebug(logBasicWidgets) << "Getting target widget";
     Q_D(const DAnchorsBase);
 
     if (!d->extendWidget)
@@ -687,6 +780,7 @@ QWidget *DAnchorsBase::target() const
  */
 DEnhancedWidget *DAnchorsBase::enhancedWidget() const
 {
+    qCDebug(logBasicWidgets) << "Getting enhanced widget";
     Q_D(const DAnchorsBase);
 
     return d->extendWidget;
@@ -694,6 +788,7 @@ DEnhancedWidget *DAnchorsBase::enhancedWidget() const
 
 bool DAnchorsBase::enabled() const
 {
+    qCDebug(logBasicWidgets) << "Checking if anchors enabled";
     Q_D(const DAnchorsBase);
 
     if (!d->extendWidget)
@@ -704,11 +799,13 @@ bool DAnchorsBase::enabled() const
 
 const DAnchorsBase *DAnchorsBase::anchors() const
 {
+    qCDebug(logBasicWidgets) << "Getting anchors reference";
     return this;
 }
 
 const DAnchorInfo *DAnchorsBase::top() const
 {
+    qCDebug(logBasicWidgets) << "Getting top anchor info";
     Q_D(const DAnchorsBase);
 
     return d->top;
@@ -716,6 +813,7 @@ const DAnchorInfo *DAnchorsBase::top() const
 
 const DAnchorInfo *DAnchorsBase::bottom() const
 {
+    qCDebug(logBasicWidgets) << "Getting bottom anchor info";
     Q_D(const DAnchorsBase);
 
     return d->bottom;
@@ -723,6 +821,7 @@ const DAnchorInfo *DAnchorsBase::bottom() const
 
 const DAnchorInfo *DAnchorsBase::left() const
 {
+    qCDebug(logBasicWidgets) << "Getting left anchor info";
     Q_D(const DAnchorsBase);
 
     return d->left;
@@ -730,6 +829,7 @@ const DAnchorInfo *DAnchorsBase::left() const
 
 const DAnchorInfo *DAnchorsBase::right() const
 {
+    qCDebug(logBasicWidgets) << "Getting right anchor info";
     Q_D(const DAnchorsBase);
 
     return d->right;
@@ -737,6 +837,7 @@ const DAnchorInfo *DAnchorsBase::right() const
 
 const DAnchorInfo *DAnchorsBase::horizontalCenter() const
 {
+    qCDebug(logBasicWidgets) << "Getting horizontal center anchor info";
     Q_D(const DAnchorsBase);
 
     return d->horizontalCenter;
@@ -744,6 +845,7 @@ const DAnchorInfo *DAnchorsBase::horizontalCenter() const
 
 const DAnchorInfo *DAnchorsBase::verticalCenter() const
 {
+    qCDebug(logBasicWidgets) << "Getting vertical center anchor info";
     Q_D(const DAnchorsBase);
 
     return d->verticalCenter;
@@ -751,6 +853,7 @@ const DAnchorInfo *DAnchorsBase::verticalCenter() const
 
 QWidget *DAnchorsBase::fill() const
 {
+    qCDebug(logBasicWidgets) << "Getting fill widget";
     Q_D(const DAnchorsBase);
 
     if (d->fill) {
@@ -762,6 +865,7 @@ QWidget *DAnchorsBase::fill() const
 
 QWidget *DAnchorsBase::centerIn() const
 {
+    qCDebug(logBasicWidgets) << "Getting center in widget";
     Q_D(const DAnchorsBase);
 
     if (d->centerIn) {
@@ -773,6 +877,7 @@ QWidget *DAnchorsBase::centerIn() const
 
 int DAnchorsBase::margins() const
 {
+    qCDebug(logBasicWidgets) << "Getting margins";
     Q_D(const DAnchorsBase);
 
     return d->margins;
@@ -780,6 +885,7 @@ int DAnchorsBase::margins() const
 
 int DAnchorsBase::topMargin() const
 {
+    qCDebug(logBasicWidgets) << "Getting top margin";
     Q_D(const DAnchorsBase);
 
     return d->topMargin;
@@ -787,6 +893,7 @@ int DAnchorsBase::topMargin() const
 
 int DAnchorsBase::bottomMargin() const
 {
+    qCDebug(logBasicWidgets) << "Getting bottom margin";
     Q_D(const DAnchorsBase);
 
     return d->bottomMargin;
@@ -794,6 +901,7 @@ int DAnchorsBase::bottomMargin() const
 
 int DAnchorsBase::leftMargin() const
 {
+    qCDebug(logBasicWidgets) << "Getting left margin";
     Q_D(const DAnchorsBase);
 
     return d->leftMargin;
@@ -801,6 +909,7 @@ int DAnchorsBase::leftMargin() const
 
 int DAnchorsBase::rightMargin() const
 {
+    qCDebug(logBasicWidgets) << "Getting right margin";
     Q_D(const DAnchorsBase);
 
     return d->rightMargin;
@@ -808,6 +917,7 @@ int DAnchorsBase::rightMargin() const
 
 int DAnchorsBase::horizontalCenterOffset() const
 {
+    qCDebug(logBasicWidgets) << "Getting horizontal center offset";
     Q_D(const DAnchorsBase);
 
     return d->horizontalCenterOffset;
@@ -815,6 +925,7 @@ int DAnchorsBase::horizontalCenterOffset() const
 
 int DAnchorsBase::verticalCenterOffset() const
 {
+    qCDebug(logBasicWidgets) << "Getting vertical center offset";
     Q_D(const DAnchorsBase);
 
     return d->verticalCenterOffset;
@@ -822,6 +933,7 @@ int DAnchorsBase::verticalCenterOffset() const
 
 int DAnchorsBase::alignWhenCentered() const
 {
+    qCDebug(logBasicWidgets) << "Getting align when centered";
     Q_D(const DAnchorsBase);
 
     return d->alignWhenCentered;
@@ -836,6 +948,7 @@ int DAnchorsBase::alignWhenCentered() const
  */
 DAnchorsBase::AnchorError DAnchorsBase::errorCode() const
 {
+    qCDebug(logBasicWidgets) << "Getting error code";
     Q_D(const DAnchorsBase);
 
     return d->errorCode;
@@ -849,6 +962,7 @@ DAnchorsBase::AnchorError DAnchorsBase::errorCode() const
  */
 QString DAnchorsBase::errorString() const
 {
+    qCDebug(logBasicWidgets) << "Getting error string";
     Q_D(const DAnchorsBase);
 
     return d->errorString;
@@ -871,6 +985,7 @@ QString DAnchorsBase::errorString() const
  */
 bool DAnchorsBase::isBinding(const DAnchorInfo *info) const
 {
+    qCDebug(logBasicWidgets) << "Checking if anchor is binding";
     return info->targetInfo;
 }
 
@@ -886,12 +1001,15 @@ bool DAnchorsBase::isBinding(const DAnchorInfo *info) const
  */
 bool DAnchorsBase::setAnchor(QWidget *w, const Qt::AnchorPoint &p, QWidget *target, const Qt::AnchorPoint &point)
 {
+    qCDebug(logBasicWidgets) << "Setting anchor for widget" << w << "point" << static_cast<int>(p) << "target" << target << "target point" << static_cast<int>(point);
     if (!w || !target) {
+        qCDebug(logBasicWidgets) << "Invalid widget or target";
         return false;
     }
 
     DAnchorsBase *base = DAnchorsBasePrivate::getWidgetAnchorsBase(w);
     if (!base) {
+        qCDebug(logBasicWidgets) << "Creating new anchors base for widget";
         base = new DAnchorsBase(w);
     }
 
@@ -906,8 +1024,10 @@ bool DAnchorsBase::setAnchor(QWidget *w, const Qt::AnchorPoint &p, QWidget *targ
  */
 void DAnchorsBase::clearAnchors(const QWidget *w)
 {
+    qCDebug(logBasicWidgets) << "Clearing anchors for widget:" << w;
     DAnchorsBase *base = DAnchorsBasePrivate::getWidgetAnchorsBase(w);
     if (base) {
+        qCDebug(logBasicWidgets) << "Deleting anchors base";
         delete base;
     }
 }
@@ -920,11 +1040,13 @@ void DAnchorsBase::clearAnchors(const QWidget *w)
  */
 DAnchorsBase *DAnchorsBase::getAnchorBaseByWidget(const QWidget *w)
 {
+    qCDebug(logBasicWidgets) << "Getting anchor base by widget:" << w;
     return DAnchorsBasePrivate::getWidgetAnchorsBase(w);
 }
 
 void DAnchorsBase::setEnabled(bool enabled)
 {
+    qCDebug(logBasicWidgets) << "Setting anchors enabled:" << enabled;
     Q_D(DAnchorsBase);
 
     if (!d->extendWidget)
@@ -944,13 +1066,16 @@ void DAnchorsBase::setEnabled(bool enabled)
  */
 bool DAnchorsBase::setAnchor(const Qt::AnchorPoint &p, QWidget *target, const Qt::AnchorPoint &point)
 {
+    qCDebug(logBasicWidgets) << "Setting anchor point" << static_cast<int>(p) << "to target" << target << "point" << static_cast<int>(point);
     if (!target) {
+        qCDebug(logBasicWidgets) << "Invalid target widget";
         return false;
     }
 
     DAnchorsBase *base = DAnchorsBasePrivate::getWidgetAnchorsBase(target);
 
     if (!base) {
+        qCDebug(logBasicWidgets) << "Creating new anchors base for target";
         base = new DAnchorsBase(target);
     }
 
@@ -958,18 +1083,25 @@ bool DAnchorsBase::setAnchor(const Qt::AnchorPoint &p, QWidget *target, const Qt
 
     switch (p) {
     case Qt::AnchorTop:
+        qCDebug(logBasicWidgets) << "Setting top anchor";
         return setTop(info);
     case Qt::AnchorBottom:
+        qCDebug(logBasicWidgets) << "Setting bottom anchor";
         return setBottom(info);
     case Qt::AnchorLeft:
+        qCDebug(logBasicWidgets) << "Setting left anchor";
         return setLeft(info);
     case Qt::AnchorRight:
+        qCDebug(logBasicWidgets) << "Setting right anchor";
         return setRight(info);
     case Qt::AnchorHorizontalCenter:
+        qCDebug(logBasicWidgets) << "Setting horizontal center anchor";
         return setHorizontalCenter(info);
     case Qt::AnchorVerticalCenter:
+        qCDebug(logBasicWidgets) << "Setting vertical center anchor";
         return setVerticalCenter(info);
     default:
+        qCDebug(logBasicWidgets) << "Invalid anchor point";
         return false;
     }
 }
@@ -1182,6 +1314,7 @@ bool DAnchorsBase::setCenterIn(QWidget *centerIn)
  */
 bool DAnchorsBase::setFill(DAnchorsBase *fill)
 {
+    qCDebug(logBasicWidgets) << "Setting fill from anchors base";
     return setFill(fill->target());
 }
 
@@ -1193,14 +1326,17 @@ bool DAnchorsBase::setFill(DAnchorsBase *fill)
  */
 bool DAnchorsBase::setCenterIn(DAnchorsBase *centerIn)
 {
+    qCDebug(logBasicWidgets) << "Setting center in from anchors base";
     return setCenterIn(centerIn->target());
 }
 
 void DAnchorsBase::setMargins(int margins)
 {
     Q_D(DAnchorsBase);
+    qCDebug(logBasicWidgets) << "Setting margins:" << margins;
 
     if (d->margins == margins) {
+        qCDebug(logBasicWidgets) << "Margins unchanged, skipping update";
         return;
     }
 
@@ -1208,8 +1344,10 @@ void DAnchorsBase::setMargins(int margins)
 
     if (margins != 0) {
         if (d->fill->target()) {
+            qCDebug(logBasicWidgets) << "Updating fill due to margins change";
             updateFill();
         } else {
+            qCDebug(logBasicWidgets) << "Updating vertical and horizontal due to margins change";
             updateVertical();
             updateHorizontal();
         }
@@ -1221,16 +1359,20 @@ void DAnchorsBase::setMargins(int margins)
 void DAnchorsBase::setTopMargin(int topMargin)
 {
     Q_D(DAnchorsBase);
+    qCDebug(logBasicWidgets) << "Setting top margin:" << topMargin;
 
     if (d->topMargin == topMargin) {
+        qCDebug(logBasicWidgets) << "Top margin unchanged, skipping update";
         return;
     }
 
     d->topMargin = topMargin;
 
     if (d->fill->target()) {
+        qCDebug(logBasicWidgets) << "Updating fill due to top margin change";
         updateFill();
     } else if (isBinding(d->top)) {
+        qCDebug(logBasicWidgets) << "Updating vertical due to top margin change";
         updateVertical();
     }
 
@@ -1240,16 +1382,20 @@ void DAnchorsBase::setTopMargin(int topMargin)
 void DAnchorsBase::setBottomMargin(int bottomMargin)
 {
     Q_D(DAnchorsBase);
+    qCDebug(logBasicWidgets) << "Setting bottom margin:" << bottomMargin;
 
     if (d->bottomMargin == bottomMargin) {
+        qCDebug(logBasicWidgets) << "Bottom margin unchanged, skipping update";
         return;
     }
 
     d->bottomMargin = bottomMargin;
 
     if (d->fill->target()) {
+        qCDebug(logBasicWidgets) << "Updating fill due to bottom margin change";
         updateFill();
     } else if (isBinding(d->bottom)) {
+        qCDebug(logBasicWidgets) << "Updating vertical due to bottom margin change";
         updateVertical();
     }
 
@@ -1259,16 +1405,20 @@ void DAnchorsBase::setBottomMargin(int bottomMargin)
 void DAnchorsBase::setLeftMargin(int leftMargin)
 {
     Q_D(DAnchorsBase);
+    qCDebug(logBasicWidgets) << "Setting left margin:" << leftMargin;
 
     if (d->leftMargin == leftMargin) {
+        qCDebug(logBasicWidgets) << "Left margin unchanged, skipping update";
         return;
     }
 
     d->leftMargin = leftMargin;
 
     if (d->fill->target()) {
+        qCDebug(logBasicWidgets) << "Updating fill due to left margin change";
         updateFill();
     } else if (isBinding(d->left)) {
+        qCDebug(logBasicWidgets) << "Updating horizontal due to left margin change";
         updateHorizontal();
     }
 
@@ -1278,17 +1428,21 @@ void DAnchorsBase::setLeftMargin(int leftMargin)
 void DAnchorsBase::setRightMargin(int rightMargin)
 {
     Q_D(DAnchorsBase);
+    qCDebug(logBasicWidgets) << "Setting right margin:" << rightMargin;
 
     if (d->rightMargin == rightMargin) {
+        qCDebug(logBasicWidgets) << "Right margin unchanged, skipping update";
         return;
     }
 
     d->rightMargin = rightMargin;
 
     if (isBinding(d->right)) {
+        qCDebug(logBasicWidgets) << "Updating horizontal due to right margin change";
         updateHorizontal();
     }
     if (d->fill->target()) {
+        qCDebug(logBasicWidgets) << "Updating fill due to right margin change";
         updateFill();
     }
 
@@ -1297,15 +1451,18 @@ void DAnchorsBase::setRightMargin(int rightMargin)
 
 void DAnchorsBase::setHorizontalCenterOffset(int horizontalCenterOffset)
 {
+    qCDebug(logBasicWidgets) << "Setting horizontal center offset:" << horizontalCenterOffset;
     Q_D(DAnchorsBase);
 
     if (d->horizontalCenterOffset == horizontalCenterOffset) {
+        qCDebug(logBasicWidgets) << "Horizontal center offset unchanged";
         return;
     }
 
     d->horizontalCenterOffset = horizontalCenterOffset;
 
     if (isBinding(d->horizontalCenter)) {
+        qCDebug(logBasicWidgets) << "Updating horizontal due to center offset change";
         updateHorizontal();
     }
 
@@ -1314,15 +1471,18 @@ void DAnchorsBase::setHorizontalCenterOffset(int horizontalCenterOffset)
 
 void DAnchorsBase::setVerticalCenterOffset(int verticalCenterOffset)
 {
+    qCDebug(logBasicWidgets) << "Setting vertical center offset:" << verticalCenterOffset;
     Q_D(DAnchorsBase);
 
     if (d->verticalCenterOffset == verticalCenterOffset) {
+        qCDebug(logBasicWidgets) << "Vertical center offset unchanged";
         return;
     }
 
     d->verticalCenterOffset = verticalCenterOffset;
 
     if (isBinding(d->verticalCenter)) {
+        qCDebug(logBasicWidgets) << "Updating vertical due to center offset change";
         updateVertical();
     }
 
@@ -1331,9 +1491,11 @@ void DAnchorsBase::setVerticalCenterOffset(int verticalCenterOffset)
 
 void DAnchorsBase::setAlignWhenCentered(bool alignWhenCentered)
 {
+    qCDebug(logBasicWidgets) << "Setting align when centered:" << alignWhenCentered;
     Q_D(DAnchorsBase);
 
     if (d->alignWhenCentered == alignWhenCentered) {
+        qCDebug(logBasicWidgets) << "Align when centered unchanged";
         return;
     }
 
@@ -1355,31 +1517,37 @@ void DAnchorsBase::setAlignWhenCentered(bool alignWhenCentered)
 
 void DAnchorsBase::setTop(int arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting top position:" << arg << "point:" << static_cast<int>(point);
     SET_POS(Top)
 }
 
 void DAnchorsBase::setBottom(int arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting bottom position:" << arg << "point:" << static_cast<int>(point);
     SET_POS(Bottom)
 }
 
 void DAnchorsBase::setLeft(int arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting left position:" << arg << "point:" << static_cast<int>(point);
     SET_POS(Left)
 }
 
 void DAnchorsBase::setHorizontalCenter(int arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting horizontal center position:" << arg << "point:" << static_cast<int>(point);
     SET_POS(HorizontalCenter)
 }
 
 void DAnchorsBase::setVerticalCenter(int arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting vertical center position:" << arg << "point:" << static_cast<int>(point);
     SET_POS(VerticalCenter)
 }
 
 void DAnchorsBase::setRight(int arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting right position:" << arg << "point:" << static_cast<int>(point);
     SET_POS(Right)
 }
 
@@ -1390,6 +1558,7 @@ void DAnchorsBase::setRight(int arg, Qt::AnchorPoint point)
  */
 void DAnchorsBase::moveTop(int arg)
 {
+    qCDebug(logBasicWidgets) << "Moving top to:" << arg;
     MOVE_POS(Top)
 }
 
@@ -1400,6 +1569,7 @@ void DAnchorsBase::moveTop(int arg)
  */
 void DAnchorsBase::moveBottom(int arg)
 {
+    qCDebug(logBasicWidgets) << "Moving bottom to:" << arg;
     MOVE_POS(Bottom)
 }
 
@@ -1410,6 +1580,7 @@ void DAnchorsBase::moveBottom(int arg)
  */
 void DAnchorsBase::moveLeft(int arg)
 {
+    qCDebug(logBasicWidgets) << "Moving left to:" << arg;
     MOVE_POS(Left)
 }
 
@@ -1420,6 +1591,7 @@ void DAnchorsBase::moveLeft(int arg)
  */
 void DAnchorsBase::moveRight(int arg)
 {
+    qCDebug(logBasicWidgets) << "Moving right to:" << arg;
     MOVE_POS(Right)
 }
 
@@ -1430,6 +1602,7 @@ void DAnchorsBase::moveRight(int arg)
  */
 void DAnchorsBase::moveHorizontalCenter(int arg)
 {
+    qCDebug(logBasicWidgets) << "Moving horizontal center to:" << arg;
     MOVE_POS(HorizontalCenter)
 }
 
@@ -1440,6 +1613,7 @@ void DAnchorsBase::moveHorizontalCenter(int arg)
  */
 void DAnchorsBase::moveVerticalCenter(int arg)
 {
+    qCDebug(logBasicWidgets) << "Moving vertical center to:" << arg;
     MOVE_POS(VerticalCenter)
 }
 
@@ -1450,6 +1624,7 @@ void DAnchorsBase::moveVerticalCenter(int arg)
  */
 void DAnchorsBase::moveCenter(const QPoint &arg)
 {
+    qCDebug(logBasicWidgets) << "Moving center to:" << arg;
     MOVE_POS(Center)
 }
 
@@ -1477,53 +1652,74 @@ void DAnchorsBase::moveCenter(const QPoint &arg)
 
 void DAnchorsBase::updateVertical()
 {
+    qCDebug(logBasicWidgets) << "Updating vertical layout";
     UPDATE_GEOMETRY(top, Top, verticalCenter, VerticalCenter, bottom, Bottom)
 }
 
 void DAnchorsBase::updateHorizontal()
 {
+    qCDebug(logBasicWidgets) << "Updating horizontal layout";
     UPDATE_GEOMETRY(left, Left, horizontalCenter, HorizontalCenter, right, Right)
 }
 
 void DAnchorsBase::updateFill()
 {
+    qCDebug(logBasicWidgets) << "Updating fill layout";
     Q_D(DAnchorsBase);
 
     QRect rect = d->getWidgetRect(d->fill->target());
+    qCDebug(logBasicWidgets) << "Initial fill target rect:" << rect;
+
     int offset = d->topMargin != 0 ? d->topMargin : d->margins;
+    qCDebug(logBasicWidgets) << "Top margin offset:" << offset;
     rect.setTop(rect.top() + offset);
+
     offset = d->bottomMargin != 0 ? d->bottomMargin : d->margins;
+    qCDebug(logBasicWidgets) << "Bottom margin offset:" << offset;
     rect.setBottom(rect.bottom() - offset);
+
     offset = d->leftMargin != 0 ? d->leftMargin : d->margins;
+    qCDebug(logBasicWidgets) << "Left margin offset:" << offset;
     rect.setLeft(rect.left() + offset);
+
     offset = d->rightMargin != 0 ? d->rightMargin : d->margins;
+    qCDebug(logBasicWidgets) << "Right margin offset:" << offset;
     rect.setRight(rect.right() - offset);
 
+    qCDebug(logBasicWidgets) << "Final fill rect:" << rect;
     target()->setFixedSize(rect.size());
     target()->move(rect.topLeft());
 }
 
 void DAnchorsBase::updateCenterIn()
 {
+    qCDebug(logBasicWidgets) << "Updating center in layout";
     Q_D(DAnchorsBase);
 
     QRect rect = d->getWidgetRect(d->centerIn->target());
-    moveCenter(rect.center());
+    qCDebug(logBasicWidgets) << "Center in target rect:" << rect;
+    QPoint center = rect.center();
+    qCDebug(logBasicWidgets) << "Moving to center point:" << center;
+    moveCenter(center);
 }
 
 void DAnchorsBase::init(QWidget *w)
 {
+    qCDebug(logBasicWidgets) << "Initializing anchors for widget:" << w;
     Q_D(DAnchorsBase);
 
     DAnchorsBase *base = DAnchorsBasePrivate::getWidgetAnchorsBase(w);
 
     if (base) {
+        qCDebug(logBasicWidgets) << "Using existing anchors base";
         d_ptr = base->d_ptr;
     } else if (d && d->q_func() == this) {
+        qCDebug(logBasicWidgets) << "Setting up new anchors base";
         d->removeWidgetAnchorsBase(target(), this);
         d->setWidgetAnchorsBase(w, this);
         d->extendWidget->setTarget(w);
     } else {
+        qCDebug(logBasicWidgets) << "Creating new private anchors base";
         base = new DAnchorsBase(w, false);
         d_ptr = base->d_ptr;
     }
@@ -1533,6 +1729,7 @@ DAnchorsBase::DAnchorsBase(QWidget *w, bool):
     QObject(w),
     d_ptr(new DAnchorsBasePrivate(this))
 {
+    qCDebug(logBasicWidgets) << "Private constructor for widget:" << w;
     Q_D(DAnchorsBase);
 
     d->extendWidget = new DEnhancedWidget(w, this);
@@ -1547,7 +1744,9 @@ DAnchorsBase::DAnchorsBase(QWidget *w, bool):
 
 void DAnchorsRect::setTop(int arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting top anchor to:" << arg << "with point:" << static_cast<int>(point);
     if (point == Qt::AnchorVerticalCenter) {
+        qCDebug(logBasicWidgets) << "Adjusting bottom for vertical center alignment";
         QRect::setBottom(bottom() + arg - top());
     }
     QRect::setTop(arg);
@@ -1555,16 +1754,21 @@ void DAnchorsRect::setTop(int arg, Qt::AnchorPoint point)
 
 void DAnchorsRect::setVerticalCenter(qreal arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting vertical center to:" << arg << "with point:" << static_cast<int>(point);
     if (point == Qt::AnchorTop) {
+        qCDebug(logBasicWidgets) << "Adjusting bottom for top anchor alignment";
         QRect::setBottom(2 * arg - top());
     } else if (point == Qt::AnchorBottom) {
+        qCDebug(logBasicWidgets) << "Adjusting top for bottom anchor alignment";
         QRect::setTop(2 * arg - bottom());
     }
 }
 
 void DAnchorsRect::setBottom(int arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting bottom anchor to:" << arg << "with point:" << static_cast<int>(point);
     if (point == Qt::AnchorVerticalCenter) {
+        qCDebug(logBasicWidgets) << "Adjusting height for vertical center alignment";
         setHeight(arg - bottom());
     }
     QRect::setBottom(arg);
@@ -1572,7 +1776,9 @@ void DAnchorsRect::setBottom(int arg, Qt::AnchorPoint point)
 
 void DAnchorsRect::setLeft(int arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting left anchor to:" << arg << "with point:" << static_cast<int>(point);
     if (point == Qt::AnchorHorizontalCenter) {
+        qCDebug(logBasicWidgets) << "Adjusting width for horizontal center alignment";
         setWidth(left() - arg);
     }
     QRect::setLeft(arg);
@@ -1580,16 +1786,21 @@ void DAnchorsRect::setLeft(int arg, Qt::AnchorPoint point)
 
 void DAnchorsRect::setHorizontalCenter(qreal arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting horizontal center to:" << arg << "with point:" << static_cast<int>(point);
     if (point == Qt::AnchorLeft) {
+        qCDebug(logBasicWidgets) << "Adjusting right for left anchor alignment";
         QRect::setRight(2 * arg - left());
     } else if (point == Qt::AnchorRight) {
+        qCDebug(logBasicWidgets) << "Adjusting left for right anchor alignment";
         QRect::setLeft(2 * arg - right());
     }
 }
 
 void DAnchorsRect::setRight(int arg, Qt::AnchorPoint point)
 {
+    qCDebug(logBasicWidgets) << "Setting right anchor to:" << arg << "with point:" << static_cast<int>(point);
     if (point == Qt::AnchorHorizontalCenter) {
+        qCDebug(logBasicWidgets) << "Adjusting width for horizontal center alignment";
         setWidth(arg - right());
     }
     QRect::setRight(arg);

@@ -7,8 +7,10 @@
 #include "dspinbox.h"
 #include "private/dspinbox_p.h"
 #include "dlineedit.h"
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 DSpinBoxPrivate::DSpinBoxPrivate(DSpinBox *parent) :
     DObjectPrivate(parent)
@@ -62,6 +64,7 @@ DSpinBox::DSpinBox(QWidget *parent) :
     QSpinBox(parent),
     DObject(*new DSpinBoxPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "create dspinbox";
     d_func()->init();
 }
 
@@ -72,6 +75,7 @@ DSpinBox::DSpinBox(QWidget *parent) :
  */
 QLineEdit *DSpinBox::lineEdit() const
 {
+    qCDebug(logBasicWidgets) << "getting spinbox line edit";
     return QSpinBox::lineEdit();
 }
 
@@ -91,7 +95,9 @@ bool DSpinBox::isAlert() const
 {
     D_DC(DSpinBox);
 
-    return d->lineEdit->isAlert();
+    const auto &al = d->lineEdit->isAlert();
+    qCDebug(logBasicWidgets) << "get spinbox alert" << al;
+    return al;
 }
 
 /*!
@@ -102,6 +108,7 @@ bool DSpinBox::isAlert() const
  */
 void DSpinBox::showAlertMessage(const QString &text, int duration)
 {
+    qCDebug(logBasicWidgets) << "show alert message" << text;
     D_D(DSpinBox);
 
     d->lineEdit->showAlertMessage(text, duration);
@@ -116,6 +123,7 @@ void DSpinBox::showAlertMessage(const QString &text, int duration)
  */
 void DSpinBox::showAlertMessage(const QString &text, QWidget *follower, int duration)
 {
+    qCDebug(logBasicWidgets) << "show alert message with follower" << static_cast<void*>(follower);
     D_D(DSpinBox);
 
     d->lineEdit->showAlertMessage(text, follower, duration);
@@ -135,11 +143,13 @@ int DSpinBox::defaultValue() const
 
 void DSpinBox::setEnabledEmbedStyle(bool enabled)
 {
+    qCDebug(logBasicWidgets) << "setting spinbox embed style:" << enabled;
     setProperty("_d_dtk_spinBox", enabled);
 }
 
 void DSpinBox::setAlert(bool alert)
 {
+    qCDebug(logBasicWidgets) << "setting spinbox alert:" << alert;
     D_D(DSpinBox);
 
     d->lineEdit->setAlert(alert);
@@ -179,11 +189,13 @@ DDoubleSpinBox::DDoubleSpinBox(QWidget *parent) :
     QDoubleSpinBox(parent),
     DObject(*new DDoubleSpinBoxPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "create ddoublespinbox";
     d_func()->init();
 }
 
 bool DDoubleSpinBox::isAlert() const
 {
+    qCDebug(logBasicWidgets) << "getting double spinbox alert";
     D_DC(DDoubleSpinBox);
 
     return d->lineEdit->isAlert();
@@ -197,6 +209,7 @@ bool DDoubleSpinBox::isAlert() const
  */
 void DDoubleSpinBox::showAlertMessage(const QString &text, int duration)
 {
+    qCDebug(logBasicWidgets) << "showing double spinbox alert message:" << text;
     D_D(DDoubleSpinBox);
 
     d->lineEdit->showAlertMessage(text, duration);
@@ -211,6 +224,7 @@ void DDoubleSpinBox::showAlertMessage(const QString &text, int duration)
  */
 void DDoubleSpinBox::showAlertMessage(const QString &text, QWidget *follower, int duration)
 {
+    qCDebug(logBasicWidgets) << "showing double spinbox alert message with follower:" << text;
     D_D(DDoubleSpinBox);
 
     d->lineEdit->showAlertMessage(text, follower, duration);
@@ -225,16 +239,19 @@ double DDoubleSpinBox::defaultValue() const
 
 QLineEdit *DDoubleSpinBox::lineEdit() const
 {
+    qCDebug(logBasicWidgets) << "getting double spinbox line edit";
     return QDoubleSpinBox::lineEdit();
 }
 
 void DDoubleSpinBox::setEnabledEmbedStyle(bool enabled)
 {
+    qCDebug(logBasicWidgets) << "setting double spinbox embed style:" << enabled;
     setProperty("_d_dtk_spinBox", enabled);
 }
 
 void DDoubleSpinBox::setAlert(bool alert)
 {
+    qCDebug(logBasicWidgets) << "setting double spinbox alert:" << alert;
     D_D(DDoubleSpinBox);
 
     d->lineEdit->setAlert(alert);

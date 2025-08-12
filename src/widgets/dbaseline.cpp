@@ -5,7 +5,13 @@
 #include "dbaseline.h"
 #include "dthememanager.h"
 
+#include <QLoggingCategory>
+
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logUtils)
+}
 
 /*!
 @~english
@@ -22,6 +28,7 @@ title and an optional content control.
 
 DBaseLine::DBaseLine(QWidget *parent) : QLabel(parent)
 {
+    qCDebug(logUtils) << "Creating base line widget";
     this->setFixedHeight(CONTENT_HEADER_HEIGHT);
     m_leftLayout = new QHBoxLayout();
     m_leftLayout->setContentsMargins(0,0,0,0);
@@ -46,6 +53,7 @@ DBaseLine::DBaseLine(QWidget *parent) : QLabel(parent)
  */
 void DBaseLine::setLeftContent(QWidget *content)
 {
+    qCDebug(logUtils) << "Setting left content widget";
     QLayoutItem *child;
     while ((child = m_leftLayout->takeAt(0)) != 0) {
         delete child;
@@ -61,6 +69,7 @@ void DBaseLine::setLeftContent(QWidget *content)
  */
 void DBaseLine::setRightContent(QWidget *content)
 {
+    qCDebug(logUtils) << "Setting right content widget";
     QLayoutItem *child;
     while ((child = m_rightLayout->takeAt(0)) != 0) {
         delete child;
@@ -94,6 +103,7 @@ QBoxLayout *DBaseLine::rightLayout()
  */
 void DBaseLine::setLeftMargin(int margin)
 {
+    qCDebug(logUtils) << "Setting left margin:" << margin;
     m_leftMargin = margin;
     m_mainLayout->setContentsMargins(m_leftMargin, 0, m_rightMargin, 0);
 }
@@ -105,6 +115,7 @@ void DBaseLine::setLeftMargin(int margin)
  */
 void DBaseLine::setRightMargin(int margin)
 {
+    qCDebug(logUtils) << "Setting right margin:" << margin;
     m_rightMargin = margin;
     m_mainLayout->setContentsMargins(m_leftMargin, 0, m_rightMargin, 0);
 }

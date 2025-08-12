@@ -15,6 +15,7 @@
 #include <QPropertyAnimation>
 #include <QPainter>
 #include <QBitmap>
+#include <QLoggingCategory>
 
 #include <DIconTheme>
 #include <DListView>
@@ -27,6 +28,8 @@
 DWIDGET_BEGIN_NAMESPACE
 DGUI_USE_NAMESPACE
 
+Q_LOGGING_CATEGORY(logStyleTheme, "dtk.widgets.style")
+
 #define SPACING 10
 
 static const char* TitlebarZoneDataFormat = "titlebarZoneWidget";
@@ -35,6 +38,7 @@ static const char* DefaultZoneDataFormat = "defaultZoneWidget";
 
 static QBitmap bitmapOfMask(const QSize &size, const qreal radius)
 {
+    qCDebug(logStyleTheme) << "Creating bitmap mask with size:" << size << "radius:" << radius;
     QBitmap bitMap(size);
     bitMap.fill(Qt::color0);
 
@@ -50,11 +54,12 @@ static QBitmap bitmapOfMask(const QSize &size, const qreal radius)
 PlaceHoderWidget::PlaceHoderWidget(QWidget *parent)
     : QWidget(parent)
 {
-
+    qCDebug(logStyleTheme) << "Creating PlaceHoderWidget";
 }
 
 void PlaceHoderWidget::paintEvent(QPaintEvent *event)
 {
+    qCDebug(logStyleTheme) << "Painting PlaceHoderWidget";
     QColor color;
     if (DGuiApplicationHelper::instance()->themeType() == DGuiApplicationHelper::LightType) {
         color = QColor(0, 0, 0, qRound(255 * 0.06));
@@ -75,26 +80,30 @@ DragDropWidget::DragDropWidget(const QString &id, QWidget *parent)
     : DIconButton(parent)
     , m_id(id)
 {
+    qCDebug(logStyleTheme) << "Creating DragDropWidget with id:" << id;
 }
 
 DragDropWidget::~DragDropWidget()
 {
-
+    qCDebug(logStyleTheme) << "Destroying DragDropWidget with id:" << m_id;
 }
 
 void DragDropWidget::setButtonIcon(const QIcon &icon, const QSize &size)
 {
+    qCDebug(logStyleTheme) << "Setting button icon for widget:" << m_id << "size:" << size;
     this->setIcon(icon);
     this->setIconSize(size);
 }
 
 QString DragDropWidget::id() const
 {
+    qCDebug(logStyleTheme) << "Getting widget id:" << m_id;
     return m_id;
 }
 
 void DragDropWidget::setScreenShotedView(QWidget *view)
 {
+    qCDebug(logStyleTheme) << "Setting screen shotted view for widget:" << m_id << "view:" << view;
     m_view = view;
 }
 

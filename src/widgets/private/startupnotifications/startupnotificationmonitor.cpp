@@ -13,8 +13,11 @@
 #include <xcb/xcb_aux.h>
 
 #include <DGuiApplicationHelper>
+#include <QLoggingCategory>
 
 #include "startupnotificationmonitor.h"
+
+Q_LOGGING_CATEGORY(logUtilClasses, "dtk.util")
 
 class StartupNotificationMonitorSub : public StartupNotificationMonitor
 {
@@ -41,20 +44,21 @@ static void monitor_event_func (SnMonitorEvent *event, void *user_data)
     switch (sn_monitor_event_get_type (event))
     {
     case SN_MONITOR_EVENT_INITIATED:
-        qDebug() << "startup notification initiated: " << app_id;
+        qCDebug(logUtilClasses) << "Startup notification initiated:" << app_id;
         Q_EMIT monitor->appStartup(app_id);
         break;
 
     case SN_MONITOR_EVENT_CHANGED:
+        qCDebug(logUtilClasses) << "Startup notification changed:" << app_id;
         break;
 
     case SN_MONITOR_EVENT_COMPLETED:
-        qDebug() << "startup notification completed: " << app_id;
+        qCDebug(logUtilClasses) << "Startup notification completed:" << app_id;
         Q_EMIT monitor->appStartupCompleted(app_id);
         break;
 
     case SN_MONITOR_EVENT_CANCELED:
-        qDebug() << "startup notification canceled: " << app_id;
+        qCDebug(logUtilClasses) << "Startup notification canceled:" << app_id;
         break;
     }
 }
@@ -73,8 +77,11 @@ static void monitor_event_func (SnMonitorEvent *event, void *user_data)
 StartupNotificationMonitor::StartupNotificationMonitor() :
     QObject()
 {
-    if (!DTK_GUI_NAMESPACE::DGuiApplicationHelper::instance()->isXWindowPlatform())
+    qCDebug(logUtilClasses) << "Creating StartupNotificationMonitor";
+    if (!DTK_GUI_NAMESPACE::DGuiApplicationHelper::instance()->isXWindowPlatform()) {
+        qCDebug(logUtilClasses) << "Not X11 platform, skipping initialization";
         return;
+    }
 
     int screen = 0;
     xcb_screen_t *s = xcb_aux_get_screen (QX11Info::connection(), screen);
@@ -91,7 +98,7 @@ StartupNotificationMonitor::StartupNotificationMonitor() :
         }
         free(attr_reply);
     } else {
-        qWarning() << "can not get xcb window attributes reply";
+        qCWarning(logUtilClasses) << "Cannot get xcb window attributes reply";
     }
 
     display = sn_xcb_display_new (QX11Info::connection(), NULL, NULL);
@@ -101,6 +108,7 @@ StartupNotificationMonitor::StartupNotificationMonitor() :
                                       this, NULL);
 
     qApp->installNativeEventFilter(this);
+    qCDebug(logUtilClasses) << "StartupNotificationMonitor initialization completed";
 }
 
 /*!
@@ -109,11 +117,13 @@ StartupNotificationMonitor::StartupNotificationMonitor() :
  */
 StartupNotificationMonitor* StartupNotificationMonitor::StartupNotificationMonitor::instance()
 {
+    qCDebug(logUtilClasses) << "Getting StartupNotificationMonitor instance";
     return StartupNotificationMonitorInstance;
 }
 
 StartupNotificationMonitor::~StartupNotificationMonitor()
 {
+    qCDebug(logUtilClasses) << "Destroying StartupNotificationMonitor";
     qApp->removeNativeEventFilter(this);
 }
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)

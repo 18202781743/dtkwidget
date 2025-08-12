@@ -15,6 +15,7 @@
 #include <QGuiApplication>
 #include <qmath.h>
 #include <private/qfont_p.h>
+#include <QLoggingCategory>
 
 #include <cmath>
 QT_BEGIN_NAMESPACE
@@ -25,6 +26,8 @@ extern bool qt_is_tty_app;
 #endif
 QT_END_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logStyleTheme)
 
 /*!
   \class Dtk::Widget::DStyleOption
@@ -98,6 +101,8 @@ void DStyleOption::init(QWidget *widget)
 
 void DStyleOption::init(const QWidget *widget)
 {
+    qCDebug(logStyleTheme) << "初始化样式选项"
+                           << reinterpret_cast<const void *>(widget);
     dpalette = DPaletteHelper::instance()->palette(widget);
 }
 
@@ -112,6 +117,7 @@ DStyleOptionButton::DStyleOptionButton()
     : QStyleOptionButton ()
     , DStyleOption ()
 {
+    qCDebug(logStyleTheme) << "构造按钮样式选项";
 }
 
 /*!
@@ -125,6 +131,7 @@ DStyleOptionButton::DStyleOptionButton(const DStyleOptionButton &other)
     // `dciIcon` broke abi, so we need to distinguish weather `other` has dciIcon.
     if (other.features & DStyleOptionButton::HasDciIcon)
         dciIcon = other.dciIcon;
+    qCDebug(logStyleTheme) << "拷贝构造按钮样式选项";
 }
 
 /*!
@@ -140,11 +147,14 @@ DStyleOptionButton &DStyleOptionButton::operator=(const DStyleOptionButton &othe
 
     if (other.features & DStyleOptionButton::HasDciIcon)
         dciIcon = other.dciIcon;
+    qCDebug(logStyleTheme) << "赋值按钮样式选项";
     return *this;
 }
 
 void DStyleOptionButton::init(const QWidget *widget)
 {
+    qCDebug(logStyleTheme) << "初始化按钮样式选项"
+                           << reinterpret_cast<const void *>(widget);
     DStyleOption::init(widget);
 }
 
@@ -162,6 +172,7 @@ void DStyleOptionLineEdit::init(const QWidget *widget)
     if (const DLineEdit *edit = qobject_cast<const DLineEdit*>(widget)) {
         if (edit->isAlert()) {
             features |= Alert;
+            qCDebug(logStyleTheme) << "LineEdit in alert style";
         }
     }
 }
@@ -216,6 +227,9 @@ DFontSizeManager *DFontSizeManager::instance()
 
 void DFontSizeManager::bind(QWidget *widget, DFontSizeManager::SizeType type)
 {
+    qCDebug(logStyleTheme) << "绑定字体大小"
+                           << static_cast<int>(type)
+                           << reinterpret_cast<const void *>(widget);
     bind(widget, type, widget->font().weight());
 }
 
@@ -279,6 +293,8 @@ void DFontSizeManager::bind(QWidget *widget, DFontSizeManager::SizeType type, in
  */
 void DFontSizeManager::unbind(QWidget *widget)
 {
+    qCDebug(logStyleTheme) << "解绑字体大小"
+                           << reinterpret_cast<const void *>(widget);
     for (int i = 0; i < NSizeTypes; ++i) {
         d->binderMap[i].removeOne(widget);
     }
@@ -292,6 +308,8 @@ void DFontSizeManager::unbind(QWidget *widget)
  */
 quint16 DFontSizeManager::fontPixelSize(DFontSizeManager::SizeType type) const
 {
+    qCDebug(logStyleTheme) << "查询字体像素"
+                           << static_cast<int>(type);
     if (type >= NSizeTypes) {
         return 0;
     }
@@ -307,6 +325,9 @@ quint16 DFontSizeManager::fontPixelSize(DFontSizeManager::SizeType type) const
  */
 void DFontSizeManager::setFontPixelSize(DFontSizeManager::SizeType type, quint16 size)
 {
+    qCDebug(logStyleTheme) << "设置字体像素"
+                           << static_cast<int>(type)
+                           << size;
     if (type >= NSizeTypes) {
         return;
     }
@@ -326,6 +347,7 @@ void DFontSizeManager::setFontPixelSize(DFontSizeManager::SizeType type, quint16
  */
 void DFontSizeManager::setFontGenericPixelSize(quint16 size)
 {
+    qCDebug(logStyleTheme) << "设置通用字体像素" << size;
     qint16 diff = size - d->fontPixelSize[d->fontGenericSizeType];
 
     if (diff == d->fontPixelSizeDiff)
@@ -340,6 +362,8 @@ void DFontSizeManager::setFontGenericPixelSize(quint16 size)
 
 const QFont DFontSizeManager::get(DFontSizeManager::SizeType type, const QFont &base) const
 {
+    qCDebug(logStyleTheme) << "获取字体"
+                           << static_cast<int>(type);
     return get(type, base.weight(), base);
 }
 
@@ -352,6 +376,9 @@ const QFont DFontSizeManager::get(DFontSizeManager::SizeType type, const QFont &
  */
 const QFont DFontSizeManager::get(DFontSizeManager::SizeType type, int weight, const QFont &base) const
 {
+    qCDebug(logStyleTheme) << "获取字体(带权重)"
+                           << static_cast<int>(type)
+                           << weight;
     QFont font = base;
 
     font.setPixelSize(fontPixelSize(type));
@@ -394,6 +421,7 @@ int DFontSizeManager::fontPixelSize(const QFont &font)
 DFontSizeManager::DFontSizeManager()
     : d(new DFontSizeManagerPrivate())
 {
+    qCDebug(logStyleTheme) << "构造字体管理";
 
 }
 

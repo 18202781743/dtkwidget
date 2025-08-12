@@ -11,8 +11,10 @@
 #include <DGuiApplicationHelper>
 
 #include <QApplication>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 constexpr int DCI_ICON_SIZE = 120;
 
@@ -25,6 +27,7 @@ DSwitchButton::DSwitchButton(QWidget *parent)
     : QAbstractButton(parent)
     , DObject(*new DSwitchButtonPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "create dswitchbutton";
     D_D(DSwitchButton);
 
     d->init();
@@ -41,6 +44,7 @@ QSize DSwitchButton::sizeHint() const
     DStyleHelper dstyle(style());
     size = dstyle.sizeFromContents(DStyle::CT_SwitchButton, nullptr, QSize(0, 0), this);
 
+    qCDebug(logBasicWidgets) << "size hint" << size;
     return size;
 }
 
@@ -52,6 +56,7 @@ QSize DSwitchButton::sizeHint() const
  */
 void DSwitchButton::paintEvent(QPaintEvent *e)
 {
+    qCDebug(logBasicWidgets) << "paint dswitchbutton";
     D_D(DSwitchButton);
     Q_UNUSED(e);
 
@@ -73,6 +78,7 @@ void DSwitchButton::paintEvent(QPaintEvent *e)
  */
 void DSwitchButton::initStyleOption(DStyleOptionButton *option) const
 {
+    qCDebug(logBasicWidgets) << "init style option";
     if (!option)
         return;
 
@@ -98,11 +104,15 @@ void DSwitchButton::initStyleOption(DStyleOptionButton *option) const
 
 void DSwitchButton::checkStateSet()
 {
+    qCDebug(logBasicWidgets) << "check state set";
     D_D(DSwitchButton);
-    if (d->checked == isChecked())
+    if (d->checked == isChecked()) {
+        qCDebug(logBasicWidgets) << "check state unchanged";
         return;
+    }
 
     d->checked = isChecked();
+    qCDebug(logBasicWidgets) << "check state changed to:" << d->checked;
     DDciIcon icon = !d->checked ? DDciIcon::fromTheme("switch_on") : DDciIcon::fromTheme("switch_off");
     d->player.setIcon(icon);
 }
@@ -120,6 +130,7 @@ DSwitchButtonPrivate::~DSwitchButtonPrivate()
 
 void DSwitchButtonPrivate::init()
 {
+    qCDebug(logBasicWidgets) << "initializing switch button private";
     checked = false;
     animationStartValue = 0;
     animationEndValue = 1;
@@ -132,9 +143,11 @@ void DSwitchButtonPrivate::init()
     
 
     if(!ENABLE_ANIMATIONS || !ENABLE_ANIMATION_SWITCHBUTTON) {
+        qCDebug(logBasicWidgets) << "animations disabled, using simple connection";
         q->connect(q, &DSwitchButton::toggled, q, &DSwitchButton::checkedChanged);
         return;
     }
+    qCDebug(logBasicWidgets) << "animations enabled, setting up player";
 
     auto initPlayer= [this, q]() {
         DDciIcon icon = !checked ? DDciIcon::fromTheme("switch_on") : DDciIcon::fromTheme("switch_off");

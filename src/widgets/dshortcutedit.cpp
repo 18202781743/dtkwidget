@@ -9,10 +9,15 @@
 #include <QEvent>
 #include <QKeyEvent>
 #include <QDebug>
+#include <QLoggingCategory>
 
 #include <cctype>
 
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
+}
 
 #if DTK_VERSION < DTK_VERSION_CHECK(6, 0, 0, 0)
 
@@ -22,6 +27,7 @@ const QString DShortcutEdit::DefaultTips = tr("Please input a new shortcut");
 DShortcutEdit::DShortcutEdit(QWidget *parent)
     : QFrame(parent)
 {
+    qCDebug(logBasicWidgets) << "Creating shortcut edit widget";
     m_keysEdit = new QLabel(DefaultTips);
     m_keysEdit->setObjectName("Edit");
     m_keysEdit->setAlignment(Qt::AlignVCenter | Qt::AlignHCenter);
@@ -87,6 +93,7 @@ QSize DShortcutEdit::sizeHint() const
 
 void DShortcutEdit::setShortcutKey(const QString &key)
 {
+    qCDebug(logBasicWidgets) << "Setting shortcut key:" << key;
     if (key.isEmpty()) {
         m_keysLabel->setText(tr("None"));
     } else {
@@ -130,8 +137,10 @@ const QList<QRegularExpression> &DShortcutEdit::getBlockShortcutKeysList() const
 
 bool DShortcutEdit::isValidShortcutKey(const QString &key)
 {
+    qCDebug(logBasicWidgets) << "Validating shortcut key:" << key;
     for (const auto &k : m_blockedShortcutKeys)
         if (key.contains(k)) {
+            qCDebug(logBasicWidgets) << "Key blocked by pattern";
             return false;
         }
 
@@ -242,6 +251,7 @@ QString DShortcutEdit::convertShortcutKeys(const QString &keys)
 DShortcutEditLabel::DShortcutEditLabel(QWidget *parent)
     : QLabel(parent)
 {
+    qCDebug(logBasicWidgets) << "Creating shortcut edit label";
     setEchoState(Normal);
 
     connect(this, &DShortcutEditLabel::colorSettingChange, [this]() -> void {setEchoState(m_state);});

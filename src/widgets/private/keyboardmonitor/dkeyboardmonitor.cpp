@@ -10,6 +10,7 @@
 #include <QtGui/private/qtx11extras_p.h>
 #endif
 #include <QDebug>
+#include <QLoggingCategory>
 
 #include <X11/X.h>
 #include <X11/XKBlib.h>
@@ -20,6 +21,10 @@
 #include <stdlib.h>
 
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logUtils)
+}
 
 static int xi2_opcode;
 
@@ -138,14 +143,16 @@ int DKeyboardMonitor::listen(Display *display)
 DKeyboardMonitor::DKeyboardMonitor() :
     QThread()
 {
-
+    qCDebug(logUtils) << "Creating keyboard monitor";
 }
 
 DKeyboardMonitor *DKeyboardMonitor::instance()
 {
+    qCDebug(logUtils) << "Getting keyboard monitor instance";
     static DKeyboardMonitor *KeyboardMonitorInstance = nullptr;
 
     if (!KeyboardMonitorInstance) {
+        qCDebug(logUtils) << "Creating keyboard monitor singleton";
         KeyboardMonitorInstance = new DKeyboardMonitor;
     }
 

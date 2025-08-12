@@ -13,6 +13,7 @@
 #include <QProcess>
 #include <QStandardPaths>
 #include <QWidgetAction>
+#include <QLoggingCategory>
 
 #include <DWindowManagerHelper>
 #include <DObjectPrivate>
@@ -48,6 +49,8 @@
 #include "dtitlebarsettings.h"
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_LOGGING_CATEGORY(logStyleTheme, "dtk.widgets.style")
 
 #define CHANGESPLITWINDOW_VAR "_d_splitWindowOnScreen"
 #define GETSUPPORTSPLITWINDOW_VAR "_d_supportForSplittingWindow"
@@ -1246,13 +1249,16 @@ void DTitlebar::resizeEvent(QResizeEvent *event)
  */
 void DTitlebar::setCustomWidget(QWidget *w, bool fixCenterPos)
 {
+    qCDebug(logStyleTheme) << "Setting custom widget:" << w << "fixCenterPos:" << fixCenterPos;
     D_D(DTitlebar);
 
     if (w == d->customWidget) {
+        qCDebug(logStyleTheme) << "Custom widget unchanged";
         return;
     }
 
     if (d->customWidget) {
+        qCDebug(logStyleTheme) << "Removing existing custom widget";
         d->mainLayout->removeWidget(d->customWidget);
         d->customWidget->hide();
         d->customWidget->deleteLater();
@@ -1265,11 +1271,12 @@ void DTitlebar::setCustomWidget(QWidget *w, bool fixCenterPos)
     } else {
         d->centerArea->show();
         d->titleLabel = d->centerArea;
-
+        qCDebug(logStyleTheme) << "Custom widget cleared, showing center area";
         return;
     }
 
     if (fixCenterPos) {
+        qCDebug(logStyleTheme) << "Fixing center position for custom widget";
         for (int i = 0; i < d->centerLayout->count(); ++i) {
             delete d->centerLayout->itemAt(i);
         }
@@ -1278,6 +1285,7 @@ void DTitlebar::setCustomWidget(QWidget *w, bool fixCenterPos)
         d->centerArea->show();
         d->titleLabel = d->centerArea;
     } else {
+        qCDebug(logStyleTheme) << "Inserting custom widget into main layout";
         d->mainLayout->insertWidget(1, w);
         d->titleLabel = nullptr;
         d->centerArea->hide();
@@ -1286,9 +1294,12 @@ void DTitlebar::setCustomWidget(QWidget *w, bool fixCenterPos)
 
 void DTitlebar::setSidebarHelper(DSidebarHelper *helper)
 {
+    qCDebug(logStyleTheme) << "Setting sidebar helper:" << helper;
     D_D(DTitlebar);
-    if (d->sidebarHelper == helper)
+    if (d->sidebarHelper == helper) {
+        qCDebug(logStyleTheme) << "Sidebar helper unchanged";
         return;
+    }
 
     d->sidebarHelper = helper;
 

@@ -12,6 +12,7 @@
 #include <QPaintEngine>
 #include <DWidgetUtil>
 #include <DIconTheme>
+#include <QLoggingCategory>
 
 #include <cups/cups.h>
 #include <cups/ppd.h>
@@ -33,7 +34,10 @@
 DGUI_USE_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
 
+Q_DECLARE_LOGGING_CATEGORY(logDialogs)
+
 static QString truncateFileName(const QString &str, int maxLength = 255) {
+    qCDebug(logDialogs) << "Truncating filename:" << str << "maxLength:" << maxLength;
     if (str.length() <= maxLength)
         return str;
 
@@ -41,11 +45,14 @@ static QString truncateFileName(const QString &str, int maxLength = 255) {
     int keepBack = (maxLength - 3) - keepFront; // 126
 
     // 截取前半部分 + "..." + 后半部分
-    return str.left(keepFront) + QString("...") + str.right(keepBack);
+    const auto& result = str.left(keepFront) + QString("...") + str.right(keepBack);
+    qCDebug(logDialogs) << "Truncated filename:" << result;
+    return result;
 }
 
 static void saveImageToFile(int index, const QString &outPutFileName, const QString &suffix, bool isJpegImage, const QImage &srcImage)
 {
+    qCDebug(logDialogs) << "Saving image to file, index:" << index << "outputFileName:" << outPutFileName;
     // write image
     QString stres = outPutFileName.right(suffix.length() + 1);
     QString tmpString = outPutFileName.left(outPutFileName.length() - suffix.length() - 1) + QString("(%1)").arg(QString::number(index + 1)) + stres;
@@ -55,7 +62,9 @@ static void saveImageToFile(int index, const QString &outPutFileName, const QStr
         const QFileInfo file(tmpString);
         const auto fileName = file.absolutePath() + "/" + truncateFileName(file.fileName());
         if (!srcImage.save(fileName, isJpegImage ? "JPEG" : "PNG")) {
-            qWarning() << "Failed to save image to file, filePath:" << fileName;
+            qCWarning(logDialogs) << "Failed to save image to file, filePath:" << fileName;
+        } else {
+            qCDebug(logDialogs) << "Image saved successfully to:" << fileName;
         }
     });
 }
@@ -70,10 +79,12 @@ DPrintPreviewWidgetPrivate::DPrintPreviewWidgetPrivate(DPrintPreviewWidget *qq)
     , asynPreviewNeedUpdate(false)
     , numberUpPrintData(nullptr)
 {
+    qCDebug(logDialogs) << "Creating DPrintPreviewWidgetPrivate";
 }
 
 void DPrintPreviewWidgetPrivate::init()
 {
+    qCDebug(logDialogs) << "Initializing DPrintPreviewWidget";
     Q_Q(DPrintPreviewWidget);
 
     graphicsView = new GraphicsView;
@@ -566,10 +577,12 @@ int DPrintPreviewWidgetPrivate::pagesCount()
 
 void DPrintPreviewWidgetPrivate::setCurrentPage(int page)
 {
+    qCDebug(logDialogs) << "Setting current page:" << page;
     Q_Q(DPrintPreviewWidget);
 
     int pageCount = pagesCount();
     if (page > pageCount) {
+        qCDebug(logDialogs) << "Page number exceeds page count, adjusting to:" << pageCount;
         page = pageCount;
     }
     int preCurrentPage = currentPageNumber;
@@ -577,6 +590,7 @@ void DPrintPreviewWidgetPrivate::setCurrentPage(int page)
     Q_EMIT q->currentPageChanged(currentPageNumber);
 
     if (isAsynPreview) {
+        qCDebug(logDialogs) << "Async preview mode, showing first page";
         if (PageItem *pi = dynamic_cast<PageItem *>(pages.first()))
             pi->setVisible(true);
         return;
@@ -584,20 +598,27 @@ void DPrintPreviewWidgetPrivate::setCurrentPage(int page)
 
     int currentPage = index2page(currentPageNumber - 1);
     int lastPage = index2page(preCurrentPage - 1);
-    if (currentPage < 0)
+    if (currentPage < 0) {
+        qCWarning(logDialogs) << "Invalid current page index:" << currentPage;
         return;
+    }
 
-    if (lastPage > 0)
+    if (lastPage > 0) {
+        qCDebug(logDialogs) << "Hiding last page:" << lastPage;
         pages.at(lastPage - 1)->setVisible(false);
+    }
 
-    if (PageItem *pi = dynamic_cast<PageItem *>(pages.at(currentPage - 1)))
+    if (PageItem *pi = dynamic_cast<PageItem *>(pages.at(currentPage - 1))) {
+        qCDebug(logDialogs) << "Showing current page:" << currentPage;
         pi->setVisible(true);
+    }
 
     graphicsView->resetScale(false);
 }
 
 int DPrintPreviewWidgetPrivate::targetPage(int page)
 {
+    qCDebug(logDialogs) << "Calculating target page:" << page << "imposition:" << static_cast<int>(imposition);
     int mod = 0;
     switch (imposition) {
     case DPrintPreviewWidget::Imposition::One:
@@ -627,6 +648,7 @@ int DPrintPreviewWidgetPrivate::targetPage(int page)
     }
     if (mod)
         page += 1;
+    qCDebug(logDialogs) << "Target page result:" << page;
     return page;
 }
 
@@ -1604,7 +1626,7 @@ void DPrintPreviewWidget::setWaterMarkOpacity(qreal opacity)
 }
 
 /*!
-  \brief 设置“绝密”文字水印。
+  \brief 设置"绝密"文字水印。
  */
 void DPrintPreviewWidget::setConfidentialWaterMark()
 {
@@ -1622,7 +1644,7 @@ void DPrintPreviewWidget::setConfidentialWaterMark()
 }
 
 /*!
-  \brief 设置“草稿”文字水印。
+  \brief 设置"草稿"文字水印。
  */
 void DPrintPreviewWidget::setDraftWaterMark()
 {
@@ -1640,7 +1662,7 @@ void DPrintPreviewWidget::setDraftWaterMark()
 }
 
 /*!
-  \brief 设置“样本”文字水印。
+  \brief 设置"样本"文字水印。
  */
 void DPrintPreviewWidget::setSampleWaterMark()
 {

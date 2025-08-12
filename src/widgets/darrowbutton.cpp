@@ -4,17 +4,23 @@
 
 #include "darrowbutton.h"
 #include "dthememanager.h"
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 ArrowButtonIcon::ArrowButtonIcon(QWidget *parent) :
     QLabel(parent)
 {
+    qCDebug(logBasicWidgets) << "Init arrow icon"
+                             << reinterpret_cast<const void *>(this);
     setAttribute(Qt::WA_TransparentForMouseEvents);
 }
 
 void ArrowButtonIcon::setArrowDirection(int direction)
 {
+    qCDebug(logBasicWidgets) << "Set arrow direction" << direction;
     m_direction = direction;
     style()->unpolish(this);
     style()->polish(this);// force a stylesheet recomputation
@@ -22,6 +28,7 @@ void ArrowButtonIcon::setArrowDirection(int direction)
 
 void ArrowButtonIcon::setButtonState(int state)
 {
+    qCDebug(logBasicWidgets) << "Set button state" << state;
     m_buttonState = state;
     style()->unpolish(this);
     style()->polish(this);// force a stylesheet recomputation
@@ -29,11 +36,13 @@ void ArrowButtonIcon::setButtonState(int state)
 
 int ArrowButtonIcon::arrowDirection() const
 {
+    qCDebug(logBasicWidgets) << "Get arrow direction" << m_direction;
     return m_direction;
 }
 
 int ArrowButtonIcon::buttonState() const
 {
+    qCDebug(logBasicWidgets) << "Get button state" << m_buttonState;
     return m_buttonState;
 }
 
@@ -61,6 +70,8 @@ int ArrowButtonIcon::buttonState() const
 DArrowButton::DArrowButton(QWidget *parent)
     : QLabel(parent)
 {
+    qCDebug(logBasicWidgets) << "Init arrow button"
+                             << reinterpret_cast<const void *>(this);
     setFixedSize(IMAGE_BUTTON_WIDTH, BUTTON_HEIGHT);
 
     m_normalLabel = new ArrowButtonIcon(this);
@@ -96,6 +107,7 @@ DArrowButton::DArrowButton(QWidget *parent)
  */
 void DArrowButton::setArrowDirection(ArrowDirection direction)
 {
+    qCDebug(logBasicWidgets) << "Update arrow direction" << static_cast<int>(direction);
     m_arrowDirection = direction;
     updateIconDirection(direction);
 }
@@ -108,6 +120,7 @@ void DArrowButton::setArrowDirection(ArrowDirection direction)
  */
 int DArrowButton::arrowDirection() const
 {
+    qCDebug(logBasicWidgets) << "Read arrow direction" << m_arrowDirection;
     return m_arrowDirection;
 }
 
@@ -119,6 +132,7 @@ int DArrowButton::arrowDirection() const
  */
 void DArrowButton::setButtonState(ArrowButtonState state)
 {
+    qCDebug(logBasicWidgets) << "Update button state" << static_cast<int>(state);
     m_buttonState = state;
     updateIconState(state);
 }
@@ -131,6 +145,7 @@ void DArrowButton::setButtonState(ArrowButtonState state)
  */
 int DArrowButton::buttonState() const
 {
+    qCDebug(logBasicWidgets) << "Read button state" << m_buttonState;
     return m_buttonState;
 }
 
@@ -138,6 +153,7 @@ void DArrowButton::mousePressEvent(QMouseEvent *event)
 {
     Q_UNUSED(event)
 
+    qCDebug(logBasicWidgets) << "Mouse press";
     Q_EMIT mousePress();
     m_normalLabel->setVisible(false);
     m_hoverLabel->setVisible(false);
@@ -150,6 +166,7 @@ void DArrowButton::mouseReleaseEvent(QMouseEvent *event)
 {
     Q_UNUSED(event)
 
+    qCDebug(logBasicWidgets) << "Mouse release";
     Q_EMIT mouseRelease();
     m_normalLabel->setVisible(true);
     m_hoverLabel->setVisible(false);
@@ -161,12 +178,14 @@ void DArrowButton::mouseReleaseEvent(QMouseEvent *event)
 /* \reimp */
 void DArrowButton::enterEvent(QEvent *)
 {
+    qCDebug(logBasicWidgets) << "Mouse enter";
     Q_EMIT mouseEnter();
 }
 
 /* \reimp */
 void DArrowButton::leaveEvent(QEvent *)
 {
+    qCDebug(logBasicWidgets) << "Mouse leave";
     Q_EMIT mouseLeave();
 }
 
@@ -245,6 +264,7 @@ void DArrowButton::initButtonState()
  */
 void DArrowButton::updateIconDirection(ArrowDirection direction)
 {
+    qCDebug(logBasicWidgets) << "Update icon direction" << static_cast<int>(direction);
     m_normalLabel->setArrowDirection(direction);
     m_hoverLabel->setArrowDirection(direction);
     m_pressLabel->setArrowDirection(direction);
@@ -256,6 +276,7 @@ void DArrowButton::updateIconDirection(ArrowDirection direction)
  */
 void DArrowButton::updateIconState(ArrowButtonState state)
 {
+    qCDebug(logBasicWidgets) << "Update icon state" << static_cast<int>(state);
     m_normalLabel->setButtonState(state);
     m_hoverLabel->setButtonState(state);
     m_pressLabel->setButtonState(state);

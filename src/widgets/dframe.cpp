@@ -11,6 +11,9 @@
 #include <QPainter>
 #include <QStyle>
 #include <QStyleOptionFrame>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
 
 DWIDGET_BEGIN_NAMESPACE
 
@@ -19,7 +22,7 @@ DFramePrivate::DFramePrivate(DFrame *qq)
     , frameRounded(true)
     , backType(DPalette::NoType)
 {
-
+    qCDebug(logBasicWidgets) << "Creating DFramePrivate";
 }
 
 /*!
@@ -30,7 +33,7 @@ DFramePrivate::DFramePrivate(DFrame *qq)
 DFrame::DFrame(QWidget *parent)
     : DFrame(*new DFramePrivate(this), parent)
 {
-
+    qCDebug(logBasicWidgets) << "Creating DFrame with parent";
 }
 
 /*!
@@ -40,11 +43,15 @@ DFrame::DFrame(QWidget *parent)
  */
 void DFrame::setFrameRounded(bool on)
 {
+    qCDebug(logBasicWidgets) << "Setting frame rounded to:" << on;
     D_D(DFrame);
 
-    if (d->frameRounded == on)
+    if (d->frameRounded == on) {
+        qCDebug(logBasicWidgets) << "Frame rounded state unchanged, skipping update";
         return;
+    }
 
+    qCDebug(logBasicWidgets) << "Frame rounded changed from" << d->frameRounded << "to" << on;
     d->frameRounded = on;
     update();
 }
@@ -56,11 +63,15 @@ void DFrame::setFrameRounded(bool on)
  */
 void DFrame::setBackgroundRole(DGUI_NAMESPACE::DPalette::ColorType type)
 {
+    qCDebug(logBasicWidgets) << "Setting background role to:" << type;
     D_D(DFrame);
 
-    if (d->backType == type)
+    if (d->backType == type) {
+        qCDebug(logBasicWidgets) << "Background role unchanged, skipping update";
         return;
+    }
 
+    qCDebug(logBasicWidgets) << "Background role changed from" << d->backType << "to" << type;
     d->backType = type;
     update();
 }
@@ -69,12 +80,14 @@ DFrame::DFrame(DFramePrivate &dd, QWidget *parent)
     : QFrame(parent)
     , DObject(dd)
 {
+    qCDebug(logBasicWidgets) << "Creating DFrame with private data";
     setBackgroundRole(QPalette::Base);
     setFrameShape(QFrame::StyledPanel);
 }
 
 void DFrame::paintEvent(QPaintEvent *event)
 {
+    qCDebug(logBasicWidgets) << "Frame paint event, rect:" << event->rect();
     Q_UNUSED(event)
     QStyleOptionFrame opt;
     initStyleOption(&opt);
@@ -82,16 +95,19 @@ void DFrame::paintEvent(QPaintEvent *event)
     D_DC(DFrame);
 
     if (d->frameRounded) {
+        qCDebug(logBasicWidgets) << "Adding rounded feature to frame";
         opt.features |= QStyleOptionFrame::Rounded;
     }
 
     const DPalette &dp = DPaletteHelper::instance()->palette(this);
 
     if (d->backType != DPalette::NoType) {
+        qCDebug(logBasicWidgets) << "Setting background brush for type:" << d->backType;
         p.setBackground(dp.brush(d->backType));
     }
 
     p.setPen(QPen(dp.frameBorder(), opt.lineWidth));
+    qCDebug(logBasicWidgets) << "Drawing frame with line width:" << opt.lineWidth;
     style()->drawControl(QStyle::CE_ShapedFrame, &opt, &p, this);
 }
 

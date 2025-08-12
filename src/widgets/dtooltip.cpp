@@ -12,8 +12,10 @@
 #include <QTimer>
 #include <QToolTip>
 #include <QTextLayout>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_LOGGING_CATEGORY(logUtils, "dtk.widgets.utils")
 namespace DToolTipStatic {
 static inline void registerDToolTipMetaType()
 {
@@ -34,7 +36,15 @@ static Qt::TextFormat textFormat = Qt::TextFormat::AutoText;
  */
 void DToolTip::setToolTipTextFormat(Qt::TextFormat format)
 {
+    qCDebug(logUtils) << "set tooltip text format" << static_cast<int>(format);
+    
+    if (DToolTipStatic::textFormat == format) {
+        qCDebug(logUtils) << "tooltip text format unchanged, skipping update";
+        return;
+    }
+    
     DToolTipStatic::textFormat = format;
+    qCDebug(logUtils) << "tooltip text format updated successfully";
 }
 /*!
 @~english
@@ -44,6 +54,7 @@ void DToolTip::setToolTipTextFormat(Qt::TextFormat format)
  */
 Qt::TextFormat DToolTip::toolTipTextFormat()
 {
+    qCDebug(logUtils) << "get tooltip text format" << static_cast<int>(DToolTipStatic::textFormat);
     return DToolTipStatic::textFormat;
 }
 
@@ -72,7 +83,20 @@ Qt::TextFormat DToolTip::toolTipTextFormat()
  */
 void DToolTip::setToolTipShowMode(QWidget *widget, ToolTipShowMode mode)
 {
+    qCDebug(logUtils) << "setting tooltip show mode:" << mode << "for widget:" << widget;
+    if (!widget) {
+        qCDebug(logUtils) << "widget is null, skipping";
+        return;
+    }
+    
+    QVariant currentMode = widget->property("_d_dtk_toolTipMode");
+    if (currentMode.isValid() && qvariant_cast<ToolTipShowMode>(currentMode) == mode) {
+        qCDebug(logUtils) << "tooltip show mode unchanged, skipping update";
+        return;
+    }
+    
     widget->setProperty("_d_dtk_toolTipMode", mode);
+    qCDebug(logUtils) << "tooltip show mode set successfully";
 }
 
 /*!
@@ -83,21 +107,33 @@ void DToolTip::setToolTipShowMode(QWidget *widget, ToolTipShowMode mode)
  */
 DToolTip::ToolTipShowMode DToolTip::toolTipShowMode(const QWidget *widget)
 {
+    qCDebug(logUtils) << "getting tooltip show mode for widget:" << widget;
+    if (!widget) {
+        qCDebug(logUtils) << "widget is null, returning default mode";
+        return ToolTipShowMode::Default;
+    }
+    
     QVariant vToolTipMode = widget->property("_d_dtk_toolTipMode");
     if (vToolTipMode.isValid()) {
-        return qvariant_cast<ToolTipShowMode>(vToolTipMode);
+        const auto& mode = qvariant_cast<ToolTipShowMode>(vToolTipMode);
+        qCDebug(logUtils) << "returning tooltip mode:" << mode;
+        return mode;
     } else {
+        qCDebug(logUtils) << "no tooltip mode property found, returning default tooltip mode";
         return ToolTipShowMode::Default;
     }
 }
 
 QString DToolTip::wrapToolTipText(QString text, QTextOption option)
 {
+    qCDebug(logUtils) << "wrapping tooltip text, length:" << text.length();
     if (text.isEmpty()) {
+        qCDebug(logUtils) << "empty text, returning empty string";
         return "";
     }
     const auto MaxPixelsPerRow = DStyle::pixelMetric(nullptr, DStyle::PixelMetric::PM_ToolTipLabelWidth);
     QStringList paragraphs = text.split('\n');
+    qCDebug(logUtils) << "text split into" << paragraphs.size() << "paragraphs";
     const QFont &toolTipFont = QToolTip::font();
     QString toolTip{""};
     for (const QString &paragraph : std::as_const(paragraphs))
@@ -128,19 +164,25 @@ QString DToolTip::wrapToolTipText(QString text, QTextOption option)
         }
     }
     toolTip.chop(1);
+    qCDebug(logUtils) << "wrapped tooltip text length:" << toolTip.length();
     return toolTip;
 }
 
 bool DToolTip::needUpdateToolTip(const QWidget *widget, bool showToolTip)
 {
+    qCDebug(logUtils) << "checking if tooltip needs update, showToolTip:" << showToolTip;
     QVariant vShowToolTip = widget->property("_d_dtk_showToolTip");
     bool needUpdate = false;
     if (vShowToolTip.isValid()) {
         bool oldShowStatus = vShowToolTip.toBool();
         if (showToolTip != oldShowStatus) {
+            qCDebug(logUtils) << "tooltip status changed, needs update";
             needUpdate = true;
+        } else {
+            qCDebug(logUtils) << "tooltip status unchanged";
         }
     } else {
+        qCDebug(logUtils) << "no previous tooltip status, needs update";
         needUpdate = true;
     }
     return needUpdate;
@@ -148,7 +190,20 @@ bool DToolTip::needUpdateToolTip(const QWidget *widget, bool showToolTip)
 
 void DToolTip::setShowToolTip(QWidget *widget, bool showToolTip)
 {
+    qCDebug(logUtils) << "setting show tooltip:" << showToolTip << "for widget:" << widget;
+    if (!widget) {
+        qCDebug(logUtils) << "widget is null, skipping";
+        return;
+    }
+    
+    QVariant currentValue = widget->property("_d_dtk_showToolTip");
+    if (currentValue.isValid() && currentValue.toBool() == showToolTip) {
+        qCDebug(logUtils) << "show tooltip value unchanged, skipping update";
+        return;
+    }
+    
     widget->setProperty("_d_dtk_showToolTip", showToolTip);
+    qCDebug(logUtils) << "show tooltip property set successfully";
 }
 
 /*!
@@ -168,6 +223,7 @@ void DToolTip::setShowToolTip(QWidget *widget, bool showToolTip)
 DToolTip::DToolTip(const QString &text, bool completionClose)
     : DTipLabel(text)
 {
+    qCDebug(logUtils) << "creating tooltip with text:" << text << "completion close:" << completionClose;
     if (completionClose) {
         setAttribute(Qt::WA_DeleteOnClose);
     }
@@ -181,11 +237,12 @@ DToolTip::DToolTip(const QString &text, bool completionClose)
  */
 QSize DToolTip::sizeHint() const
 {
+    qCDebug(logUtils) << "calculating tooltip size hint";
     int radius = DStyleHelper(style()).pixelMetric(DStyle::PM_FrameRadius);
     QSize fontSize = fontMetrics().size({}, text());
 
     fontSize.setWidth(fontSize.width() + radius);
-
+    qCDebug(logUtils) << "tooltip size hint:" << fontSize;
     return fontSize;
 }
 
@@ -198,6 +255,7 @@ QSize DToolTip::sizeHint() const
  */
 void DToolTip::show(const QPoint &pos, int duration)
 {
+    qCDebug(logUtils) << "showing tooltip at position:" << pos << "duration:" << duration;
     QTimer::singleShot(duration, this, &DTipLabel::close);
 
     DTipLabel::show(pos);

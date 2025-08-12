@@ -8,12 +8,18 @@
 #if DTK_VERSION < DTK_VERSION_CHECK(6, 0, 0, 0)
 
 #include <QResizeEvent>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logUtils)
+}
 
 ArrowHeaderLine::ArrowHeaderLine(QWidget *parent) :
     DHeaderLine(parent)
 {
+    qCDebug(logUtils) << "Creating arrow header line";
     m_arrowButton = new DIconButton(DStyle::SP_ReduceElement, this);
     m_arrowButton->setFlat(true);
     setExpand(false);
@@ -24,6 +30,7 @@ ArrowHeaderLine::ArrowHeaderLine(QWidget *parent) :
 
 void ArrowHeaderLine::setExpand(bool value)
 {
+    qCDebug(logUtils) << "Setting arrow expand state:" << value;
     if (value) {
         m_arrowButton->setIcon(DStyle::SP_ExpandElement);
     } else {
@@ -66,9 +73,11 @@ void ArrowHeaderLine::reverseArrowDirection()
  */
 DArrowLineExpand::DArrowLineExpand(QWidget *parent) : DBaseExpand(parent)
 {
+    qCDebug(logUtils) << "Creating arrow line expand widget";
     m_headerLine = new ArrowHeaderLine(this);
     m_headerLine->setExpand(expand());
     connect(m_headerLine, &ArrowHeaderLine::mousePress, [=]{
+        qCDebug(logUtils) << "Arrow clicked, toggling expand";
         setExpand(!expand());
     });
     setHeader(m_headerLine);
@@ -82,6 +91,7 @@ DArrowLineExpand::DArrowLineExpand(QWidget *parent) : DBaseExpand(parent)
  */
 void DArrowLineExpand::setTitle(const QString &title)
 {
+    qCDebug(logUtils) << "Setting arrow expand title:" << title;
     m_headerLine->setTitle(title);
 }
 
@@ -93,6 +103,7 @@ void DArrowLineExpand::setTitle(const QString &title)
  */
 void DArrowLineExpand::setExpand(bool value)
 {
+    qCDebug(logUtils) << "Setting arrow line expand state:" << value;
     //Header's arrow direction change here
     m_headerLine->setExpand(value);
     DBaseExpand::setExpand(value);

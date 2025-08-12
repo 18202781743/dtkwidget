@@ -4,6 +4,10 @@
 
 #include "ddialogclosebutton.h"
 
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logDialogs, "dtk.widgets.dialogs")
+
 DWIDGET_BEGIN_NAMESPACE
 
 /*!
@@ -13,6 +17,7 @@ DWIDGET_BEGIN_NAMESPACE
 DDialogCloseButton::DDialogCloseButton(QWidget *parent)
     : DIconButton(DStyle::SP_CloseButton, parent)
 {
+    qCDebug(logDialogs) << "Creating DDialogCloseButton";
     setFlat(true);
     setIconSize(QSize(20, 20));
 }

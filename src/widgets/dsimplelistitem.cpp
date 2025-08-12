@@ -3,8 +3,10 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include "dsimplelistitem.h"
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logListWidgets)
 
 /*!
   \class Dtk::Widget::DSimpleListItem
@@ -45,7 +47,12 @@ DWIDGET_BEGIN_NAMESPACE
 
 DSimpleListItem::DSimpleListItem()
 {
+    qCDebug(logListWidgets) << "Creating DSimpleListItem instance";
+}
 
+DSimpleListItem::~DSimpleListItem()
+{
+    qCDebug(logListWidgets) << "Destroying DSimpleListItem instance";
 }
 
 DWIDGET_END_NAMESPACE

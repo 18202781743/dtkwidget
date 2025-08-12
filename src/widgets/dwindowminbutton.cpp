@@ -4,11 +4,14 @@
 
 #include "dwindowminbutton.h"
 #include "dstyleoption.h"
+#include <QLoggingCategory>
 
 #include <QEvent>
 #include <QStyle>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 /*!
   \class Dtk::Widget::DWindowMinButton
@@ -27,6 +30,8 @@ DWIDGET_BEGIN_NAMESPACE
 DWindowMinButton::DWindowMinButton(QWidget * parent)
     : DIconButton(QStyle::SP_TitleBarMinButton, parent)
 {
+    qCDebug(logBasicWidgets) << "Construct minimize button"
+                             << reinterpret_cast<const void *>(this);
     //QStyle::SP_TitleBarMinButton
     auto iconEngine = new DStyledIconEngine(DDrawUtils::drawTitleBarMinButton, QStringLiteral("TitleBarMinButton"));
     setIcon(QIcon(iconEngine));
@@ -36,6 +41,7 @@ DWindowMinButton::DWindowMinButton(QWidget * parent)
 
 QSize DWindowMinButton::sizeHint() const
 {
+    qCDebug(logBasicWidgets) << "Size hint";
     return iconSize();
 }
 
@@ -43,6 +49,7 @@ void DWindowMinButton::initStyleOption(DStyleOptionButton *option) const
 {
     DIconButton::initStyleOption(option);
 
+    qCDebug(logBasicWidgets) << "Init style option";
     option->features |= QStyleOptionButton::ButtonFeature(DStyleOptionButton::TitleBarButton);
 }
 

@@ -7,6 +7,7 @@
 #include <QPaintEvent>
 #include <QPainterPath>
 #include <QApplication>
+#include <QLoggingCategory>
 
 #include "dsegmentedcontrol.h"
 #include "dthememanager.h"
@@ -17,6 +18,10 @@
 
 DCORE_USE_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logListWidgets)
+}
 
 class DSegmentedControlPrivate : public DObjectPrivate
 {
@@ -106,6 +111,7 @@ DSegmentedControl::DSegmentedControl(QWidget *parent)
     : QWidget(parent)
     , DObject(*new DSegmentedControlPrivate(this))
 {
+    qCDebug(logListWidgets) << "Creating segmented control";
     setObjectName("DSegmentedControl");
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
@@ -246,7 +252,7 @@ QEasingCurve::Type DSegmentedControl::animationType() const
 int DSegmentedControl::addSegmented(const QString &title)
 {
     D_D(DSegmentedControl);
-
+    qCDebug(logListWidgets) << "Adding segmented with title:" << title;
     insertSegmented(d->hLayout->count(), title);
 
     return d->hLayout->count()-1;
@@ -321,9 +327,11 @@ void DSegmentedControl::insertSegmented(int index, const QString &title)
  */
 void DSegmentedControl::insertSegmented(int index, const QIcon &icon, const QString &title)
 {
+    qCDebug(logListWidgets) << "Inserting segmented at index:" << index << "title:" << title;
     D_D(DSegmentedControl);
 
     QToolButton *button = new QToolButton();
+    qCDebug(logListWidgets) << "Created new tool button:" << button;
 
     d->tabList.insert(index, button);
 
@@ -331,15 +339,19 @@ void DSegmentedControl::insertSegmented(int index, const QIcon &icon, const QStr
     button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     button->setText(title);
     button->setIcon(icon);
+    qCDebug(logListWidgets) << "Configured button properties";
 
     connect(button, &QToolButton::clicked, this, &DSegmentedControl::buttonClicked);
     d->hLayout->insertWidget(index, button);
+    qCDebug(logListWidgets) << "Added button to layout and connected signals";
 
     if(d->currentIndex == -1){
+        qCDebug(logListWidgets) << "No current index set, setting to 0";
         setCurrentIndex(0);
     }
 
     button->installEventFilter(this);
+    qCDebug(logListWidgets) << "Installed event filter on button";
 }
 
 /*!
@@ -349,9 +361,11 @@ void DSegmentedControl::insertSegmented(int index, const QIcon &icon, const QStr
 void DSegmentedControl::removeSegmented(int index)
 {
     D_D(DSegmentedControl);
-
-    if(index == d->currentIndex)
+    qCDebug(logListWidgets) << "Removing segmented at index:" << index;
+    if(index == d->currentIndex) {
+        qCDebug(logListWidgets) << "Removing current segment, resetting index";
         setCurrentIndex(-1);
+    }
 
     delete d->hLayout->takeAt(index);
 
@@ -366,27 +380,38 @@ void DSegmentedControl::removeSegmented(int index)
  */
 void DSegmentedControl::clear()
 {
+    qCDebug(logListWidgets) << "Clearing all segments, count:" << count();
     D_D(DSegmentedControl);
 
-    for(int i=0; i<count(); ++i){
+    int segmentCount = count();
+    for(int i=0; i<segmentCount; ++i){
+        qCDebug(logListWidgets) << "Removing layout item at index:" << i;
         delete d->hLayout->takeAt(i);
 
         QToolButton *button = at(i);
-        if(button)
+        if(button) {
+            qCDebug(logListWidgets) << "Deleting button:" << button;
             button->deleteLater();
+        } else {
+            qCDebug(logListWidgets) << "Button at index" << i << "is null";
+        }
     }
 
     d->tabList.clear();
+    qCDebug(logListWidgets) << "All segments cleared";
 }
 
 bool DSegmentedControl::setCurrentIndex(int currentIndex)
 {
     D_D(DSegmentedControl);
-
-    if(currentIndex == d->currentIndex)
+    qCDebug(logListWidgets) << "Setting current index:" << currentIndex;
+    if(currentIndex == d->currentIndex) {
+        qCDebug(logListWidgets) << "Index unchanged";
         return true;
+    }
 
     if(currentIndex<0||currentIndex>count()-1){
+        qCWarning(logListWidgets) << "Index range over:" << currentIndex;
         qErrnoWarning("index range over!");
         return false;
     }
@@ -485,41 +510,59 @@ void DSegmentedControl::resizeEvent(QResizeEvent *event)
 
 void DSegmentedControl::updateHighlightGeometry(bool animation)
 {
+    qCDebug(logListWidgets) << "Updating highlight geometry, animation:" << animation;
     D_D(DSegmentedControl);
 
-    if (d->currentIndex < 0)
+    if (d->currentIndex < 0) {
+        qCDebug(logListWidgets) << "No current index, skipping highlight update";
         return;
+    }
 
     QRect tmp = at(d->currentIndex)->geometry();
+    qCDebug(logListWidgets) << "Current segment geometry:" << tmp;
 
     d->highlight->resize(tmp.size());
+    qCDebug(logListWidgets) << "Resized highlight to:" << tmp.size();
 
     if (d->currentIndex == 0) {
         tmp.setX(0);
+        qCDebug(logListWidgets) << "First segment, setting X to 0";
     }
 
     tmp.setY(0);
 
-    if (d->highlight->pos() == tmp.topLeft())
+    if (d->highlight->pos() == tmp.topLeft()) {
+        qCDebug(logListWidgets) << "Highlight already at target position";
         return;
+    }
 
     if (animation) {
+        qCDebug(logListWidgets) << "Starting highlight animation from" << d->highlight->pos() << "to" << tmp.topLeft();
         d->highlightMoveAnimation->setStartValue(d->highlight->pos());
         d->highlightMoveAnimation->setEndValue(tmp.topLeft());
         d->highlightMoveAnimation->start();
     } else {
+        qCDebug(logListWidgets) << "Moving highlight directly to" << tmp.topLeft();
         d->highlight->move(tmp.topLeft());
     }
 }
 
 void DSegmentedControl::buttonClicked()
 {
+    qCDebug(logListWidgets) << "Button clicked";
     D_D(DSegmentedControl);
 
-    int i = d->tabList.indexOf(qobject_cast<QToolButton*>(sender()));
+    QToolButton *clickedButton = qobject_cast<QToolButton*>(sender());
+    qCDebug(logListWidgets) << "Clicked button:" << clickedButton;
+    
+    int i = d->tabList.indexOf(clickedButton);
+    qCDebug(logListWidgets) << "Button index:" << i;
 
     if(i>=0){
+        qCDebug(logListWidgets) << "Setting current index to:" << i;
         setCurrentIndex(i);
+    } else {
+        qCDebug(logListWidgets) << "Button not found in tab list";
     }
 }
 

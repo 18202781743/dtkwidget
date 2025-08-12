@@ -20,6 +20,8 @@
 DGUI_USE_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
 
+Q_LOGGING_CATEGORY(logMediaImage, "dtk.widgets.media")
+
 const qreal MAX_SCALE_FACTOR = 20.0;
 const qreal MIN_SCALE_FACTOR = 0.02;
 
@@ -32,11 +34,13 @@ const qreal MIN_SCALE_FACTOR = 0.02;
 DImageViewerPrivate::DImageViewerPrivate(DImageViewer *qq)
     : DObjectPrivate(qq)
 {
+    qCDebug(logMediaImage) << "DImageViewerPrivate constructor called";
 }
 
 /*! \internal */
 DImageViewerPrivate::~DImageViewerPrivate()
 {
+    qCDebug(logMediaImage) << "DImageViewerPrivate destructor called";
     if (pinchData) {
         delete pinchData;
     }
@@ -60,6 +64,7 @@ DImageViewerPrivate::~DImageViewerPrivate()
 void DImageViewerPrivate::init()
 {
     D_Q(DImageViewer);
+    qCDebug(logMediaImage) << "Initializing DImageViewer";
 
     q->setScene(new QGraphicsScene(q));
     q->setContentsMargins(0, 0, 0, 0);
@@ -91,6 +96,7 @@ void DImageViewerPrivate::init()
 /*! \internal */
 ImageType DImageViewerPrivate::detectImageType(const QString &fileName) const
 {
+    qCDebug(logMediaImage) << "Detecting image type for file:" << fileName;
     ImageType type = ImageType::ImageTypeBlank;
     if (!fileName.isEmpty()) {
         QFileInfo info(fileName);
@@ -105,13 +111,16 @@ ImageType DImageViewerPrivate::detectImageType(const QString &fileName) const
 
         if (typeStr == "svg" && DSvgRenderer(fileName).isValid()) {
             type = ImageType::ImageTypeSvg;
+            qCDebug(logMediaImage) << "Detected SVG image type";
         } else if ((typeStr == "mng") || ((typeStr == "gif") && nSize > 1) || (typeStr == "webp" && nSize > 1) ||
                    ((contentType.name().startsWith("image/gif")) && nSize > 1) ||
                    ((exntensionType.name().startsWith("image/gif")) && nSize > 1) ||
                    (contentType.name().startsWith("video/x-mng")) || (exntensionType.name().startsWith("video/x-mng"))) {
             type = ImageType::ImageTypeDynamic;
+            qCDebug(logMediaImage) << "Detected dynamic image type with" << nSize << "frames";
         } else {
             type = ImageType::ImageTypeStatic;
+            qCDebug(logMediaImage) << "Detected static image type";
         }
     }
 
@@ -122,6 +131,7 @@ ImageType DImageViewerPrivate::detectImageType(const QString &fileName) const
 void DImageViewerPrivate::resetItem(ImageType type)
 {
     D_Q(DImageViewer);
+    qCDebug(logMediaImage) << "Resetting item for image type:" << static_cast<int>(type);
 
     if (type != imageType) {
         if (contentItem) {
@@ -166,6 +176,7 @@ void DImageViewerPrivate::resetItem(ImageType type)
 /*! \internal */
 QImage DImageViewerPrivate::loadImage(const QString &fileName, ImageType type) const
 {
+    qCDebug(logMediaImage) << "Loading image from file:" << fileName << "with type:" << static_cast<int>(type);
     QImage image;
     switch (type) {
         case ImageTypeStatic:
@@ -205,7 +216,9 @@ void DImageViewerPrivate::updateItemAndSceneRect()
 /*! \internal */
 bool DImageViewerPrivate::rotatable() const
 {
-    return (ImageTypeBlank != imageType && ImageTypeDynamic != imageType);
+    const bool result = (ImageTypeBlank != imageType && ImageTypeDynamic != imageType);
+    qCDebug(logMediaImage) << "Checking if image is rotatable:" << result;
+    return result;
 }
 
 /*! \internal */
@@ -214,7 +227,9 @@ bool DImageViewerPrivate::isRotateVertical() const
     if (proxyItem) {
         // Check item rotation angle around 90 and 270 degrees.
         qreal angle = abs(proxyItem->rotation());
-        return (angle > 35 && angle < 135) || (angle > 225 && angle < 315);
+        const bool result = (angle > 35 && angle < 135) || (angle > 225 && angle < 315);
+        qCDebug(logMediaImage) << "Checking if rotation is vertical:" << result << "angle:" << angle;
+        return result;
     }
     return false;
 }
@@ -226,7 +241,9 @@ qreal DImageViewerPrivate::validRotateAngle(qreal angle) const
     // and/or 360 degrees is treated as a scaling transformation.
     if (qFuzzyCompare(abs(angle), 180)) {
         // 180 degrees needs adjustment to avoid transformation errors.
-        return angle + (angle < 0 ? -0.00001 : 0.0001);
+        const qreal adjustedAngle = angle + (angle < 0 ? -0.00001 : 0.0001);
+        qCDebug(logMediaImage) << "Adjusting 180 degree rotation angle from" << angle << "to" << adjustedAngle;
+        return adjustedAngle;
     } else {
         return angle;
     }
@@ -235,7 +252,9 @@ qreal DImageViewerPrivate::validRotateAngle(qreal angle) const
 /*! \internal */
 qreal DImageViewerPrivate::validScaleFactor(qreal scale) const
 {
-    return qBound(MIN_SCALE_FACTOR, scale, MAX_SCALE_FACTOR);
+    const qreal result = qBound(MIN_SCALE_FACTOR, scale, MAX_SCALE_FACTOR);
+    qCDebug(logMediaImage) << "Validating scale factor from" << scale << "to" << result;
+    return result;
 }
 
 /*! \internal */
@@ -256,6 +275,7 @@ void DImageViewerPrivate::checkPinchData()
 {
     if (!pinchData) {
         pinchData = new PinchData;
+        qCDebug(logMediaImage) << "Created new pinch data";
     }
 }
 
@@ -271,6 +291,7 @@ void DImageViewerPrivate::handleGestureEvent(QGestureEvent *gesture)
 void DImageViewerPrivate::pinchTriggered(QPinchGesture *gesture)
 {
     D_Q(DImageViewer);
+    qCDebug(logMediaImage) << "Pinch gesture triggered";
     // Must check pinch data before use it.
     checkPinchData();
 
@@ -329,6 +350,7 @@ void DImageViewerPrivate::pinchTriggered(QPinchGesture *gesture)
 void DImageViewerPrivate::playRotationAnimation()
 {
     D_Q(DImageViewer);
+    qCDebug(logMediaImage) << "Playing rotation animation";
     checkPinchData();
 
     pinchData->isAnimationRotating = true;
@@ -379,6 +401,7 @@ void DImageViewerPrivate::playRotationAnimation()
 void DImageViewerPrivate::_q_pinchAnimeFinished()
 {
     D_Q(DImageViewer);
+    qCDebug(logMediaImage) << "Pinch animation finished";
     // Must check pinch data before use it.
     checkPinchData();
 
@@ -399,8 +422,7 @@ void DImageViewerPrivate::checkCropData()
 {
     if (!cropData) {
         cropData = new CropData;
-        cropData->cropItem = new DGraphicsCropItem;
-        cropData->cropItem->setVisible(false);
+        qCDebug(logMediaImage) << "Created new crop data";
     }
 }
 
@@ -516,6 +538,7 @@ QImage DImageViewer::image() const
 void DImageViewer::setImage(const QImage &image)
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Setting image with size:" << image.size();
     d->resetItem(ImageTypeStatic);
     Q_ASSERT(d->contentItem && d->proxyItem);
 
@@ -543,11 +566,13 @@ QString DImageViewer::fileName() const
 void DImageViewer::setFileName(const QString &fileName)
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Setting file name:" << fileName;
 
     ImageType type = d->detectImageType(fileName);
     d->resetItem(type);
 
     if (ImageTypeBlank == d->imageType) {
+        qCDebug(logMediaImage) << "Image type is blank, clearing viewer";
         clear();
         return;
     }
@@ -560,16 +585,19 @@ void DImageViewer::setFileName(const QString &fileName)
         case ImageTypeStatic: {
             auto staticItem = static_cast<DGraphicsPixmapItem *>(d->contentItem);
             staticItem->setPixmap(QPixmap::fromImage(d->contentImage));
+            qCDebug(logMediaImage) << "Set static image item";
             break;
         }
         case ImageTypeDynamic: {
             auto movieItem = static_cast<DGraphicsMovieItem *>(d->contentItem);
             movieItem->setFileName(d->fileName);
+            qCDebug(logMediaImage) << "Set dynamic image item";
             break;
         }
         case ImageTypeSvg: {
             auto svgItem = static_cast<DGraphicsSVGItem *>(d->contentItem);
             svgItem->setFileName(d->fileName);
+            qCDebug(logMediaImage) << "Set SVG image item";
             break;
         }
         default:
@@ -596,6 +624,7 @@ qreal DImageViewer::scaleFactor() const
 void DImageViewer::setScaleFactor(qreal factor)
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Setting scale factor to:" << factor;
     factor = d->validScaleFactor(factor);
 
     qreal realFactor = factor / d->scaleFactor;
@@ -608,6 +637,7 @@ void DImageViewer::setScaleFactor(qreal factor)
 void DImageViewer::scaleImage(qreal factor)
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Scaling image by factor:" << factor;
     qreal tmpScaleFactor = d->scaleFactor * factor;
     qreal realFactor = d->validScaleFactor(tmpScaleFactor);
     if (!qFuzzyCompare(tmpScaleFactor, realFactor)) {
@@ -625,7 +655,9 @@ void DImageViewer::scaleImage(qreal factor)
 void DImageViewer::autoFitImage()
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Auto fitting image";
     if (d->contentImage.isNull()) {
+        qCDebug(logMediaImage) << "Content image is null, skipping auto fit";
         return;
     }
 
@@ -637,8 +669,10 @@ void DImageViewer::autoFitImage()
     }
 
     if ((imageSize.width() >= width() || imageSize.height() > height()) && width() > 0 && height() > 0) {
+        qCDebug(logMediaImage) << "Image is larger than widget, fitting to widget";
         fitToWidget();
     } else {
+        qCDebug(logMediaImage) << "Image is smaller than widget, fitting to normal size";
         fitNormalSize();
     }
 }
@@ -646,6 +680,7 @@ void DImageViewer::autoFitImage()
 void DImageViewer::fitToWidget()
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Fitting image to widget";
     qreal factor = d->widgetRelativeScale();
     factor = d->validScaleFactor(factor);
     if (qFuzzyCompare(factor, d->scaleFactor)) {
@@ -664,6 +699,7 @@ void DImageViewer::fitToWidget()
 void DImageViewer::fitNormalSize()
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Fitting image to normal size";
     if (qFuzzyCompare(1.0, d->scaleFactor)) {
         d->fitFlag = DImageViewerPrivate::FitNotmalSize;
         return;
@@ -681,6 +717,7 @@ void DImageViewer::fitNormalSize()
 void DImageViewer::rotateClockwise()
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Rotating image clockwise";
     if (d->proxyItem) {
         int rotation = (static_cast<int>(d->proxyItem->rotation()) + 90) % 360;
         d->proxyItem->setRotation(d->validRotateAngle(rotation));
@@ -694,6 +731,7 @@ void DImageViewer::rotateClockwise()
 void DImageViewer::rotateCounterclockwise()
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Rotating image counterclockwise";
     if (d->proxyItem) {
         int rotation = (static_cast<int>(d->proxyItem->rotation()) - 90) % 360;
         d->proxyItem->setRotation(d->validRotateAngle(rotation));
@@ -713,6 +751,7 @@ int DImageViewer::rotateAngle() const
 void DImageViewer::resetRotateAngle()
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Resetting rotation angle";
     if (d->proxyItem && !qFuzzyIsNull(d->proxyItem->rotation())) {
         // Reset scene rect.
         if (d->isRotateVertical()) {
@@ -729,6 +768,7 @@ void DImageViewer::resetRotateAngle()
 void DImageViewer::clear()
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Clearing image viewer";
     // Crop data need reset before release contentItem.
     d->resetCropData();
 
@@ -751,6 +791,7 @@ void DImageViewer::clear()
 
 void DImageViewer::centerOn(qreal x, qreal y)
 {
+    qCDebug(logMediaImage) << "Centering on point:" << x << "," << y;
     DGraphicsView::centerOn(x, y);
     Q_EMIT transformChanged();
 }
@@ -768,6 +809,7 @@ QRect DImageViewer::visibleImageRect() const
 
 void DImageViewer::scaleAtPoint(QPoint pos, qreal factor)
 {
+    qCDebug(logMediaImage) << "Scaling at point:" << pos << "with factor:" << factor;
     const QPointF targetScenePos = mapToScene(pos);
 
     scaleImage(factor);
@@ -782,9 +824,11 @@ void DImageViewer::scaleAtPoint(QPoint pos, qreal factor)
 void DImageViewer::beginCropImage()
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Beginning crop image";
     if (d->proxyItem && d->contentItem) {
         d->checkCropData();
         if (d->cropData->cropping) {
+            qCDebug(logMediaImage) << "Already cropping, skipping";
             return;
         }
 
@@ -797,6 +841,7 @@ void DImageViewer::beginCropImage()
 void DImageViewer::endCropImage()
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Ending crop image";
     if (d->cropData && d->cropData->cropping) {
         // Crop item must remove parent after corped.
         d->cropData->cropItem->setParentItem(nullptr);
@@ -805,6 +850,7 @@ void DImageViewer::endCropImage()
         QRect newRect = d->cropData->cropItem->cropRect();
 
         if (newRect != d->proxyItem->boundingRect()) {
+            qCDebug(logMediaImage) << "Crop rect changed to:" << newRect;
             // Already has crop rect, add new crop rect.
             if (!d->cropData->cropRect.isEmpty()) {
                 newRect.moveTopLeft(newRect.topLeft() + d->cropData->cropRect.topLeft());
@@ -829,6 +875,7 @@ void DImageViewer::endCropImage()
 void DImageViewer::resetCropImage()
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Resetting crop image";
     if (d->cropData && d->contentItem) {
         d->resetCropData();
 
@@ -844,6 +891,7 @@ void DImageViewer::resetCropImage()
 void DImageViewer::setCropAspectRatio(qreal w, qreal h)
 {
     D_D(DImageViewer);
+    qCDebug(logMediaImage) << "Setting crop aspect ratio:" << w << "x" << h;
     if (d->cropData) {
         d->cropData->cropItem->setAspectRatio(w, h);
     }
@@ -872,6 +920,7 @@ void DImageViewer::mouseMoveEvent(QMouseEvent *event)
 
 void DImageViewer::wheelEvent(QWheelEvent *event)
 {
+    qCDebug(logMediaImage) << "Wheel event with modifiers:" << event->modifiers();
     if (event->modifiers() == Qt::ControlModifier) {
 #if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
         qreal delta = event->delta();
@@ -879,12 +928,15 @@ void DImageViewer::wheelEvent(QWheelEvent *event)
         qreal delta = event->angleDelta().y();
 #endif
         if (delta > 0) {
+            qCDebug(logMediaImage) << "Requesting previous image";
             Q_EMIT requestPreviousImage();
         } else if (delta < 0) {
+            qCDebug(logMediaImage) << "Requesting next image";
             Q_EMIT requestNextImage();
         }
     } else {
         qreal factor = qPow(1.2, event->angleDelta().y() / 240.0);
+        qCDebug(logMediaImage) << "Scaling with wheel factor:" << factor;
         // Qt deprecated pos() since 5.15
 #if QT_VERSION < QT_VERSION_CHECK(5, 15, 0)
         scaleAtPoint(event->pos(), factor);
@@ -901,10 +953,12 @@ bool DImageViewer::event(QEvent *event)
     static int touchCount = 0;
 
     QEvent::Type type = event->type();
+    qCDebug(logMediaImage) << "Event received:" << type;
     switch (type) {
         case QEvent::TouchBegin: {
             touchCount = 0;
             d->maxTouchPoints = 1;
+            qCDebug(logMediaImage) << "Touch begin event";
             break;
         }
         case QEvent::TouchUpdate: {
@@ -935,8 +989,10 @@ bool DImageViewer::event(QEvent *event)
 #endif
                 if (qAbs(offset) > 200) {
                     if (offset > 0) {
+                        qCDebug(logMediaImage) << "Swipe gesture requesting previous image";
                         Q_EMIT requestPreviousImage();
                     } else {
+                        qCDebug(logMediaImage) << "Swipe gesture requesting next image";
                         Q_EMIT requestNextImage();
                     }
                 }

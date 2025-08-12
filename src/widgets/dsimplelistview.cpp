@@ -14,10 +14,12 @@
 #include <QtMath>
 #include <QPointer>
 #include <QPainterPath>
+#include <QLoggingCategory>
 
 DCORE_USE_NAMESPACE
 DGUI_USE_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logListWidgets)
 
 class DSimpleListViewPrivate : public DTK_CORE_NAMESPACE::DObjectPrivate
 {
@@ -88,6 +90,7 @@ public:
 
 DSimpleListView::DSimpleListView(QWidget *parent) : QWidget(parent), DObject(*new DSimpleListViewPrivate(this))
 {
+    qCDebug(logListWidgets) << "create DSimpleListView";
     D_D(DSimpleListView);
 
     // Init.
@@ -159,6 +162,7 @@ DSimpleListView::DSimpleListView(QWidget *parent) : QWidget(parent), DObject(*ne
 
 DSimpleListView::~DSimpleListView()
 {
+    qCDebug(logListWidgets) << "destroy DSimpleListView";
     D_D(DSimpleListView);
 
     delete d->lastHoverItem.data();
@@ -180,10 +184,17 @@ DSimpleListView::~DSimpleListView()
  */
 void DSimpleListView::setRowHeight(int height)
 {
+    qCDebug(logListWidgets) << "Setting row height to:" << height;
     D_D(DSimpleListView);
+
+    if (d->rowHeight == height) {
+        qCDebug(logListWidgets) << "Row height unchanged, skipping update";
+        return;
+    }
 
     d->rowHeight = height;
     d->scrollUnit = d->rowHeight;
+    qCDebug(logListWidgets) << "Row height updated successfully";
 }
 
 /*!
@@ -193,6 +204,7 @@ void DSimpleListView::setRowHeight(int height)
  */
 void DSimpleListView::setColumnTitleInfo(QList<QString> titles, QList<int> widths, int height)
 {
+    qCDebug(logListWidgets) << "Setting column title info - titles count:" << titles.size() << "widths count:" << widths.size() << "height:" << height;
     D_D(DSimpleListView);
 
     // Set column titles.
@@ -207,15 +219,19 @@ void DSimpleListView::setColumnTitleInfo(QList<QString> titles, QList<int> width
 
     for (int i = 0; i < widths.length(); i++) {
         if (widths[i] == -1) {
+            qCDebug(logListWidgets) << "Column" << i << "using auto width";
             d->columnWidths << widths[i];
         } else {
             int renderTitleWidth = fm.horizontalAdvance(titles[i]) + d->titlePadding + arrowUpNormalImage.width() / arrowUpNormalImage.devicePixelRatio() + d->titleArrowPadding * 2;
-            d->columnWidths << std::max(widths[i], renderTitleWidth);
+            int finalWidth = std::max(widths[i], renderTitleWidth);
+            qCDebug(logListWidgets) << "Column" << i << "width:" << finalWidth << "(requested:" << widths[i] << "calculated:" << renderTitleWidth << ")";
+            d->columnWidths << finalWidth;
         }
     }
 
     // Set title height.
     d->titleHeight = height;
+    qCDebug(logListWidgets) << "Column title info set successfully";
 }
 
 /*!
@@ -225,6 +241,7 @@ void DSimpleListView::setColumnTitleInfo(QList<QString> titles, QList<int> width
  */
 void DSimpleListView::setColumnHideFlags(QList<bool> toggleHideFlags, int visibleColumnIndex)
 {
+    qCDebug(logListWidgets) << "Setting column hide flags - count:" << toggleHideFlags.count() << "always visible column:" << visibleColumnIndex;
     D_D(DSimpleListView);
 
     //Q_ASSERT_X(toggleHideFlags.contains(false), "toggleHideFlags", "at least have one 'false' in list.");
@@ -234,8 +251,10 @@ void DSimpleListView::setColumnHideFlags(QList<bool> toggleHideFlags, int visibl
 
     columnVisibles.clear();
     for (int i = 0; i < toggleHideFlags.count(); i++) {
+        qCDebug(logListWidgets) << "Column" << i << "visible:" << toggleHideFlags[i];
         columnVisibles.append(toggleHideFlags[i]);
     }
+    qCDebug(logListWidgets) << "Column hide flags set successfully";
 }
 
 /*!
@@ -245,18 +264,30 @@ void DSimpleListView::setColumnHideFlags(QList<bool> toggleHideFlags, int visibl
  */
 void DSimpleListView::setColumnSortingAlgorithms(QList<SortAlgorithm> *algorithms, int sortColumn, bool descendingSort)
 {
+    qCDebug(logListWidgets) << "Setting column sorting algorithms - count:" << (algorithms ? algorithms->count() : 0) << "sort column:" << sortColumn << "descending:" << descendingSort;
     D_D(DSimpleListView);
 
     // Add sort algorithms.
     d->sortingAlgorithms = algorithms;
 
-    for (int i = 0; i < d->sortingAlgorithms->count(); i++) {
-        d->sortingOrderes->append(false);
+    if (algorithms) {
+        for (int i = 0; i < d->sortingAlgorithms->count(); i++) {
+            d->sortingOrderes->append(false);
+        }
+        qCDebug(logListWidgets) << "Added" << d->sortingAlgorithms->count() << "sorting algorithms";
+    } else {
+        qCDebug(logListWidgets) << "No sorting algorithms provided";
     }
 
     // If sort column is -1, don't sort default.
     d->defaultSortingColumn = sortColumn;
     d->defaultSortingOrder = descendingSort;
+    
+    if (sortColumn == -1) {
+        qCDebug(logListWidgets) << "No default sorting column set";
+    } else {
+        qCDebug(logListWidgets) << "Default sorting set for column" << sortColumn;
+    }
 }
 
 /*!
@@ -266,9 +297,11 @@ void DSimpleListView::setColumnSortingAlgorithms(QList<SortAlgorithm> *algorithm
  */
 void DSimpleListView::setSearchAlgorithm(SearchAlgorithm algorithm)
 {
+    qCDebug(logListWidgets) << "Setting search algorithm";
     D_D(DSimpleListView);
 
     d->searchAlgorithm = algorithm;
+    qCDebug(logListWidgets) << "Search algorithm set successfully";
 }
 
 /*!
@@ -278,9 +311,16 @@ void DSimpleListView::setSearchAlgorithm(SearchAlgorithm algorithm)
  */
 void DSimpleListView::setClipRadius(int radius)
 {
+    qCDebug(logListWidgets) << "Setting clip radius to:" << radius;
     D_D(DSimpleListView);
 
+    if (d->clipRadius == radius) {
+        qCDebug(logListWidgets) << "Clip radius unchanged, skipping update";
+        return;
+    }
+
     d->clipRadius = radius;
+    qCDebug(logListWidgets) << "Clip radius updated successfully";
 }
 
 /*!
@@ -292,11 +332,13 @@ void DSimpleListView::setClipRadius(int radius)
  */
 void DSimpleListView::setFrame(bool enableFrame, QColor color, double opacity)
 {
+    qCDebug(logListWidgets) << "Setting frame - enabled:" << enableFrame << "color:" << color.name() << "opacity:" << opacity;
     D_D(DSimpleListView);
 
     d->drawFrame = enableFrame;
     frameColor = color;
     frameOpacity = opacity;
+    qCDebug(logListWidgets) << "Frame settings updated successfully";
 }
 
 /*!
@@ -306,19 +348,25 @@ void DSimpleListView::setFrame(bool enableFrame, QColor color, double opacity)
  */
 void DSimpleListView::addItems(QList<DSimpleListItem*> items)
 {
+    qCDebug(logListWidgets) << "Adding" << items.size() << "items to list view";
     D_D(DSimpleListView);
 
     // Add item to list.
     d->listItems->append(items);
     QList<DSimpleListItem*> searchItems = d->getSearchItems(items);
     d->renderItems->append(searchItems);
+    qCDebug(logListWidgets) << "Items added - total list items:" << d->listItems->size() << "render items:" << d->renderItems->size();
 
     // If user has click title to sort, sort items after add items to list.
     if (d->defaultSortingColumn != -1) {
+        qCDebug(logListWidgets) << "Sorting items by default column:" << d->defaultSortingColumn;
         d->sortItemsByColumn(d->defaultSortingColumn, d->defaultSortingOrder);
+    } else {
+        qCDebug(logListWidgets) << "No default sorting applied";
     }
 
     // Repaint after add items.
+    qCDebug(logListWidgets) << "Repainting after adding items";
     repaint();
 }
 
@@ -329,15 +377,25 @@ void DSimpleListView::addItems(QList<DSimpleListItem*> items)
  */
 void DSimpleListView::removeItem(DSimpleListItem* item)
 {
+    qCDebug(logListWidgets) << "Removing item from list view";
     D_D(DSimpleListView);
 
-    d->listItems->removeOne(item);
-    d->renderItems->removeOne(item);
-
-    if (d->renderOffset >= d->getItemsTotalHeight() - rect().height()) {
-        d->renderOffset = adjustRenderOffset(d->renderOffset - d->rowHeight);
+    if (!item) {
+        qCDebug(logListWidgets) << "Item is null, skipping removal";
+        return;
     }
 
+    bool removedFromList = d->listItems->removeOne(item);
+    bool removedFromRender = d->renderItems->removeOne(item);
+    qCDebug(logListWidgets) << "Item removed - from list:" << removedFromList << "from render:" << removedFromRender;
+
+    if (d->renderOffset >= d->getItemsTotalHeight() - rect().height()) {
+        int oldOffset = d->renderOffset;
+        d->renderOffset = adjustRenderOffset(d->renderOffset - d->rowHeight);
+        qCDebug(logListWidgets) << "Adjusted render offset from" << oldOffset << "to" << d->renderOffset;
+    }
+
+    qCDebug(logListWidgets) << "Repainting after item removal";
     repaint();
 }
 
@@ -346,13 +404,18 @@ void DSimpleListView::removeItem(DSimpleListItem* item)
  */
 void DSimpleListView::clearItems()
 {
+    qCDebug(logListWidgets) << "Clearing all items from list view";
     D_D(DSimpleListView);
+
+    int itemCount = d->listItems->size();
+    qCDebug(logListWidgets) << "Deleting" << itemCount << "items to avoid memory leak";
 
     // NOTE:
     // We need delete items in QList before clear QList to avoid *MEMORY LEAK* .
     qDeleteAll(d->listItems->begin(), d->listItems->end());
     d->listItems->clear();
     d->renderItems->clear();
+    qCDebug(logListWidgets) << "All items cleared successfully";
 }
 
 /*!
@@ -362,6 +425,7 @@ void DSimpleListView::clearItems()
  */
 void DSimpleListView::addSelections(QList<DSimpleListItem*> items, bool recordLastSelection)
 {
+    qCDebug(logListWidgets) << "Adding selections - items count:" << items.size() << "record last:" << recordLastSelection;
     D_D(DSimpleListView);
 
     // Add item to selection list.
@@ -369,6 +433,7 @@ void DSimpleListView::addSelections(QList<DSimpleListItem*> items, bool recordLa
 
     // Record last selection item to make selected operation continuously.
     if (recordLastSelection && d->selectionItems->count() > 0) {
+        qCDebug(logListWidgets) << "Recording last selection item";
         d->lastSelectItem = d->selectionItems->last();
     }
 }
@@ -380,12 +445,14 @@ void DSimpleListView::addSelections(QList<DSimpleListItem*> items, bool recordLa
  */
 void DSimpleListView::clearSelections(bool clearLastSelection)
 {
+    qCDebug(logListWidgets) << "Clearing selections - clear last:" << clearLastSelection;
     D_D(DSimpleListView);
 
     // Clear selection list.
     d->selectionItems->clear();
 
     if (clearLastSelection) {
+        qCDebug(logListWidgets) << "Clearing last selection item";
         d->lastSelectItem = NULL;
     }
 }
@@ -397,6 +464,7 @@ void DSimpleListView::clearSelections(bool clearLastSelection)
  */
 QList<DSimpleListItem*> DSimpleListView::getSelections()
 {
+    qCDebug(logListWidgets) << "Getting selections - count:" << d->selectionItems->size();
     D_D(DSimpleListView);
 
     return *d->selectionItems;
@@ -409,6 +477,7 @@ QList<DSimpleListItem*> DSimpleListView::getSelections()
  */
 void DSimpleListView::refreshItems(QList<DSimpleListItem*> items)
 {
+    qCDebug(logListWidgets) << "Refreshing items - count:" << items.size();
     D_D(DSimpleListView);
 
     // Init.
@@ -476,21 +545,26 @@ void DSimpleListView::refreshItems(QList<DSimpleListItem*> items)
  */
 void DSimpleListView::search(QString content)
 {
+    qCDebug(logListWidgets) << "Searching with content:" << content;
     D_D(DSimpleListView);
 
     if (content == "" && d->searchContent != content) {
+        qCDebug(logListWidgets) << "Clearing search, showing all items";
         d->searchContent = content;
 
         d->renderItems->clear();
         d->renderItems->append(*d->listItems);
+        qCDebug(logListWidgets) << "Showing all" << d->listItems->size() << "items";
     } else {
         d->searchContent = content;
 
         QList<DSimpleListItem*> searchItems = d->getSearchItems(*d->listItems);
         d->renderItems->clear();
         d->renderItems->append(searchItems);
+        qCDebug(logListWidgets) << "Search found" << searchItems.size() << "matching items";
     }
 
+    qCDebug(logListWidgets) << "Repainting after search";
     repaint();
 }
 
@@ -501,9 +575,16 @@ void DSimpleListView::search(QString content)
  */
 void DSimpleListView::setSingleSelect(bool singleSelect)
 {
+    qCDebug(logListWidgets) << "Setting single select mode to:" << singleSelect;
     D_D(DSimpleListView);
 
+    if (d->isSingleSelect == singleSelect) {
+        qCDebug(logListWidgets) << "Single select mode unchanged, skipping update";
+        return;
+    }
+
     d->isSingleSelect = singleSelect;
+    qCDebug(logListWidgets) << "Single select mode updated successfully";
 }
 
 /*!
@@ -513,9 +594,16 @@ void DSimpleListView::setSingleSelect(bool singleSelect)
  */
 void DSimpleListView::keepSelectWhenClickBlank(bool keep)
 {
+    qCDebug(logListWidgets) << "Setting keep select when click blank to:" << keep;
     D_D(DSimpleListView);
 
+    if (d->isKeepSelectWhenClickBlank == keep) {
+        qCDebug(logListWidgets) << "Keep select setting unchanged, skipping update";
+        return;
+    }
+
     d->isKeepSelectWhenClickBlank = keep;
+    qCDebug(logListWidgets) << "Keep select setting updated successfully";
 }
 
 /*!
@@ -523,23 +611,28 @@ void DSimpleListView::keepSelectWhenClickBlank(bool keep)
  */
 void DSimpleListView::selectAllItems()
 {
+    qCDebug(logListWidgets) << "Selecting all items";
     D_D(DSimpleListView);
 
     if (!d->isSingleSelect) {
+        qCDebug(logListWidgets) << "Multi-select mode, proceeding with select all";
         // Record old render offset to control scrollbar whether display.
         d->oldRenderOffset = d->renderOffset;
 
         // Select all items.
         clearSelections();
         addSelections(*d->renderItems);
+        qCDebug(logListWidgets) << "Selected" << d->renderItems->size() << "items";
 
         // Scroll to top.
         d->renderOffset = d->getTopRenderOffset();
+        qCDebug(logListWidgets) << "Scrolled to top";
 
         // Repaint.
         repaint();
+    } else {
+        qCDebug(logListWidgets) << "Single select mode, cannot select all items";
     }
-
 }
 
 /*!
@@ -547,7 +640,13 @@ void DSimpleListView::selectAllItems()
  */
 void DSimpleListView::selectFirstItem()
 {
+    qCDebug(logListWidgets) << "Selecting first item";
     D_D(DSimpleListView);
+
+    if (d->renderItems->isEmpty()) {
+        qCDebug(logListWidgets) << "No items to select";
+        return;
+    }
 
     // Record old render offset to control scrollbar whether display.
     d->oldRenderOffset = d->renderOffset;
@@ -558,9 +657,11 @@ void DSimpleListView::selectFirstItem()
     QList<DSimpleListItem*> items = QList<DSimpleListItem*>();
     items << d->renderItems->first();
     addSelections(items);
+    qCDebug(logListWidgets) << "First item selected";
 
     // Scroll to top.
     d->renderOffset = d->getTopRenderOffset();
+    qCDebug(logListWidgets) << "Scrolled to top";
 
     // Repaint.
     repaint();
@@ -571,7 +672,13 @@ void DSimpleListView::selectFirstItem()
  */
 void DSimpleListView::selectLastItem()
 {
+    qCDebug(logListWidgets) << "Selecting last item";
     D_D(DSimpleListView);
+
+    if (d->renderItems->isEmpty()) {
+        qCDebug(logListWidgets) << "No items to select";
+        return;
+    }
 
     // Record old render offset to control scrollbar whether display.
     d->oldRenderOffset = d->renderOffset;
@@ -582,9 +689,11 @@ void DSimpleListView::selectLastItem()
     QList<DSimpleListItem*> items = QList<DSimpleListItem*>();
     items << d->renderItems->last();
     addSelections(items);
+    qCDebug(logListWidgets) << "Last item selected";
 
     // Scroll to bottom.
     d->renderOffset = getBottomRenderOffset();
+    qCDebug(logListWidgets) << "Scrolled to bottom";
 
     // Repaint.
     repaint();
@@ -595,6 +704,7 @@ void DSimpleListView::selectLastItem()
  */
 void DSimpleListView::selectPrevItem()
 {
+    qCDebug(logListWidgets) << "Selecting previous item";
     selectPrevItemWithOffset(1);
 }
 
@@ -603,6 +713,7 @@ void DSimpleListView::selectPrevItem()
  */
 void DSimpleListView::selectNextItem()
 {
+    qCDebug(logListWidgets) << "Selecting next item";
     selectNextItemWithOffset(1);
 }
 
@@ -732,47 +843,61 @@ void DSimpleListView::scrollPageUp()
 
 void DSimpleListView::ctrlScrollPageUp()
 {
+    qCDebug(logListWidgets) << "Ctrl scroll page up";
     D_D(DSimpleListView);
 
+    int oldOffset = d->renderOffset;
     d->renderOffset = adjustRenderOffset(d->renderOffset - getScrollAreaHeight());
+    qCDebug(logListWidgets) << "Render offset changed from" << oldOffset << "to" << d->renderOffset;
 
     repaint();
 }
 
 void DSimpleListView::ctrlScrollPageDown()
 {
+    qCDebug(logListWidgets) << "Ctrl scroll page down";
     D_D(DSimpleListView);
 
+    int oldOffset = d->renderOffset;
     d->renderOffset = adjustRenderOffset(d->renderOffset + getScrollAreaHeight());
+    qCDebug(logListWidgets) << "Render offset changed from" << oldOffset << "to" << d->renderOffset;
 
     repaint();
 }
 
 void DSimpleListView::ctrlScrollToHome()
 {
+    qCDebug(logListWidgets) << "Ctrl scroll to home";
     D_D(DSimpleListView);
 
+    int oldOffset = d->renderOffset;
     d->renderOffset = d->getTopRenderOffset();
+    qCDebug(logListWidgets) << "Render offset changed from" << oldOffset << "to" << d->renderOffset;
 
     repaint();
 }
 
 void DSimpleListView::ctrlScrollToEnd()
 {
+    qCDebug(logListWidgets) << "Ctrl scroll to end";
     D_D(DSimpleListView);
 
+    int oldOffset = d->renderOffset;
     d->renderOffset = getBottomRenderOffset();
+    qCDebug(logListWidgets) << "Render offset changed from" << oldOffset << "to" << d->renderOffset;
 
     repaint();
 }
 
 void DSimpleListView::leaveEvent(QEvent * event)
 {
+    qCDebug(logListWidgets) << "Mouse leave event";
     D_D(DSimpleListView);
 
     d->lastHoverItem.clear();
     d->drawHoverItem.clear();
     d->mouseHoverItem.clear();
+    qCDebug(logListWidgets) << "Cleared hover items";
 
     hideScrollbar();
 
@@ -781,79 +906,107 @@ void DSimpleListView::leaveEvent(QEvent * event)
 
 void DSimpleListView::hideScrollbar()
 {
+    qCDebug(logListWidgets) << "Hiding scrollbar";
     D_D(DSimpleListView);
 
     // Record old render offset to control scrollbar whether display.
     d->mouseAtScrollArea = false;
     d->oldRenderOffset = d->renderOffset;
+    qCDebug(logListWidgets) << "Mouse at scroll area set to false";
 
     repaint();
 }
 
-bool DSimpleListView::eventFilter(QObject *, QEvent *)
+bool DSimpleListView::eventFilter(QObject *obj, QEvent *event)
 {
+    qCDebug(logListWidgets) << "Event filter called with event type:" << event->type();
+    Q_UNUSED(obj);
+    Q_UNUSED(event);
     return false;
 }
 
 void DSimpleListView::keyPressEvent(QKeyEvent *keyEvent)
 {
+    qCDebug(logListWidgets) << "Key press event - key:" << keyEvent->key() << "modifiers:" << keyEvent->modifiers();
+    
     if (keyEvent->key() == Qt::Key_Home) {
         if (keyEvent->modifiers() == Qt::ControlModifier) {
+            qCDebug(logListWidgets) << "Ctrl+Home pressed - scrolling to home";
             ctrlScrollToHome();
         } else if (keyEvent->modifiers() == Qt::ShiftModifier) {
+            qCDebug(logListWidgets) << "Shift+Home pressed - shift selecting to home";
             shiftSelectToHome();
         }else {
+            qCDebug(logListWidgets) << "Home pressed - selecting first item";
             selectFirstItem();
         }
     } else if (keyEvent->key() == Qt::Key_End) {
         if (keyEvent->modifiers() == Qt::ControlModifier) {
+            qCDebug(logListWidgets) << "Ctrl+End pressed - scrolling to end";
             ctrlScrollToEnd();
         } else if (keyEvent->modifiers() == Qt::ShiftModifier) {
+            qCDebug(logListWidgets) << "Shift+End pressed - shift selecting to end";
             shiftSelectToEnd();
         } else {
+            qCDebug(logListWidgets) << "End pressed - selecting last item";
             selectLastItem();
         }
     } else if (keyEvent->key() == Qt::Key_Up) {
         if (keyEvent->modifiers() == Qt::ShiftModifier) {
+            qCDebug(logListWidgets) << "Shift+Up pressed - shift selecting previous";
             shiftSelectToPrev();
         } else {
+            qCDebug(logListWidgets) << "Up pressed - selecting previous item";
             selectPrevItem();
         }
     } else if (keyEvent->key() == Qt::Key_Down) {
         if (keyEvent->modifiers() == Qt::ShiftModifier) {
+            qCDebug(logListWidgets) << "Shift+Down pressed - shift selecting next";
             shiftSelectToNext();
         } else {
+            qCDebug(logListWidgets) << "Down pressed - selecting next item";
             selectNextItem();
         }
     } else if (keyEvent->key() == Qt::Key_PageUp) {
         if (keyEvent->modifiers() == Qt::ControlModifier) {
+            qCDebug(logListWidgets) << "Ctrl+PageUp pressed - scrolling page up";
             ctrlScrollPageUp();
         } else if (keyEvent->modifiers() == Qt::ShiftModifier) {
+            qCDebug(logListWidgets) << "Shift+PageUp pressed - shift selecting page up";
             shiftSelectPageUp();
         } else {
+            qCDebug(logListWidgets) << "PageUp pressed - scrolling page up";
             scrollPageUp();
         }
     } else if (keyEvent->key() == Qt::Key_PageDown) {
         if (keyEvent->modifiers() == Qt::ControlModifier) {
+            qCDebug(logListWidgets) << "Ctrl+PageDown pressed - scrolling page down";
             ctrlScrollPageDown();
         } else if (keyEvent->modifiers() == Qt::ShiftModifier) {
+            qCDebug(logListWidgets) << "Shift+PageDown pressed - shift selecting page down";
             shiftSelectPageDown();
         } else {
+            qCDebug(logListWidgets) << "PageDown pressed - scrolling page down";
             scrollPageDown();
         }
     } else if (keyEvent->key() == Qt::Key_A) {
         if (keyEvent->modifiers() == Qt::ControlModifier) {
+            qCDebug(logListWidgets) << "Ctrl+A pressed - selecting all items";
             selectAllItems();
         }
+    } else {
+        qCDebug(logListWidgets) << "Unhandled key press";
     }
 }
 
 void DSimpleListView::mouseMoveEvent(QMouseEvent *mouseEvent)
 {
+    qCDebug(logListWidgets) << "Mouse move event";
     D_D(DSimpleListView);
 
     // Scroll if mouse drag at scrollbar.
     if (d->mouseDragScrollbar) {
+        qCDebug(logListWidgets) << "Dragging scrollbar";
         int barHeight = getScrollbarHeight();
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         d->renderOffset = adjustRenderOffset((mouseEvent->y() - barHeight / 2 - d->titleHeight) / (getScrollAreaHeight() * 1.0) * d->getItemsTotalHeight());
@@ -865,9 +1018,11 @@ void DSimpleListView::mouseMoveEvent(QMouseEvent *mouseEvent)
     // Update scrollbar status with mouse position.
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
     else if (isMouseAtScrollArea(mouseEvent->x()) != d->mouseAtScrollArea) {
+        qCDebug(logListWidgets) << "Mouse scroll area status changed";
         d->mouseAtScrollArea = isMouseAtScrollArea(mouseEvent->x());
 #else
     else if (isMouseAtScrollArea(mouseEvent->position().x()) != d->mouseAtScrollArea) {
+        qCDebug(logListWidgets) << "Mouse scroll area status changed";
         d->mouseAtScrollArea = isMouseAtScrollArea(mouseEvent->position().x());
 #endif
         repaint();
@@ -975,6 +1130,7 @@ void DSimpleListView::mouseMoveEvent(QMouseEvent *mouseEvent)
 
 void DSimpleListView::mousePressEvent(QMouseEvent *mouseEvent)
 {
+    qCDebug(logListWidgets) << "Mouse press event - button:" << mouseEvent->button();
     D_D(DSimpleListView);
 
     setFocus();
@@ -985,10 +1141,13 @@ void DSimpleListView::mousePressEvent(QMouseEvent *mouseEvent)
     bool atTitleArea = isMouseAtTitleArea(mouseEvent->position().y());
     bool atScrollArea = isMouseAtScrollArea(mouseEvent->position().x());
 #endif
+    qCDebug(logListWidgets) << "Mouse at title area:" << atTitleArea << "at scroll area:" << atScrollArea;
 
     // Sort items with column's sorting algorithms when click on title area.
     if (atTitleArea) {
+        qCDebug(logListWidgets) << "Mouse press in title area";
         if (mouseEvent->button() == Qt::LeftButton) {
+            qCDebug(logListWidgets) << "Left button pressed in title area";
             if (d->sortingAlgorithms->count() != 0 && d->sortingAlgorithms->count() == d->columnTitles.count() && d->sortingOrderes->count() == d->columnTitles.count()) {
                 // Calculate title widths;
                 QList<int> renderWidths = getRenderWidths();
@@ -1034,7 +1193,9 @@ void DSimpleListView::mousePressEvent(QMouseEvent *mouseEvent)
                 }
             }
         } else if (mouseEvent->button() == Qt::RightButton) {
+            qCDebug(logListWidgets) << "Right button pressed in title area";
             if (columnVisibles.count() == d->columnTitles.count()) {
+                qCDebug(logListWidgets) << "Creating column visibility menu";
                 QMenu *menu = new QMenu();
                 menu->setStyle(QStyleFactory::create("dlight"));
 
@@ -1066,6 +1227,7 @@ void DSimpleListView::mousePressEvent(QMouseEvent *mouseEvent)
     }
     // Scroll when click on scrollbar area.
     else if (atScrollArea) {
+        qCDebug(logListWidgets) << "Mouse press in scroll area";
         int barHeight = getScrollbarHeight();
         int barY = getScrollbarY();
 
@@ -1086,6 +1248,7 @@ void DSimpleListView::mousePressEvent(QMouseEvent *mouseEvent)
     }
     // Select items.
     else {
+        qCDebug(logListWidgets) << "Mouse press in item area";
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         int pressItemIndex = (d->renderOffset + mouseEvent->y() - d->titleHeight) / d->rowHeight;
 #else
@@ -1192,15 +1355,18 @@ void DSimpleListView::mousePressEvent(QMouseEvent *mouseEvent)
 
 void DSimpleListView::mouseReleaseEvent(QMouseEvent *mouseEvent)
 {
+    qCDebug(logListWidgets) << "Mouse release event";
     D_D(DSimpleListView);
 
     if (d->mouseDragScrollbar) {
+        qCDebug(logListWidgets) << "Ending scrollbar drag";
         // Reset mouseDragScrollbar.
         d->mouseDragScrollbar = false;
 
         repaint();
     } else {
         if (d->titlePressColumn != -1) {
+            qCDebug(logListWidgets) << "Ending title column press";
             d->titlePressColumn = -1;
             repaint();
         }
@@ -1246,16 +1412,22 @@ void DSimpleListView::mouseReleaseEvent(QMouseEvent *mouseEvent)
 
 void DSimpleListView::wheelEvent(QWheelEvent *event)
 {
+    qCDebug(logListWidgets) << "Wheel event received";
     D_D(DSimpleListView);
     auto delta = event->angleDelta();
     if (delta.y() != 0) {
+        qCDebug(logListWidgets) << "Vertical wheel scroll - delta:" << delta.y();
         // Record old render offset to control scrollbar whether display.
         d->oldRenderOffset = d->renderOffset;
 
         qreal scrollStep = delta.y() / 120.0;
+        int oldOffset = d->renderOffset;
         d->renderOffset = adjustRenderOffset(d->renderOffset - scrollStep * d->scrollUnit);
+        qCDebug(logListWidgets) << "Scroll step:" << scrollStep << "offset changed from" << oldOffset << "to" << d->renderOffset;
 
         repaint();
+    } else {
+        qCDebug(logListWidgets) << "No vertical scroll delta, ignoring wheel event";
     }
 
     event->accept();
@@ -1263,6 +1435,7 @@ void DSimpleListView::wheelEvent(QWheelEvent *event)
 
 void DSimpleListView::paintEvent(QPaintEvent *)
 {
+    qCDebug(logListWidgets) << "Paint event triggered";
     D_D(DSimpleListView);
 
     // Init.
@@ -1438,25 +1611,30 @@ void DSimpleListView::paintEvent(QPaintEvent *)
 
 void DSimpleListView::paintScrollbar(QPainter *painter)
 {
+    qCDebug(logListWidgets) << "Painting scrollbar";
     D_D(DSimpleListView);
 
     if (d->getItemsTotalHeight() > getScrollAreaHeight()) {
+        qCDebug(logListWidgets) << "Items exceed scroll area, drawing scrollbar";
         // Init scrollbar opacity with scrollbar status.
         qreal barOpacitry = 0;
         qreal barFrameOpacitry = 0;
 
         // Press.
         if (d->mouseDragScrollbar) {
+            qCDebug(logListWidgets) << "Scrollbar in press state";
             barOpacitry = scrollbarPressOpacity;
             barFrameOpacitry = scrollbarFramePressOpacity;
         } else {
             // Hover.
             if (d->mouseAtScrollArea) {
+                qCDebug(logListWidgets) << "Scrollbar in hover state";
                 barOpacitry = scrollbarHoverOpacity;
                 barFrameOpacitry = scrollbarFrameHoverOpacity;
             }
             // Normal.
             else {
+                qCDebug(logListWidgets) << "Scrollbar in normal state";
                 barOpacitry = scrollbarNormalOpacity;
                 barFrameOpacitry = scrollbarFrameNormalOpacity;
             }
@@ -1488,12 +1666,14 @@ void DSimpleListView::paintScrollbar(QPainter *painter)
 
 void DSimpleListView::selectNextItemWithOffset(int scrollOffset)
 {
+    qCDebug(logListWidgets) << "Selecting next item with offset:" << scrollOffset;
     D_D(DSimpleListView);
 
     // Record old render offset to control scrollbar whether display.
     d->oldRenderOffset = d->renderOffset;
 
     if (d->selectionItems->empty()) {
+        qCDebug(logListWidgets) << "No items selected, selecting first item";
         selectFirstItem();
     } else {
         int lastIndex = 0;
@@ -1505,7 +1685,9 @@ void DSimpleListView::selectNextItemWithOffset(int scrollOffset)
         }
 
         if (lastIndex != -1) {
-            lastIndex = std::min<qsizetype>(d->renderItems->count() - 1, lastIndex + scrollOffset);
+            int newIndex = std::min<qsizetype>(d->renderItems->count() - 1, lastIndex + scrollOffset);
+            qCDebug(logListWidgets) << "Moving selection from index" << lastIndex << "to" << newIndex;
+            lastIndex = newIndex;
 
             clearSelections(false);
 
@@ -1517,22 +1699,27 @@ void DSimpleListView::selectNextItemWithOffset(int scrollOffset)
             int itemIndex = lastIndex + 1;
             int itemOffset = adjustRenderOffset(itemIndex * d->rowHeight - rect().height() + d->titleHeight);
             if (((d->renderOffset + getScrollAreaHeight()) / d->rowHeight) < itemIndex) {
+                qCDebug(logListWidgets) << "Adjusting render offset for visibility";
                 d->renderOffset = itemOffset;
             }
 
             repaint();
+        } else {
+            qCDebug(logListWidgets) << "Invalid last index, skipping selection";
         }
     }
 }
 
 void DSimpleListView::selectPrevItemWithOffset(int scrollOffset)
 {
+    qCDebug(logListWidgets) << "Selecting previous item with offset:" << scrollOffset;
     D_D(DSimpleListView);
 
     // Record old render offset to control scrollbar whether display.
     d->oldRenderOffset = d->renderOffset;
 
     if (d->selectionItems->empty()) {
+        qCDebug(logListWidgets) << "No items selected, selecting first item";
         selectFirstItem();
     } else {
         int firstIndex = d->renderItems->count();
@@ -1544,7 +1731,9 @@ void DSimpleListView::selectPrevItemWithOffset(int scrollOffset)
         }
 
         if (firstIndex != -1) {
-            firstIndex = std::max(0, firstIndex - scrollOffset);
+            int newIndex = std::max(0, firstIndex - scrollOffset);
+            qCDebug(logListWidgets) << "Moving selection from index" << firstIndex << "to" << newIndex;
+            firstIndex = newIndex;
 
             clearSelections();
 
@@ -1556,16 +1745,20 @@ void DSimpleListView::selectPrevItemWithOffset(int scrollOffset)
             int itemIndex = firstIndex - 1;
             int itemOffset = adjustRenderOffset(itemIndex * d->rowHeight + d->titleHeight);
             if ((d->renderOffset / d->rowHeight) > itemIndex) {
+                qCDebug(logListWidgets) << "Adjusting render offset for visibility";
                 d->renderOffset = itemOffset;
             }
 
             repaint();
+        } else {
+            qCDebug(logListWidgets) << "Invalid first index, skipping selection";
         }
     }
 }
 
 void DSimpleListView::shiftSelectItemsWithBound(int selectionStartIndex, int selectionEndIndex)
 {
+    qCDebug(logListWidgets) << "Shift selecting items from index" << selectionStartIndex << "to" << selectionEndIndex;
     D_D(DSimpleListView);
 
     // Note: Shift operation always selection bound from last selection index to current index.
@@ -1581,6 +1774,7 @@ void DSimpleListView::shiftSelectItemsWithBound(int selectionStartIndex, int sel
         index++;
     }
 
+    qCDebug(logListWidgets) << "Selected" << items.size() << "items in range";
     // Note: Shift operation always selection bound from last selection index to current index.
     // So we don't need *record* lastSelectionIndex for keep shift + button is right logic.
     addSelections(items, false);
@@ -1588,12 +1782,14 @@ void DSimpleListView::shiftSelectItemsWithBound(int selectionStartIndex, int sel
 
 void DSimpleListView::shiftSelectPrevItemWithOffset(int scrollOffset)
 {
+    qCDebug(logListWidgets) << "Shift selecting previous items with offset:" << scrollOffset;
     D_D(DSimpleListView);
 
     // Record old render offset to control scrollbar whether display.
     d->oldRenderOffset = d->renderOffset;
 
     if (d->selectionItems->empty()) {
+        qCDebug(logListWidgets) << "No items selected, selecting first item";
         selectFirstItem();
     } else {
         int firstIndex = d->renderItems->count();
@@ -1617,30 +1813,37 @@ void DSimpleListView::shiftSelectPrevItemWithOffset(int scrollOffset)
             if (lastIndex == lastSelectionIndex) {
                 selectionStartIndex = std::max(0, firstIndex - scrollOffset);
                 selectionEndIndex = lastSelectionIndex;
+                qCDebug(logListWidgets) << "Extending selection upward from" << selectionStartIndex << "to" << selectionEndIndex;
             } else {
                 selectionStartIndex = firstIndex;
                 selectionEndIndex = std::max(0, lastIndex - scrollOffset);
+                qCDebug(logListWidgets) << "Contracting selection from" << selectionStartIndex << "to" << selectionEndIndex;
             }
 
             shiftSelectItemsWithBound(selectionStartIndex, selectionEndIndex);
 
             if (d->renderOffset / d->rowHeight >= selectionStartIndex) {
+                qCDebug(logListWidgets) << "Adjusting render offset for visibility";
                 d->renderOffset = adjustRenderOffset((selectionStartIndex - 1) * d->rowHeight + d->titleHeight);
             }
 
             repaint();
+        } else {
+            qCDebug(logListWidgets) << "Invalid first index, skipping selection";
         }
     }
 }
 
 void DSimpleListView::shiftSelectNextItemWithOffset(int scrollOffset)
 {
+    qCDebug(logListWidgets) << "Shift selecting next items with offset:" << scrollOffset;
     D_D(DSimpleListView);
 
     // Record old render offset to control scrollbar whether display.
     d->oldRenderOffset = d->renderOffset;
 
     if (d->selectionItems->empty()) {
+        qCDebug(logListWidgets) << "No items selected, selecting first item";
         selectFirstItem();
     } else {
         int firstIndex = d->renderItems->count();
@@ -1664,19 +1867,24 @@ void DSimpleListView::shiftSelectNextItemWithOffset(int scrollOffset)
             if (firstIndex == lastSelectionIndex) {
                 selectionStartIndex = firstIndex;
                 selectionEndIndex = std::min<qsizetype>(d->renderItems->count() - 1, lastIndex + scrollOffset);
+                qCDebug(logListWidgets) << "Extending selection downward from" << selectionStartIndex << "to" << selectionEndIndex;
             } else {
                 selectionStartIndex = std::min<qsizetype>(d->renderItems->count() - 1, firstIndex + scrollOffset);
                 selectionEndIndex = lastIndex;
+                qCDebug(logListWidgets) << "Contracting selection from" << selectionStartIndex << "to" << selectionEndIndex;
             }
 
             shiftSelectItemsWithBound(selectionStartIndex, selectionEndIndex);
 
             if ((d->renderOffset + rect().height()) / d->rowHeight <= selectionEndIndex + 1) {
+                qCDebug(logListWidgets) << "Adjusting render offset for visibility";
                 d->renderOffset = adjustRenderOffset((selectionEndIndex + 1) * d->rowHeight + d->titleHeight - rect().height());
             }
 
 
             repaint();
+        } else {
+            qCDebug(logListWidgets) << "Invalid first index, skipping selection";
         }
     }
 }
@@ -1687,7 +1895,9 @@ QList<int> DSimpleListView::getRenderWidths()
 
     QList<int> renderWidths;
     if (d->columnWidths.length() > 0) {
+        qCDebug(logListWidgets) << "Calculating render widths for" << d->columnWidths.length() << "columns";
         if (d->columnWidths.contains(-1)) {
+            qCDebug(logListWidgets) << "Auto-width column detected";
             for (int i = 0; i < d->columnWidths.count(); i++) {
                 if (d->columnWidths[i] != -1) {
                     if (columnVisibles.value(i)) {
@@ -1705,13 +1915,16 @@ QList<int> DSimpleListView::getRenderWidths()
                             }
                         }
 
-                        renderWidths << rect().width() - totalWidthOfOtherColumns;
+                        const auto& autoWidth = rect().width() - totalWidthOfOtherColumns;
+                        qCDebug(logListWidgets) << "Auto-width column" << i << "calculated width:" << autoWidth;
+                        renderWidths << autoWidth;
                     } else {
                         renderWidths << 0;
                     }
                 }
             }
         } else {
+            qCDebug(logListWidgets) << "Using fixed column widths";
             for (int i = 0; i < d->columnWidths.count(); i++) {
                 if (columnVisibles.value(i)) {
                     renderWidths << d->columnWidths[i];
@@ -1724,9 +1937,11 @@ QList<int> DSimpleListView::getRenderWidths()
     // Return widget width if user don't set column withs throught function 'setColumnTitleInfo'.
     // Avoid listview don't draw item's foregound cause by emptry 'columnWidths'.
     else {
+        qCDebug(logListWidgets) << "No column widths set, using full widget width";
         renderWidths << rect().width();
     }
 
+    qCDebug(logListWidgets) << "Final render widths:" << renderWidths;
     return renderWidths;
 }
 
@@ -1734,31 +1949,41 @@ bool DSimpleListView::isMouseAtScrollArea(int x)
 {
     D_D(DSimpleListView);
 
-    return (x > rect().x() + rect().width() - d->scrollbarDragWidth) && (x < rect().x() + rect().width());
+    const auto& result = (x > rect().x() + rect().width() - d->scrollbarDragWidth) && (x < rect().x() + rect().width());
+    qCDebug(logListWidgets) << "Check mouse at scroll area - x:" << x << "result:" << result;
+    return result;
 }
 
 bool DSimpleListView::isMouseAtTitleArea(int y)
 {
     D_D(DSimpleListView);
 
-    return (y > rect().y() && y < rect().y() + d->titleHeight);
+    const auto& result = (y > rect().y() && y < rect().y() + d->titleHeight);
+    qCDebug(logListWidgets) << "Check mouse at title area - y:" << y << "result:" << result;
+    return result;
 }
 
 int DSimpleListView::adjustRenderOffset(int offset)
 {
-    return std::max(0, std::min(offset, getBottomRenderOffset()));
+    const auto& result = std::max(0, std::min(offset, getBottomRenderOffset()));
+    qCDebug(logListWidgets) << "Adjusting render offset from" << offset << "to" << result;
+    return result;
 }
 
 int DSimpleListViewPrivate::getItemsTotalHeight()
 {
-    return renderItems->count() * rowHeight;
+    const auto& result = renderItems->count() * rowHeight;
+    qCDebug(logListWidgets) << "Getting items total height:" << result << "(items:" << renderItems->count() << "row height:" << rowHeight << ")";
+    return result;
 }
 
 int DSimpleListView::getScrollAreaHeight()
 {
     D_D(DSimpleListView);
 
-    return rect().height() - d->titleHeight;
+    const auto& result = rect().height() - d->titleHeight;
+    qCDebug(logListWidgets) << "Getting scroll area height:" << result;
+    return result;
 }
 
 int DSimpleListView::getScrollbarY()
@@ -1766,25 +1991,31 @@ int DSimpleListView::getScrollbarY()
     D_D(DSimpleListView);
 
     int y = static_cast<int>((d->renderOffset / (d->getItemsTotalHeight() * 1.0)) * getScrollAreaHeight() + d->titleHeight);
-
-    return qMin(y, rect().height() - getScrollbarHeight());
+    const auto& result = qMin(y, rect().height() - getScrollbarHeight());
+    qCDebug(logListWidgets) << "Getting scrollbar Y position:" << result << "(calculated:" << y << ")";
+    return result;
 }
 
 int DSimpleListView::getScrollbarHeight()
 {
     D_D(DSimpleListView);
 
-    return std::max(static_cast<int>(getScrollAreaHeight() / (d->getItemsTotalHeight() * 1.0) * rect().height()), d->scrollbarMinHeight);
+    const auto& result = std::max(static_cast<int>(getScrollAreaHeight() / (d->getItemsTotalHeight() * 1.0) * rect().height()), d->scrollbarMinHeight);
+    qCDebug(logListWidgets) << "Getting scrollbar height:" << result << "(min height:" << d->scrollbarMinHeight << ")";
+    return result;
 }
 
 int DSimpleListViewPrivate::getTopRenderOffset()
 {
+    qCDebug(logListWidgets) << "Getting top render offset: 0";
     return 0;
 }
 
 QList<DSimpleListItem*> DSimpleListViewPrivate::getSearchItems(QList<DSimpleListItem*> items)
 {
+    qCDebug(logListWidgets) << "Getting search items - input count:" << items.size() << "search content:" << searchContent;
     if (searchContent == "" || searchAlgorithm == NULL) {
+        qCDebug(logListWidgets) << "No search filter applied, returning all items";
         return items;
     } else {
         QList<DSimpleListItem*> *searchItems = new QList<DSimpleListItem*>();
@@ -1795,6 +2026,7 @@ QList<DSimpleListItem*> DSimpleListViewPrivate::getSearchItems(QList<DSimpleList
             }
         }
 
+        qCDebug(logListWidgets) << "Search filter applied, found" << searchItems->size() << "matching items";
         return *searchItems;
     }
 }
@@ -1805,32 +2037,43 @@ int DSimpleListView::getBottomRenderOffset()
 
     int itemsHeight = d->getItemsTotalHeight();
     if (itemsHeight > rect().height() - d->titleHeight) {
-        return d->getItemsTotalHeight() - rect().height() + d->titleHeight;
+        const auto& result = d->getItemsTotalHeight() - rect().height() + d->titleHeight;
+        qCDebug(logListWidgets) << "Getting bottom render offset:" << result;
+        return result;
     } else {
+        qCDebug(logListWidgets) << "Getting bottom render offset: 0 (items fit in view)";
         return 0;
     }
 }
 
 void DSimpleListViewPrivate::sortItemsByColumn(int column, bool descendingSort)
 {
+    qCDebug(logListWidgets) << "Sorting items by column:" << column << "descending:" << descendingSort;
     if (sortingAlgorithms->count() != 0 && sortingAlgorithms->count() == columnTitles.count() && sortingOrderes->count() == columnTitles.count()) {
+        qCDebug(logListWidgets) << "Applying sort algorithm to" << renderItems->count() << "items";
         std::sort(renderItems->begin(), renderItems->end(), [&](const DSimpleListItem *item1, const DSimpleListItem *item2) {
                 return (*sortingAlgorithms)[column](item1, item2, descendingSort);
             });
+        qCDebug(logListWidgets) << "Sort completed";
+    } else {
+        qCDebug(logListWidgets) << "Sort skipped - algorithm count mismatch";
     }
 }
 
 void DSimpleListView::startScrollbarHideTimer()
 {
+    qCDebug(logListWidgets) << "Starting scrollbar hide timer";
     D_D(DSimpleListView);
 
     if (d->hideScrollbarTimer != NULL) {
+        qCDebug(logListWidgets) << "Stopping existing hide timer";
         d->hideScrollbarTimer->stop();
     }
 
     d->hideScrollbarTimer = new QTimer();
     connect(d->hideScrollbarTimer, SIGNAL(timeout()), this, SLOT(hideScrollbar()));
     d->hideScrollbarTimer->start(d->hideScrollbarDuration);
+    qCDebug(logListWidgets) << "Hide timer started with duration:" << d->hideScrollbarDuration;
 }
 
 DWIDGET_END_NAMESPACE

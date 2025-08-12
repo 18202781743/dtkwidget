@@ -14,6 +14,8 @@
 #include "private/dmainwindow_p.h"
 #include "private/dapplication_p.h"
 
+#include <QLoggingCategory>
+
 #include <QKeySequence>
 #include <QShortcut>
 #include <QWindow>
@@ -38,9 +40,14 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logWindowPlatform)
+}
+
 DMainWindowPrivate::DMainWindowPrivate(DMainWindow *qq)
     : DObjectPrivate(qq)
 {
+    qCDebug(logWindowPlatform) << "Creating main window private";
     titlebar = new DTitlebar(qq);
     titlebar->setAccessibleName("DMainWindowTitlebar");
 
@@ -63,7 +70,7 @@ DMainWindowPrivate::DMainWindowPrivate(DMainWindow *qq)
 void DMainWindowPrivate::init()
 {
     D_Q(DMainWindow);
-
+    qCDebug(logWindowPlatform) << "Initializing main window";
     // 默认开启标题栏阴影
     q->setTitlebarShadowEnabled(true);
 
@@ -403,8 +410,9 @@ QPoint DMainWindow::shadowOffset() const
 QColor DMainWindow::shadowColor() const
 {
     D_DC(DMainWindow);
-
+    qCDebug(logWindowPlatform) << "Getting shadow color";
     if (!d->handle) {
+        qCWarning(logWindowPlatform) << "No platform handle available";
         return QColor();
     }
 
@@ -467,8 +475,9 @@ QMargins DMainWindow::frameMargins() const
 bool DMainWindow::translucentBackground() const
 {
     D_DC(DMainWindow);
-
+    qCDebug(logWindowPlatform) << "Getting translucent background state";
     if (!d->handle) {
+        qCWarning(logWindowPlatform) << "No platform handle available";
         return false;
     }
 

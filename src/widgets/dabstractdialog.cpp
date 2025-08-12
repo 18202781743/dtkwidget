@@ -14,6 +14,9 @@
 #include <QLabel>
 #include <QDebug>
 #include <QComboBox>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(logDialogs)
 
 #include "danchors.h"
 #include "dialog_constants.h"
@@ -31,17 +34,19 @@ DWIDGET_BEGIN_NAMESPACE
 DAbstractDialogPrivate::DAbstractDialogPrivate(DAbstractDialog *qq):
     DObjectPrivate(qq)
 {
-
+    qCDebug(logDialogs) << "DAbstractDialogPrivate created";
 }
 
 void DAbstractDialogPrivate::init(bool blurIfPossible)
 {
     D_Q(DAbstractDialog);
+    qCDebug(logDialogs) << "Initializing DAbstractDialog, blur enabled:" << blurIfPossible;
     // TODO: 这里对dialog特殊处理，dialog不需要设置固定的位置，否则里面的坐标会发生偏移导致点击偏移
     // 但是这不是问题的根本原因，还需要进一步分析。该属性在插件中做了特殊处理
     q->QDialog::setProperty("DAbstractDialog", true);
 
     if (qApp->isDXcbPlatform()) {
+        qCDebug(logDialogs) << "Using DXcb platform";
         handle = new DPlatformWindowHandle(q, q);
 
         handle->setEnableSystemMove(false);
@@ -56,12 +61,15 @@ void DAbstractDialogPrivate::init(bool blurIfPossible)
         bgBlurWidget->setMaskAlpha(204); // 80%
 
         // blur if possible(wm support blur window)...
-        if (!DWindowManagerHelper::instance()->hasBlurWindow())
+        if (!DWindowManagerHelper::instance()->hasBlurWindow()) {
+            qCDebug(logDialogs) << "Window manager does not support blur, disabling";
             blurIfPossible = false;
+        }
 
         bgBlurWidget->setBlurEnabled(blurIfPossible);
         q->setAttribute(Qt::WA_TranslucentBackground, blurIfPossible);
     } else if (DWindowManagerHelper::instance()->hasNoTitlebar()) {
+        qCDebug(logDialogs) << "Using no titlebar mode";
         handle = new DPlatformWindowHandle(q, q);
 
         if (!handle->enableBlurWindow()) {
@@ -87,23 +95,29 @@ void DAbstractDialogPrivate::init(bool blurIfPossible)
 QRect DAbstractDialogPrivate::getParentGeometry() const
 {
     D_QC(DAbstractDialog);
+    qCDebug(logDialogs) << "Getting parent geometry";
 
     if (DGuiApplicationHelper::isTabletEnvironment()) {
+        qCDebug(logDialogs) << "Using tablet environment, returning primary screen geometry";
         return qApp->primaryScreen()->geometry();
     }
 
     if (q->parentWidget()) {
+        qCDebug(logDialogs) << "Using parent widget geometry";
         return q->parentWidget()->window()->geometry();
     } else {
+        qCDebug(logDialogs) << "Finding screen containing cursor position";
         QPoint pos = QCursor::pos();
 
         for (QScreen *screen : qApp->screens()) {
             if (screen->geometry().contains(pos)) {
+                qCDebug(logDialogs) << "Found screen containing cursor";
                 return screen->geometry();
             }
         }
     }
 
+    qCDebug(logDialogs) << "Using primary screen geometry as fallback";
     return qApp->primaryScreen()->geometry();
 }
 
@@ -185,13 +199,15 @@ DAbstractDialog::DAbstractDialog(QWidget *parent) :
     QDialog(parent),
     DObject(*new DAbstractDialogPrivate(this))
 {
+    qCDebug(logDialogs) << "DAbstractDialog created with default blur";
     d_func()->init(true);
 }
 
 DAbstractDialog::DAbstractDialog(bool blurIfPossible, QWidget *parent)
-    : QDialog(parent)
-    , DObject(*new DAbstractDialogPrivate(this))
+    : QDialog(parent),
+      DObject(*new DAbstractDialogPrivate(this))
 {
+    qCDebug(logDialogs) << "DAbstractDialog created with blur setting:" << blurIfPossible;
     d_func()->init(blurIfPossible);
 }
 
@@ -219,12 +235,13 @@ DAbstractDialog::DAbstractDialog(bool blurIfPossible, QWidget *parent)
 DAbstractDialog::DisplayPosition DAbstractDialog::displayPosition() const
 {
     D_DC(DAbstractDialog);
-
+    qCDebug(logDialogs) << "Getting display position";
     return d->displayPosition;
 }
 
 void DAbstractDialog::move(const QPoint &pos)
 {
+    qCDebug(logDialogs) << "Moving dialog to position:" << pos;
     QDialog::move(pos);
 
     D_D(DAbstractDialog);
@@ -234,6 +251,7 @@ void DAbstractDialog::move(const QPoint &pos)
 
 void DAbstractDialog::setGeometry(const QRect &rect)
 {
+    qCDebug(logDialogs) << "Setting dialog geometry:" << rect;
     QDialog::setGeometry(rect);
 
     D_D(DAbstractDialog);
@@ -248,7 +266,7 @@ void DAbstractDialog::setGeometry(const QRect &rect)
 void DAbstractDialog::moveToCenter()
 {
     D_DC(DAbstractDialog);
-
+    qCDebug(logDialogs) << "Moving dialog to center";
     moveToCenterByRect(d->getParentGeometry());
 }
 
@@ -259,7 +277,7 @@ void DAbstractDialog::moveToCenter()
 void DAbstractDialog::moveToTopRight()
 {
     D_DC(DAbstractDialog);
-
+    qCDebug(logDialogs) << "Moving dialog to top right";
     moveToTopRightByRect(d->getParentGeometry());
 }
 
@@ -270,6 +288,7 @@ void DAbstractDialog::moveToTopRight()
  */
 void DAbstractDialog::moveToTopRightByRect(const QRect &rect)
 {
+    qCDebug(logDialogs) << "Moving dialog to top right of rect:" << rect;
     int x = rect.x() + rect.width() - width();
     QDialog::move(QPoint(x, 0));
 }
@@ -282,17 +301,21 @@ void DAbstractDialog::moveToTopRightByRect(const QRect &rect)
 void DAbstractDialog::setDisplayPosition(DAbstractDialog::DisplayPosition displayPosition)
 {
     D_D(DAbstractDialog);
+    qCDebug(logDialogs) << "Setting display position:" << displayPosition;
 
     d->displayPosition = displayPosition;
 
     switch (displayPosition) {
     case DisplayCenter:
+        qCDebug(logDialogs) << "Moving to center position";
         moveToCenter();
         break;
     case DisplayTopRight:
+        qCDebug(logDialogs) << "Moving to top right position";
         moveToTopRight();
         break;
     default:
+        qCDebug(logDialogs) << "Unknown display position";
         break;
     }
 }
@@ -307,6 +330,7 @@ void DAbstractDialog::setDisplayPosition(DAbstractDialog::DisplayPosition displa
  */
 void DAbstractDialog::moveToCenterByRect(const QRect &rect)
 {
+    qCDebug(logDialogs) << "Moving dialog to center of rect:" << rect;
     QRect qr = geometry();
     qr.moveCenter(rect.center());
     QDialog::move(qr.topLeft());
@@ -315,12 +339,15 @@ void DAbstractDialog::moveToCenterByRect(const QRect &rect)
 void DAbstractDialog::mousePressEvent(QMouseEvent *event)
 {
     D_DC(DAbstractDialog);
+    qCDebug(logDialogs) << "Mouse press event";
 
     if (d->handle) {
+        qCDebug(logDialogs) << "Using platform handle for mouse press";
         return QDialog::mousePressEvent(event);
     }
 
     if (event->button() == Qt::LeftButton) {
+        qCDebug(logDialogs) << "Left button pressed, starting drag";
         D_D(DAbstractDialog);
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         d->dragPosition = event->globalPos() - frameGeometry().topLeft();
@@ -336,8 +363,10 @@ void DAbstractDialog::mousePressEvent(QMouseEvent *event)
 void DAbstractDialog::mouseReleaseEvent(QMouseEvent *event)
 {
     D_D(DAbstractDialog);
+    qCDebug(logDialogs) << "Mouse release event";
 
     if (d->handle) {
+        qCDebug(logDialogs) << "Using platform handle for mouse release";
         return QDialog::mouseReleaseEvent(event);
     }
 
@@ -349,19 +378,23 @@ void DAbstractDialog::mouseReleaseEvent(QMouseEvent *event)
 void DAbstractDialog::mouseMoveEvent(QMouseEvent *event)
 {
     D_D(DAbstractDialog);
+    qCDebug(logDialogs) << "Mouse move event";
 
     QWidget *compoment = childAt(event->pos());
     if (qobject_cast<QComboBox *>(compoment)) {
+       qCDebug(logDialogs) << "Ignoring mouse move over combo box";
        return;
     }
 
     if (d->handle) {
+        qCDebug(logDialogs) << "Using platform handle for mouse move";
         d->handle->setEnableSystemMove(true);
 
         return QDialog::mouseMoveEvent(event);
     }
 
     if (d->mousePressed) {
+        qCDebug(logDialogs) << "Dragging dialog";
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         move(event->globalPos() - d->dragPosition);
 #else
@@ -375,6 +408,7 @@ void DAbstractDialog::mouseMoveEvent(QMouseEvent *event)
 
 void DAbstractDialog::resizeEvent(QResizeEvent *event)
 {
+    qCDebug(logDialogs) << "Resize event, new size:" << event->size();
     if (event->size().width() >= maximumWidth()) {
         bool resized = testAttribute(Qt::WA_Resized);
 
@@ -385,8 +419,10 @@ void DAbstractDialog::resizeEvent(QResizeEvent *event)
 
     D_DC(DAbstractDialog);
 
-    if (d->bgBlurWidget)
+    if (d->bgBlurWidget) {
+        qCDebug(logDialogs) << "Resizing blur widget";
         d->bgBlurWidget->resize(event->size());
+    }
 
     Q_EMIT sizeChanged(event->size());
 }
@@ -394,6 +430,7 @@ void DAbstractDialog::resizeEvent(QResizeEvent *event)
 void DAbstractDialog::showEvent(QShowEvent *event)
 {
     D_DC(DAbstractDialog);
+    qCDebug(logDialogs) << "Show event";
 
     // 不要在resizeEvent中改变窗口geometry，可能会导致以下问题。在双屏开启不同缩放比时：
     // 屏幕A缩放为1，屏幕B缩放为2。窗口初始在屏幕B上，此时大小为 100x100，则其缩放
@@ -403,6 +440,7 @@ void DAbstractDialog::showEvent(QShowEvent *event)
     // 所在屏幕为B，则在移动窗口位置时又会根据B的缩放比重新设置窗口大小，窗口将变为：
     // 400x400，将形成一个循环。。。
     if (!d->mouseMoved) {
+        qCDebug(logDialogs) << "Dialog not moved by mouse, setting display position";
         setDisplayPosition(displayPosition());
     }
 
@@ -413,6 +451,7 @@ DAbstractDialog::DAbstractDialog(DAbstractDialogPrivate &dd, QWidget *parent):
     QDialog(parent),
     DObject(dd)
 {
+    qCDebug(logDialogs) << "DAbstractDialog created with custom private";
     dd.init(true);
 }
 

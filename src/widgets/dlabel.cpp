@@ -10,8 +10,11 @@
 
 #include <private/qhexstring_p.h>
 #include <private/qlabel_p.h>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 /*!
 @~english
@@ -32,6 +35,7 @@ DLabel::DLabel(QWidget *parent, Qt::WindowFlags f)
     : QLabel(parent, f)
     , DObject(*new DLabelPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "DLabel constructor called with parent:" << (parent ? "valid" : "null");
     D_D(DLabel);
     d->init();
 }
@@ -46,13 +50,14 @@ DLabel::DLabel(const QString &text, QWidget *parent)
     : QLabel(text, parent)
     , DObject(*new DLabelPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "DLabel constructor called with text:" << text << "parent:" << (parent ? "valid" : "null");
     D_D(DLabel);
     d->init();
 }
 
 DLabel::~DLabel()
 {
-
+    qCDebug(logBasicWidgets) << "DLabel destructor called";
 }
 
 /*!
@@ -62,6 +67,7 @@ DLabel::~DLabel()
  */
 void DLabel::setForegroundRole(QPalette::ColorRole role)
 {
+    qCDebug(logBasicWidgets) << "setForegroundRole called with role:" << role;
     D_D(DLabel);
 
     d->color = DPalette::NoType;
@@ -75,6 +81,7 @@ void DLabel::setForegroundRole(QPalette::ColorRole role)
  */
 void DLabel::setForegroundRole(DPalette::ColorType color)
 {
+    qCDebug(logBasicWidgets) << "setForegroundRole called with color:" << color;
     D_D(DLabel);
     d->color = color;
 }
@@ -86,8 +93,10 @@ void DLabel::setForegroundRole(DPalette::ColorType color)
  */
 void DLabel::setElideMode(Qt::TextElideMode elideMode)
 {
+    qCDebug(logBasicWidgets) << "setElideMode called with elideMode:" << elideMode;
     D_D(DLabel);
     if (d->elideMode == elideMode) {
+        qCDebug(logBasicWidgets) << "elideMode unchanged, returning early";
         return;
     }
     d->elideMode = elideMode;
@@ -102,6 +111,7 @@ void DLabel::setElideMode(Qt::TextElideMode elideMode)
 Qt::TextElideMode DLabel::elideMode() const
 {
     D_DC(DLabel);
+    qCDebug(logBasicWidgets) << "elideMode called, returning:" << d->elideMode;
     return d->elideMode;
 }
 
@@ -115,6 +125,7 @@ DLabel::DLabel(DLabelPrivate &dd, QWidget *parent)
     : QLabel(parent)
     , DObject(dd)
 {
+    qCDebug(logBasicWidgets) << "DLabel private constructor called";
     dd.init();
 }
 
@@ -125,9 +136,11 @@ DLabel::DLabel(DLabelPrivate &dd, QWidget *parent)
  */
 void DLabel::initPainter(QPainter *painter) const
 {
+    qCDebug(logBasicWidgets) << "initPainter called";
     D_DC(DLabel);
     QLabel::initPainter(painter);
     if (d->color != DPalette::NoType) {
+        qCDebug(logBasicWidgets) << "setting custom color:" << d->color;
         QBrush color = DPaletteHelper::instance()->palette(this).brush(d->color);
         painter->setPen(QPen(color.color()));
     }
@@ -141,6 +154,7 @@ void DLabel::initPainter(QPainter *painter) const
  */
 void DLabel::paintEvent(QPaintEvent *event)
 {
+    qCDebug(logBasicWidgets) << "paintEvent called";
     Q_UNUSED(event)
     QLabelPrivate *d = static_cast<QLabelPrivate*>(d_ptr.data());
     QStyle *style = QWidget::style();
@@ -345,91 +359,149 @@ DLabelPrivate::DLabelPrivate(DLabel *q)
 
 void DLabelPrivate::init()
 {
-
+    qCDebug(logBasicWidgets) << "DLabelPrivate::init called";
 }
 
 Qt::LayoutDirection DLabelPrivate::textDirection(QLabelPrivate *d)
 {
+    qCDebug(logBasicWidgets) << "Getting text direction";
     if (d->control) {
+        qCDebug(logBasicWidgets) << "Getting direction from text control";
         QTextOption opt = d->control->document()->defaultTextOption();
-        return opt.textDirection();
+        const auto& direction = opt.textDirection();
+        qCDebug(logBasicWidgets) << "Text control direction:" << direction;
+        return direction;
     }
 
-    return d->text.isRightToLeft() ? Qt::RightToLeft : Qt::LeftToRight;
+    const auto& direction = d->text.isRightToLeft() ? Qt::RightToLeft : Qt::LeftToRight;
+    qCDebug(logBasicWidgets) << "Text direction from string:" << direction;
+    return direction;
 }
 
 QRectF DLabelPrivate::documentRect(QLabelPrivate *d)
 {
+    qCDebug(logBasicWidgets) << "Calculating document rect";
     QLabel *q = qobject_cast<QLabel*>(d->q_ptr);
     Q_ASSERT_X(d->isTextLabel, "documentRect", "document rect called for label that is not a text label!");
     QRect cr = q->contentsRect();
+    qCDebug(logBasicWidgets) << "Initial contents rect:" << cr;
+
     cr.adjust(d->margin, d->margin, -d->margin, -d->margin);
+    qCDebug(logBasicWidgets) << "Adjusted contents rect with margins:" << cr;
+
     const int align = QStyle::visualAlignment(d->isTextLabel ? textDirection(d)
                                                              : q->layoutDirection(), QFlag(d->align));
+    qCDebug(logBasicWidgets) << "Visual alignment:" << align;
+
     int m = d->indent;
-    if (m < 0 && q->frameWidth()) // no indent, but we do have a frame
+    if (m < 0 && q->frameWidth()) { // no indent, but we do have a frame
         m = q->fontMetrics().horizontalAdvance(QLatin1Char('x')) / 2 - d->margin;
-    if (m > 0) {
-        if (align & Qt::AlignLeft)
-            cr.setLeft(cr.left() + m);
-        if (align & Qt::AlignRight)
-            cr.setRight(cr.right() - m);
-        if (align & Qt::AlignTop)
-            cr.setTop(cr.top() + m);
-        if (align & Qt::AlignBottom)
-            cr.setBottom(cr.bottom() - m);
+        qCDebug(logBasicWidgets) << "Calculated indent from frame width:" << m;
     }
+
+    if (m > 0) {
+        qCDebug(logBasicWidgets) << "Applying indent:" << m;
+        if (align & Qt::AlignLeft) {
+            cr.setLeft(cr.left() + m);
+            qCDebug(logBasicWidgets) << "Adjusted left for indent";
+        }
+        if (align & Qt::AlignRight) {
+            cr.setRight(cr.right() - m);
+            qCDebug(logBasicWidgets) << "Adjusted right for indent";
+        }
+        if (align & Qt::AlignTop) {
+            cr.setTop(cr.top() + m);
+            qCDebug(logBasicWidgets) << "Adjusted top for indent";
+        }
+        if (align & Qt::AlignBottom) {
+            cr.setBottom(cr.bottom() - m);
+            qCDebug(logBasicWidgets) << "Adjusted bottom for indent";
+        }
+    }
+
+    qCDebug(logBasicWidgets) << "Final document rect:" << cr;
     return cr;
 }
 
 QRectF DLabelPrivate::layoutRect(QLabelPrivate *d)
 {
+    qCDebug(logBasicWidgets) << "Calculating layout rect";
     QRectF cr = documentRect(d);
-    if (!d->control)
+    qCDebug(logBasicWidgets) << "Document rect:" << cr;
+
+    if (!d->control) {
+        qCDebug(logBasicWidgets) << "No text control, returning document rect";
         return cr;
+    }
+
     ensureTextLayouted(d);
-    // Caculate y position manually
+    // Calculate y position manually
     qreal rh = d->control->document()->documentLayout()->documentSize().height();
+    qCDebug(logBasicWidgets) << "Document height:" << rh;
+
     qreal yo = 0;
-    if (d->align & Qt::AlignVCenter)
+    if (d->align & Qt::AlignVCenter) {
         yo = qMax((cr.height()-rh)/2, qreal(0));
-    else if (d->align & Qt::AlignBottom)
+        qCDebug(logBasicWidgets) << "Vertical center alignment, y offset:" << yo;
+    } else if (d->align & Qt::AlignBottom) {
         yo = qMax(cr.height()-rh, qreal(0));
-    return QRectF(cr.x(), yo + cr.y(), cr.width(), cr.height());
+        qCDebug(logBasicWidgets) << "Bottom alignment, y offset:" << yo;
+    }
+
+    const auto& result = QRectF(cr.x(), yo + cr.y(), cr.width(), cr.height());
+    qCDebug(logBasicWidgets) << "Final layout rect:" << result;
+    return result;
 }
 
 void DLabelPrivate::ensureTextLayouted(QLabelPrivate *d)
 {
+    qCDebug(logBasicWidgets) << "Ensuring text is properly laid out";
     if (d->textLayoutDirty) {
+        qCDebug(logBasicWidgets) << "Text layout is dirty";
         if (d->textDirty) {
+            qCDebug(logBasicWidgets) << "Text content is dirty";
             if (d->control) {
+                qCDebug(logBasicWidgets) << "Updating text control content";
                 QTextDocument *doc = d->control->document();
                 if (d->textDirty) {
         #ifndef QT_NO_TEXTHTMLPARSER
         #if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
-                    if (d->textformat == Qt::TextFormat::RichText)
-        #else
-                    if (d->isRichText)
-        #endif
+                    if (d->textformat == Qt::TextFormat::RichText) {
+                        qCDebug(logBasicWidgets) << "Setting HTML text";
                         doc->setHtml(d->text);
-                    else
+                    } else {
+                        qCDebug(logBasicWidgets) << "Setting plain text";
                         doc->setPlainText(d->text);
+                    }
         #else
+                    if (d->isRichText) {
+                        qCDebug(logBasicWidgets) << "Setting HTML text";
+                        doc->setHtml(d->text);
+                    } else {
+                        qCDebug(logBasicWidgets) << "Setting plain text";
+                        doc->setPlainText(d->text);
+                    }
+        #endif
+        #else
+                    qCDebug(logBasicWidgets) << "Setting plain text (no HTML support)";
                     doc->setPlainText(d->text);
         #endif
                     doc->setUndoRedoEnabled(false);
 
         #ifndef QT_NO_SHORTCUT
                     if (d->hasShortcut) {
+                        qCDebug(logBasicWidgets) << "Processing shortcut underlines";
                         // Underline the first character that follows an ampersand (and remove the others ampersands)
                         int from = 0;
                         bool found = false;
                         QTextCursor cursor;
                         while (!(cursor = d->control->document()->find((QLatin1String("&")), from)).isNull()) {
+                            qCDebug(logBasicWidgets) << "Found ampersand at position:" << cursor.position();
                             cursor.deleteChar(); // remove the ampersand
                             cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor);
                             from = cursor.position();
                             if (!found && cursor.selectedText() != QLatin1String("&")) { //not a second &
+                                qCDebug(logBasicWidgets) << "Found shortcut character:" << cursor.selectedText();
                                 found = true;
                                 d->shortcutCursor = cursor;
                             }
@@ -438,27 +510,38 @@ void DLabelPrivate::ensureTextLayouted(QLabelPrivate *d)
         #endif
                 }
             }
+            qCDebug(logBasicWidgets) << "Text content updated";
             d->textDirty = false;
         }
 
         if (d->control) {
+            qCDebug(logBasicWidgets) << "Updating text layout options";
             QTextDocument *doc = d->control->document();
             QTextOption opt = doc->defaultTextOption();
 
             opt.setAlignment(QFlag(d->align));
+            qCDebug(logBasicWidgets) << "Setting text alignment:" << d->align;
 
-            if (d->align & Qt::TextWordWrap)
+            if (d->align & Qt::TextWordWrap) {
+                qCDebug(logBasicWidgets) << "Setting word wrap mode";
                 opt.setWrapMode(QTextOption::WordWrap);
-            else
+            } else {
+                qCDebug(logBasicWidgets) << "Setting manual wrap mode";
                 opt.setWrapMode(QTextOption::ManualWrap);
+            }
 
             doc->setDefaultTextOption(opt);
 
             QTextFrameFormat fmt = doc->rootFrame()->frameFormat();
             fmt.setMargin(0);
+            qCDebug(logBasicWidgets) << "Setting root frame margin to 0";
             doc->rootFrame()->setFrameFormat(fmt);
-            doc->setTextWidth(DLabelPrivate::documentRect(d).width());
+
+            const auto& width = DLabelPrivate::documentRect(d).width();
+            qCDebug(logBasicWidgets) << "Setting text width to:" << width;
+            doc->setTextWidth(width);
         }
+        qCDebug(logBasicWidgets) << "Text layout updated";
         d->textLayoutDirty = false;
     }
 }

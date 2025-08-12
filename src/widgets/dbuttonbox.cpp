@@ -14,10 +14,13 @@
 #include <QStyleOptionButton>
 #include <QStylePainter>
 #include <QVariantAnimation>
+#include <QLoggingCategory>
 
 #include <DGuiApplicationHelper>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
 
 constexpr int HOVER_ANI_DURATION = 150;
 constexpr int CHECK_ANI_DURATION = 200;
@@ -30,7 +33,7 @@ public:
     DButtonBoxButtonPrivate(DButtonBoxButton *qq)
         : DObjectPrivate(qq)
     {
-
+        qCDebug(logBasicWidgets) << "DButtonBoxButtonPrivate constructor called";
     }
 
     qint64 iconType = -1;
@@ -63,6 +66,7 @@ DButtonBoxButton::DButtonBoxButton(const QString &text, QWidget *parent)
     : QAbstractButton(parent)
     , DObject(*new DButtonBoxButtonPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "DButtonBoxButton constructor called with text:" << text;
     setText(text);
 }
 
@@ -77,6 +81,7 @@ DButtonBoxButton::DButtonBoxButton(const QString &text, QWidget *parent)
 DButtonBoxButton::DButtonBoxButton(const QIcon &icon, const QString &text, QWidget *parent)
     : DButtonBoxButton(text, parent)
 {
+    qCDebug(logBasicWidgets) << "DButtonBoxButton constructor called with icon and text:" << text;
     setIcon(icon);
 }
 
@@ -91,7 +96,7 @@ DButtonBoxButton::DButtonBoxButton(const QIcon &icon, const QString &text, QWidg
 DButtonBoxButton::DButtonBoxButton(QStyle::StandardPixmap iconType, const QString &text, QWidget *parent)
     : DButtonBoxButton(static_cast<DStyle::StandardPixmap>(iconType), text, parent)
 {
-
+    qCDebug(logBasicWidgets) << "DButtonBoxButton constructor called with QStyle icon type:" << iconType;
 }
 
 /*!
@@ -105,12 +110,14 @@ DButtonBoxButton::DButtonBoxButton(QStyle::StandardPixmap iconType, const QStrin
 DButtonBoxButton::DButtonBoxButton(DStyle::StandardPixmap iconType, const QString &text, QWidget *parent)
     : DButtonBoxButton(text, parent)
 {
+    qCDebug(logBasicWidgets) << "DButtonBoxButton constructor called with DStyle icon type:" << iconType;
     d_func()->iconType = static_cast<qint64>(iconType);
 }
 
 DButtonBoxButton::DButtonBoxButton(const DDciIcon &dciIcon, const QString &text, QWidget *parent)
     : DButtonBoxButton(text, parent)
 {
+    qCDebug(logBasicWidgets) << "DButtonBoxButton constructor called with DDciIcon and text:" << text;
     setIcon(dciIcon);
 }
 
@@ -122,10 +129,18 @@ DButtonBoxButton::DButtonBoxButton(const DDciIcon &dciIcon, const QString &text,
  */
 void DButtonBoxButton::setIcon(const QIcon &icon)
 {
+    qCDebug(logBasicWidgets) << "setIcon called with QIcon, isNull:" << icon.isNull();
     D_D(DButtonBoxButton);
+
+    QIcon currentIcon = QAbstractButton::icon();
+    if (currentIcon.cacheKey() == icon.cacheKey()) {
+        qCDebug(logBasicWidgets) << "Icon unchanged, skipping update";
+        return;
+    }
 
     d->iconType = -1;
     QAbstractButton::setIcon(icon);
+    qCDebug(logBasicWidgets) << "QIcon set successfully";
 }
 
 /*!
@@ -137,10 +152,13 @@ void DButtonBoxButton::setIcon(const QIcon &icon)
  */
 void DButtonBoxButton::setIcon(QStyle::StandardPixmap iconType)
 {
+    qCDebug(logBasicWidgets) << "setIcon called with QStyle icon type:" << iconType;
     D_D(DButtonBoxButton);
 
     d->iconType = iconType;
-    QAbstractButton::setIcon(style()->standardIcon(iconType, nullptr, this));
+    const auto& standardIcon = style()->standardIcon(iconType, nullptr, this);
+    QAbstractButton::setIcon(standardIcon);
+    qCDebug(logBasicWidgets) << "QStyle icon set successfully";
 }
 
 /*!
@@ -152,23 +170,34 @@ void DButtonBoxButton::setIcon(QStyle::StandardPixmap iconType)
  */
 void DButtonBoxButton::setIcon(DStyle::StandardPixmap iconType)
 {
+    qCDebug(logBasicWidgets) << "setIcon called with DStyle icon type:" << iconType;
     D_D(DButtonBoxButton);
 
     d->iconType = iconType;
-    QAbstractButton::setIcon(DStyleHelper(style()).standardIcon(iconType, nullptr, this));
+    DStyleHelper dstyle(style());
+    const auto& standardIcon = dstyle.standardIcon(iconType, nullptr, this);
+    QAbstractButton::setIcon(standardIcon);
+    qCDebug(logBasicWidgets) << "DStyle icon set successfully";
 }
 
 void DButtonBoxButton::setIcon(const DDciIcon &icon)
 {
+    qCDebug(logBasicWidgets) << "setIcon called with DDciIcon, isNull:" << icon.isNull();
     D_D(DButtonBoxButton);
 
+    if (d->dciIcon == icon) {
+        qCDebug(logBasicWidgets) << "DDciIcon unchanged, skipping update";
+        return;
+    }
+
     d->dciIcon = icon;
+    qCDebug(logBasicWidgets) << "DDciIcon set successfully";
 }
 
 DDciIcon DButtonBoxButton::dciIcon() const
 {
     D_DC(DButtonBoxButton);
-
+    qCDebug(logBasicWidgets) << "dciIcon getter called";
     return d->dciIcon;
 }
 
@@ -180,9 +209,11 @@ DDciIcon DButtonBoxButton::dciIcon() const
  */
 QSize DButtonBoxButton::iconSize() const
 {
+    qCDebug(logBasicWidgets) << "iconSize called";
     QAbstractButtonPrivate *bp = static_cast<QAbstractButtonPrivate*>(QAbstractButton::d_ptr.data());
 
     if (bp->iconSize.isValid()) {
+        qCDebug(logBasicWidgets) << "returning existing icon size:" << bp->iconSize;
         return bp->iconSize;
     }
 
@@ -192,9 +223,12 @@ QSize DButtonBoxButton::iconSize() const
     int size = dstyle.pixelMetric(DStyle::PM_IconButtonIconSize, &opt, this);
 
     if (Q_LIKELY(size > 0)) {
-        return QSize(size, size);
+        const auto& iconSize = QSize(size, size);
+        qCDebug(logBasicWidgets) << "returning calculated icon size:" << iconSize;
+        return iconSize;
     }
 
+    qCDebug(logBasicWidgets) << "using default icon size";
     return QAbstractButton::iconSize();
 }
 
@@ -208,10 +242,13 @@ QSize DButtonBoxButton::iconSize() const
  */
 QSize DButtonBoxButton::sizeHint() const
 {
+    qCDebug(logBasicWidgets) << "sizeHint called";
     QAbstractButtonPrivate *d = static_cast<QAbstractButtonPrivate*>(QAbstractButton::d_ptr.data());
 
-    if (d->sizeHint.isValid())
+    if (d->sizeHint.isValid()) {
+        qCDebug(logBasicWidgets) << "returning cached sizeHint:" << d->sizeHint;
         return d->sizeHint;
+    }
 
     ensurePolished();
 
@@ -229,6 +266,7 @@ QSize DButtonBoxButton::sizeHint() const
 
     QString s(text());
     bool empty = s.isEmpty();
+    qCDebug(logBasicWidgets) << "text is empty:" << empty;
     if (empty)
         s = QStringLiteral("XXXX");
     QFontMetrics fm = fontMetrics();
@@ -237,6 +275,7 @@ QSize DButtonBoxButton::sizeHint() const
         w += sz.width();
     if(!empty || !h)
         h = qMax(h, sz.height());
+    qCDebug(logBasicWidgets) << "calculated size:" << QSize(w, h);
     opt.rect.setSize(QSize(w, h)); // PM_MenuButtonIndicator depends on the height
 
     DStyleHelper dstyle(style());
@@ -262,19 +301,27 @@ QSize DButtonBoxButton::sizeHint() const
  */
 QSize DButtonBoxButton::minimumSizeHint() const
 {
-    return sizeHint();
+    qCDebug(logBasicWidgets) << "minimumSizeHint called";
+    const auto& hint = sizeHint();
+    qCDebug(logBasicWidgets) << "returning minimumSizeHint:" << hint;
+    return hint;
 }
 
 void DButtonBoxButton::initStyleOption(DStyleOptionButtonBoxButton *option) const
 {
+    qCDebug(logBasicWidgets) << "initStyleOption called";
     option->initFrom(this);
     option->init(this);
     option->features = QStyleOptionButton::Flat;
 
-    if (isDown())
+    if (isDown()) {
+        qCDebug(logBasicWidgets) << "button is down, adding State_Sunken";
         option->state |= QStyle::State_Sunken;
-    if (isChecked())
+    }
+    if (isChecked()) {
+        qCDebug(logBasicWidgets) << "button is checked, adding State_On";
         option->state |= QStyle::State_On;
+    }
 
     option->text = text();
     option->icon = icon();
@@ -282,36 +329,47 @@ void DButtonBoxButton::initStyleOption(DStyleOptionButtonBoxButton *option) cons
 
     D_DC(DButtonBoxButton);
     if (!d->dciIcon.isNull()) {
+        qCDebug(logBasicWidgets) << "setting dciIcon and HasDciIcon feature";
         option->dciIcon = d->dciIcon;
         option->features |= QStyleOptionButton::ButtonFeature(DStyleOptionButton::HasDciIcon);
     }
 
     if (DButtonBox *p = qobject_cast<DButtonBox*>(parent())) {
+        qCDebug(logBasicWidgets) << "setting orientation and position from parent";
         option->orientation = p->orientation();
         option->position = p->d_func()->getButtonPosition(this);
+    } else {
+        qCDebug(logBasicWidgets) << "no DButtonBox parent found";
     }
 }
 
 void DButtonBoxButton::paintEvent(QPaintEvent *e)
 {
     Q_UNUSED(e)
+    qCDebug(logBasicWidgets) << "paintEvent called";
 
     DStylePainter p(this);
     DStyleOptionButtonBoxButton option;
     initStyleOption(&option);
 
-    if (ENABLE_ANIMATIONS && ENABLE_ANIMATION_BUTTONBOX)
+    if (ENABLE_ANIMATIONS && ENABLE_ANIMATION_BUTTONBOX) {
+        qCDebug(logBasicWidgets) << "animations enabled, setting highlight color";
         option.palette.setColor(QPalette::HighlightedText, this->palette().highlight().color());
+    }
 
     p.drawControl(DStyle::CE_ButtonBoxButton, option);
+    qCDebug(logBasicWidgets) << "paintEvent completed";
 }
 
 void DButtonBoxButton::keyPressEvent(QKeyEvent *event)
 {
+    qCDebug(logBasicWidgets) << "keyPressEvent called with key:" << event->key();
     switch (event->key()) {
     case Qt::Key_Enter:
     case Qt::Key_Return:
+        qCDebug(logBasicWidgets) << "Enter/Return key pressed";
         if (hasFocus()) {
+            qCDebug(logBasicWidgets) << "button has focus, clicking";
             click();
             break;
         }
@@ -320,41 +378,67 @@ void DButtonBoxButton::keyPressEvent(QKeyEvent *event)
     case Qt::Key_Right:
     case Qt::Key_Up:
     case Qt::Key_Down:
+        qCDebug(logBasicWidgets) << "arrow key pressed";
         if (DButtonBox *p = qobject_cast<DButtonBox *>(parent())) {
             if (p->focusWidget() == this) {
                 int index = p->buttonList().indexOf(this);
+                qCDebug(logBasicWidgets) << "current button index:" << index;
 
                 if (p->orientation() == Qt::Horizontal) {
-                    if (event->key() == Qt::Key_Right)
-                        p->buttonList().at((index + 1) >= p->buttonList().length() ? 0 : index + 1)->setFocus();
-                    else if (event->key() == Qt::Key_Left)
-                        p->buttonList().at((index - 1) < 0 ? p->buttonList().length() - 1 : index - 1)->setFocus();
+                    qCDebug(logBasicWidgets) << "horizontal orientation";
+                    if (event->key() == Qt::Key_Right) {
+                        int nextIndex = (index + 1) >= p->buttonList().length() ? 0 : index + 1;
+                        qCDebug(logBasicWidgets) << "moving focus right to index:" << nextIndex;
+                        p->buttonList().at(nextIndex)->setFocus();
+                    } else if (event->key() == Qt::Key_Left) {
+                        int prevIndex = (index - 1) < 0 ? p->buttonList().length() - 1 : index - 1;
+                        qCDebug(logBasicWidgets) << "moving focus left to index:" << prevIndex;
+                        p->buttonList().at(prevIndex)->setFocus();
+                    }
                 } else {
-                    if (event->key() == Qt::Key_Down)
-                        p->buttonList().at((index + 1) >= p->buttonList().length() ? 0 : index + 1)->setFocus();
-                    else if ((event->key() == Qt::Key_Up))
-                        p->buttonList().at((index - 1) < 0 ? p->buttonList().length() - 1 : index - 1)->setFocus();
+                    qCDebug(logBasicWidgets) << "vertical orientation";
+                    if (event->key() == Qt::Key_Down) {
+                        int nextIndex = (index + 1) >= p->buttonList().length() ? 0 : index + 1;
+                        qCDebug(logBasicWidgets) << "moving focus down to index:" << nextIndex;
+                        p->buttonList().at(nextIndex)->setFocus();
+                    } else if ((event->key() == Qt::Key_Up)) {
+                        int prevIndex = (index - 1) < 0 ? p->buttonList().length() - 1 : index - 1;
+                        qCDebug(logBasicWidgets) << "moving focus up to index:" << prevIndex;
+                        p->buttonList().at(prevIndex)->setFocus();
+                    }
                 }
+            } else {
+                qCDebug(logBasicWidgets) << "button does not have focus";
             }
+        } else {
+            qCDebug(logBasicWidgets) << "no DButtonBox parent found";
         }
         break;
     default:
+        qCDebug(logBasicWidgets) << "other key pressed, delegating to parent";
         QAbstractButton::keyPressEvent(event);
     }
 }
 
 bool DButtonBoxButton::event(QEvent *e)
 {
+    qCDebug(logBasicWidgets) << "event called with type:" << e->type();
     if (e->type() == QEvent::Polish) {
+        qCDebug(logBasicWidgets) << "Polish event received";
         D_DC(DButtonBoxButton);
 
         if (d->iconType >= 0) {
+            qCDebug(logBasicWidgets) << "setting icon from iconType:" << d->iconType;
             if (d->iconType > static_cast<qint64>(QStyle::SP_CustomBase)) {
+                qCDebug(logBasicWidgets) << "using DStyle for custom icon";
                 DStyleHelper dstyle(style());
                 setIcon(dstyle.standardIcon(static_cast<DStyle::StandardPixmap>(d->iconType), nullptr, this));
             } else {
+                qCDebug(logBasicWidgets) << "using QStyle for standard icon";
                 setIcon(style()->standardIcon(static_cast<QStyle::StandardPixmap>(d->iconType), nullptr, this));
             }
+        } else {
+            qCDebug(logBasicWidgets) << "no iconType set";
         }
     }
 
@@ -369,25 +453,32 @@ DButtonBoxPrivate::DButtonBoxPrivate(DButtonBox *qq)
     , m_hoverAnimation(nullptr)
     , m_checkMoveAnimation(nullptr)
 {
+    qCDebug(logBasicWidgets) << "DButtonBoxPrivate constructor called";
     if (ENABLE_ANIMATIONS && ENABLE_ANIMATION_BUTTONBOX) {
+        qCDebug(logBasicWidgets) << "creating animations";
         m_hoverAnimation = new QVariantAnimation(qq);
         m_checkMoveAnimation = new QVariantAnimation(qq);
+    } else {
+        qCDebug(logBasicWidgets) << "animations disabled";
     }
 }
 
 void DButtonBoxPrivate::init()
 {
+    qCDebug(logBasicWidgets) << "DButtonBoxPrivate init called";
     D_Q(DButtonBox);
 
     q->setSizePolicy(QSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed, QSizePolicy::PushButton));
 
     group = new QButtonGroup(q);
+    qCDebug(logBasicWidgets) << "connecting button group signals";
     q->connect(group, SIGNAL(buttonClicked(QAbstractButton*)), q, SIGNAL(buttonClicked(QAbstractButton*)));
     q->connect(group, SIGNAL(buttonPressed(QAbstractButton*)), q, SIGNAL(buttonPressed(QAbstractButton*)));
     q->connect(group, SIGNAL(buttonReleased(QAbstractButton*)), q, SIGNAL(buttonReleased(QAbstractButton*)));
     q->connect(group, SIGNAL(buttonToggled(QAbstractButton*, bool)), q, SIGNAL(buttonToggled(QAbstractButton*, bool)));
 
     if (ENABLE_ANIMATIONS && ENABLE_ANIMATION_BUTTONBOX) {
+        qCDebug(logBasicWidgets) << "setting up animations";
         q->connect(m_hoverAnimation, &QVariantAnimation::valueChanged, q, [q]() {
             q->update();
         });
@@ -396,29 +487,39 @@ void DButtonBoxPrivate::init()
         });
         m_hoverAnimation->setDuration(HOVER_ANI_DURATION);
         m_checkMoveAnimation->setDuration(CHECK_ANI_DURATION);
+        qCDebug(logBasicWidgets) << "animations configured";
+    } else {
+        qCDebug(logBasicWidgets) << "animations disabled";
     }
 
     layout = new QHBoxLayout(q);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
+    qCDebug(logBasicWidgets) << "layout created and configured";
 }
 
 DStyleOptionButtonBoxButton::ButtonPosition DButtonBoxPrivate::getButtonPosition(const DButtonBoxButton *button) const
 {
+    qCDebug(logBasicWidgets) << "getButtonPosition called";
     D_QC(DButtonBox);
 
     DStyleOptionButtonBoxButton::ButtonPosition position;
     auto list = q->buttonList();
     bool reverse = q->layoutDirection() == Qt::RightToLeft && q->orientation() == Qt::Horizontal;
+    qCDebug(logBasicWidgets) << "button count:" << list.count() << "reverse:" << reverse;
 
     if (list.count() == 1) {
         position = DStyleOptionButtonBoxButton::OnlyOne;
+        qCDebug(logBasicWidgets) << "position: OnlyOne";
     } else if (button == list.first()) {
         position = reverse ? DStyleOptionButtonBoxButton::End : DStyleOptionButtonBoxButton::Beginning;
+        qCDebug(logBasicWidgets) << "position: first button -" << (reverse ? "End" : "Beginning");
     } else if (button == list.last()) {
         position = reverse ? DStyleOptionButtonBoxButton::Beginning : DStyleOptionButtonBoxButton::End;
+        qCDebug(logBasicWidgets) << "position: last button -" << (reverse ? "Beginning" : "End");
     } else {
         position = DStyleOptionButtonBoxButton::Middle;
+        qCDebug(logBasicWidgets) << "position: Middle";
     }
 
     return position;
@@ -454,7 +555,9 @@ DButtonBox::DButtonBox(QWidget *parent)
     : QWidget(parent)
     , DObject(*new DButtonBoxPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "DButtonBox constructor called";
     d_func()->init();
+    qCDebug(logBasicWidgets) << "DButtonBox initialized";
 }
 
 /*!
@@ -466,13 +569,16 @@ DButtonBox::DButtonBox(QWidget *parent)
 Qt::Orientation DButtonBox::orientation() const
 {
     D_DC(DButtonBox);
+    qCDebug(logBasicWidgets) << "orientation called";
 
     QBoxLayout::Direction ld = d->layout->direction();
 
     if (ld == QBoxLayout::LeftToRight || ld == QBoxLayout::RightToLeft) {
+        qCDebug(logBasicWidgets) << "returning horizontal orientation";
         return Qt::Horizontal;
     }
 
+    qCDebug(logBasicWidgets) << "returning vertical orientation";
     return Qt::Vertical;
 }
 
@@ -485,10 +591,20 @@ Qt::Orientation DButtonBox::orientation() const
  */
 void DButtonBox::setOrientation(Qt::Orientation orientation)
 {
+    qCDebug(logBasicWidgets) << "setOrientation called with orientation:" << orientation;
     D_D(DButtonBox);
     Q_ASSERT(d->group->buttons().isEmpty());
 
-    d->layout->setDirection(orientation == Qt::Horizontal ? QBoxLayout::LeftToRight : QBoxLayout::TopToBottom);
+    QBoxLayout::Direction currentDirection = d->layout->direction();
+    QBoxLayout::Direction newDirection = orientation == Qt::Horizontal ? QBoxLayout::LeftToRight : QBoxLayout::TopToBottom;
+    
+    if (currentDirection == newDirection) {
+        qCDebug(logBasicWidgets) << "Orientation unchanged, skipping update";
+        return;
+    }
+
+    d->layout->setDirection(newDirection);
+    qCDebug(logBasicWidgets) << "Orientation updated successfully";
 }
 
 /*!
@@ -500,6 +616,8 @@ void DButtonBox::setOrientation(Qt::Orientation orientation)
  */
 void DButtonBox::setButtonList(const QList<DButtonBoxButton *> &list, bool checkable)
 {
+    qCDebug(logBasicWidgets) << "setButtonList called with button count:" << list.size() 
+                              << "checkable:" << checkable;
     D_D(DButtonBox);
 
     for (QAbstractButton *button : d->group->buttons()) {
@@ -516,9 +634,12 @@ void DButtonBox::setButtonList(const QList<DButtonBoxButton *> &list, bool check
 
         button->setCheckable(checkable);
 
-        if (ENABLE_ANIMATIONS && ENABLE_ANIMATION_BUTTONBOX)
+        if (ENABLE_ANIMATIONS && ENABLE_ANIMATION_BUTTONBOX) {
+            qCDebug(logBasicWidgets) << "installing event filter for button:" << i;
             button->installEventFilter(this);
+        }
     }
+    qCDebug(logBasicWidgets) << "button list set successfully";
 }
 
 /*!
@@ -531,7 +652,7 @@ void DButtonBox::setButtonList(const QList<DButtonBoxButton *> &list, bool check
 QList<QAbstractButton *> DButtonBox::buttonList() const
 {
     D_DC(DButtonBox);
-
+    qCDebug(logBasicWidgets) << "buttonList called, returning button count:" << d->group->buttons().size();
     return d->group->buttons();
 }
 
@@ -545,7 +666,7 @@ QList<QAbstractButton *> DButtonBox::buttonList() const
 QAbstractButton *DButtonBox::checkedButton() const
 {
     D_DC(DButtonBox);
-
+    qCDebug(logBasicWidgets) << "checkedButton called";
     return d->group->checkedButton();
 }
 
@@ -561,7 +682,7 @@ QAbstractButton *DButtonBox::checkedButton() const
 QAbstractButton *DButtonBox::button(int id) const
 {
     D_DC(DButtonBox);
-
+    qCDebug(logBasicWidgets) << "button called with id:" << id;
     return d->group->button(id);
 }
 
@@ -574,9 +695,21 @@ QAbstractButton *DButtonBox::button(int id) const
  */
 void DButtonBox::setId(QAbstractButton *button, int id)
 {
+    qCDebug(logBasicWidgets) << "setId called with id:" << id << "for button:" << button;
     D_D(DButtonBox);
 
+    if (!button) {
+        qCDebug(logBasicWidgets) << "Button is null, skipping";
+        return;
+    }
+
+    if (d->group->id(button) == id) {
+        qCDebug(logBasicWidgets) << "Button id unchanged, skipping update";
+        return;
+    }
+
     d->group->setId(button, id);
+    qCDebug(logBasicWidgets) << "button id set successfully";
 }
 
 /*!
@@ -588,9 +721,12 @@ void DButtonBox::setId(QAbstractButton *button, int id)
  */
 int DButtonBox::id(QAbstractButton *button) const
 {
+    qCDebug(logBasicWidgets) << "id getter called";
     D_DC(DButtonBox);
 
-    return d->group->id(button);
+    const auto& buttonId = d->group->id(button);
+    qCDebug(logBasicWidgets) << "returning button id:" << buttonId;
+    return buttonId;
 }
 /*!
 @~english
@@ -601,14 +737,18 @@ int DButtonBox::id(QAbstractButton *button) const
  */
 int DButtonBox::checkedId() const
 {
+    qCDebug(logBasicWidgets) << "checkedId called";
     D_DC(DButtonBox);
 
-    return d->group->checkedId();
+    const auto& checkedButtonId = d->group->checkedId();
+    qCDebug(logBasicWidgets) << "returning checked button id:" << checkedButtonId;
+    return checkedButtonId;
 }
 
 void DButtonBox::paintEvent(QPaintEvent *e)
 {
     Q_UNUSED(e)
+    qCDebug(logBasicWidgets) << "DButtonBox paintEvent called";
     D_D(DButtonBox);
 
     QStylePainter p(this);
@@ -622,15 +762,19 @@ void DButtonBox::paintEvent(QPaintEvent *e)
     opt.fontMetrics = fontMetrics();
 
     if (isEnabled()) {
+        qCDebug(logBasicWidgets) << "widget is enabled";
         opt.state |= QStyle::State_Enabled;
     } else if (isActiveWindow()) {
+        qCDebug(logBasicWidgets) << "window is active";
         opt.state |= QStyle::State_Active;
     }
 
     if (!ENABLE_ANIMATIONS || !ENABLE_ANIMATION_BUTTONBOX) {
+        qCDebug(logBasicWidgets) << "animations disabled, drawing simple control";
         p.drawControl(QStyle::CE_PushButtonBevel, opt);
         return;
     }
+    qCDebug(logBasicWidgets) << "animations enabled, drawing complex control";
 
     bool isDarkType = DGuiApplicationHelper::instance()->themeType() == DGuiApplicationHelper::DarkType;
     int radius = DStyle::pixelMetric(style(), DStyle::PM_FrameRadius);

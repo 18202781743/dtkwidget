@@ -6,6 +6,9 @@
 #include <QEvent>
 #include <QDebug>
 #include <QResizeEvent>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
 
 #include "dthememanager.h"
 #include "dboxwidget.h"
@@ -18,12 +21,13 @@ DBoxWidgetPrivate::DBoxWidgetPrivate(DBoxWidget *qq):
     DObjectPrivate(qq),
     layout(new QBoxLayout(QBoxLayout::TopToBottom))
 {
-
+    qCDebug(logBasicWidgets) << "DBoxWidgetPrivate created";
 }
 
 void DBoxWidgetPrivate::init()
 {
     Q_Q(DBoxWidget);
+    qCDebug(logBasicWidgets) << "Initializing DBoxWidget";
 
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
@@ -59,6 +63,7 @@ DBoxWidget::DBoxWidget(QBoxLayout::Direction direction, QWidget *parent):
     QFrame(parent),
     DObject(*new DBoxWidgetPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "DBoxWidget created with direction:" << direction;
     d_func()->layout->setDirection(direction);
     d_func()->init();
 }
@@ -74,7 +79,7 @@ DBoxWidget::DBoxWidget(QBoxLayout::Direction direction, QWidget *parent):
 QBoxLayout::Direction DBoxWidget::direction() const
 {
     Q_D(const DBoxWidget);
-
+    qCDebug(logBasicWidgets) << "Getting box widget direction";
     return d->layout->direction();
 }
 
@@ -90,7 +95,7 @@ QBoxLayout::Direction DBoxWidget::direction() const
 QBoxLayout *DBoxWidget::layout() const
 {
     Q_D(const DBoxWidget);
-
+    qCDebug(logBasicWidgets) << "Getting box widget layout";
     return d->layout;
 }
 
@@ -102,6 +107,7 @@ QBoxLayout *DBoxWidget::layout() const
  */
 void DBoxWidget::addWidget(QWidget *widget)
 {
+    qCDebug(logBasicWidgets) << "Adding widget to box widget";
     layout()->addWidget(widget);
 }
 
@@ -114,9 +120,12 @@ void DBoxWidget::addWidget(QWidget *widget)
 void DBoxWidget::setDirection(QBoxLayout::Direction direction)
 {
     Q_D(DBoxWidget);
+    qCDebug(logBasicWidgets) << "Setting box widget direction:" << direction;
 
-    if (d->layout->direction() == direction)
+    if (d->layout->direction() == direction) {
+        qCDebug(logBasicWidgets) << "Direction unchanged, skipping update";
         return;
+    }
 
     d->layout->setDirection(direction);
     Q_EMIT directionChanged(direction);
@@ -131,16 +140,23 @@ void DBoxWidget::setDirection(QBoxLayout::Direction direction)
  */
 void DBoxWidget::updateSize(const QSize &size)
 {
+    qCDebug(logBasicWidgets) << "Updating box widget size:" << size;
     if(direction() == QBoxLayout::TopToBottom || direction() == QBoxLayout::BottomToTop) {
+        qCDebug(logBasicWidgets) << "Vertical direction, setting fixed height";
         setFixedHeight(size.height());
 
-        if(size.width() > minimumWidth())
+        if(size.width() > minimumWidth()) {
+            qCDebug(logBasicWidgets) << "Adjusting minimum width";
             setMinimumWidth(qMin(size.width(), maximumWidth()));
+        }
     } else {
+        qCDebug(logBasicWidgets) << "Horizontal direction, setting fixed width";
         setFixedWidth(size.width());
 
-        if(size.height() > minimumHeight())
+        if(size.height() > minimumHeight()) {
+            qCDebug(logBasicWidgets) << "Adjusting minimum height";
             setMinimumHeight(qMin(size.height(), maximumHeight()));
+        }
     }
 }
 
@@ -148,19 +164,25 @@ void DBoxWidget::updateSize(const QSize &size)
 bool DBoxWidget::event(QEvent *ee)
 {
     Q_D(const DBoxWidget);
+    qCDebug(logBasicWidgets) << "DBoxWidget event:" << ee->type();
 
     if(ee->type() == QEvent::LayoutRequest) {
         if(size() != d->layout->sizeHint()) {
+            qCDebug(logBasicWidgets) << "Layout request, updating size";
             updateSize(d->layout->sizeHint());
             updateGeometry();
         }
     } else if(ee->type() == QEvent::Resize) {
+        qCDebug(logBasicWidgets) << "Resize event, emitting size changed";
         Q_EMIT sizeChanged(size());
     } else if(ee->type() == QEvent::ChildAdded) {
+        qCDebug(logBasicWidgets) << "Child added, updating size";
         updateSize(d->layout->sizeHint());
     } else if(ee->type() == QEvent::ChildRemoved) {
+        qCDebug(logBasicWidgets) << "Child removed, updating size";
         updateSize(d->layout->sizeHint());
     } else if(ee->type() == QEvent::Show) {
+        qCDebug(logBasicWidgets) << "Show event, updating size";
         updateSize(d->layout->sizeHint());
     }
 
@@ -176,7 +198,7 @@ bool DBoxWidget::event(QEvent *ee)
 QSize DBoxWidget::sizeHint() const
 {
     Q_D(const DBoxWidget);
-
+    qCDebug(logBasicWidgets) << "Getting box widget size hint";
     return d->layout->sizeHint();
 }
 

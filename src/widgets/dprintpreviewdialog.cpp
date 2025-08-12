@@ -49,6 +49,7 @@
 #include <private/qprintdevice_p.h>
 #include <qpa/qplatformprintplugin.h>
 #include <qpa/qplatformprintersupport.h>
+#include <QLoggingCategory>
 
 #define NORMAL_LEFT_RIGHT 31.8
 #define NORMAL_MODERATE_TOP_BOTTRM 25.4
@@ -81,6 +82,8 @@
 #define WATERFONT_SIZE 65
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logDialogs)
 
 static QLatin1String _d_printSettingNameMap[DPrintPreviewSettingInterface::SC_ControlCount] = {
     QLatin1String("PrinterFrame"),
@@ -119,6 +122,7 @@ static QLatin1String _d_printSettingNameMap[DPrintPreviewSettingInterface::SC_Co
 
 void setwidgetfont(QWidget *widget, DFontSizeManager::SizeType type = DFontSizeManager::T5)
 {
+    qCDebug(logDialogs) << "Setting widget font for:" << widget << "type:" << static_cast<int>(type);
     QFont font = widget->font();
     font.setBold(true);
     widget->setFont(font);
@@ -137,10 +141,12 @@ static void _d_setSpinboxDefaultValue(QHash<QWidget *, QString> valueCaches, DSp
 DPrintPreviewDialogPrivate::DPrintPreviewDialogPrivate(DPrintPreviewDialog *qq)
     : DDialogPrivate(qq)
 {
+    qCDebug(logDialogs) << "Creating DPrintPreviewDialogPrivate";
 }
 
 void DPrintPreviewDialogPrivate::startup()
 {
+    qCDebug(logDialogs) << "Starting DPrintPreviewDialog";
     Q_Q(DPrintPreviewDialog);
 
     this->printer = new DPrinter;
@@ -152,10 +158,12 @@ void DPrintPreviewDialogPrivate::startup()
     initui();
     initdata();
     initconnections();
+    qCDebug(logDialogs) << "DPrintPreviewDialog startup completed";
 }
 
 void DPrintPreviewDialogPrivate::initui()
 {
+    qCDebug(logDialogs) << "Initializing UI for DPrintPreviewDialog";
     Q_Q(DPrintPreviewDialog);
 
     DWidget *mainWidget = new DWidget(q);
@@ -1941,12 +1949,12 @@ void DPrintPreviewDialogPrivate::_q_customPagesFinished()
     setPageIsLegal(true);
     //输入框为空，失去焦点或回车给出相应提示
     if (!cuspages.isEmpty()) {
-        //自定义页未输入完整，如“1-”“1,”，若不符合，失去焦点或回车给出相应提示
+        //自定义页未输入完整，如"1-" "1,"，若不符合，失去焦点或回车给出相应提示
         if (pageRangeEdit->text().right(1) != "-" && pageRangeEdit->text().right(1) != ",") {
             QStringList list = cuspages.split(",");
             //处理输入的页码
             for (int i = 0; i < list.size(); i++) {
-                //输入的页码中，含“-”，对前后数值进行判断以及处理
+                //输入的页码中，含"-"，对前后数值进行判断以及处理
                 if (list.at(i).contains("-")) {
                     QStringList list1 = list.at(i).split("-");
                     bool convertFirst = false;
@@ -1960,7 +1968,7 @@ void DPrintPreviewDialogPrivate::_q_customPagesFinished()
                                 return;
                             }
                         }
-                    } else { //“-”后值大于前值，则回车自动格式化
+                    } else { //"-"后值大于前值，则回车自动格式化
                         if (!convertFirst || !convertSercond) {
                             pageRangeError(MaxTip);
                             return;

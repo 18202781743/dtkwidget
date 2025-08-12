@@ -16,8 +16,10 @@
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
 #include <QLayout>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 enum layoutMargin
 {
@@ -36,10 +38,12 @@ enum layoutMargin
 DSearchComboBox::DSearchComboBox(QWidget *parent)
     : DComboBox(*new DSearchComboBoxPrivate(this), parent)
 {
+    qCDebug(logBasicWidgets) << "create dsearchcombobox";
 }
 
 void DSearchComboBox::setEditable(bool editable)
 {
+    qCDebug(logBasicWidgets) << "set editable" << editable;
     Q_D(DSearchComboBox);
     DComboBox::setEditable(editable);
     if (editable && !d->completer) {
@@ -51,6 +55,7 @@ void DSearchComboBox::setEditable(bool editable)
 
 void DSearchComboBox::showPopup()
 {
+    qCDebug(logBasicWidgets) << "show popup";
     Q_D(DSearchComboBox);
     QComboBoxPrivate *dd = reinterpret_cast<QComboBoxPrivate *>(qGetPtrHelper(d_ptr));
     DComboBox::showPopup();

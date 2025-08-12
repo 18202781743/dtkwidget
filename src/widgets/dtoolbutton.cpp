@@ -6,8 +6,10 @@
 
 #include <QStyleOptionButton>
 #include <QStylePainter>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logUtils)
 
 /*!
 @~english
@@ -18,6 +20,7 @@ DWIDGET_BEGIN_NAMESPACE
 DToolButton::DToolButton(QWidget *parent)
     : QToolButton(parent)
 {
+    qCDebug(logUtils) << "create dtoolbutton";
 
 }
 
@@ -30,6 +33,7 @@ DToolButton::DToolButton(QWidget *parent)
 
 void DToolButton::paintEvent(QPaintEvent *event)
 {
+    qCDebug(logUtils) << "paint dtoolbutton";
     Q_UNUSED(event)
     QStylePainter p(this);
     QStyleOptionToolButton opt;
@@ -45,6 +49,7 @@ void DToolButton::paintEvent(QPaintEvent *event)
  */
 void DToolButton::initStyleOption(QStyleOptionToolButton *option) const
 {
+    qCDebug(logUtils) << "init style option";
     QToolButton::initStyleOption(option);
 }
 
@@ -57,7 +62,9 @@ void DToolButton::initStyleOption(QStyleOptionToolButton *option) const
 
 QSize DToolButton::sizeHint() const
 {
-    return QToolButton::sizeHint();
+    const auto &s = QToolButton::sizeHint();
+    qCDebug(logUtils) << "size hint" << s;
+    return s;
 }
 
 /*!
@@ -68,6 +75,7 @@ QSize DToolButton::sizeHint() const
  */
 void DToolButton::setAlignment(Qt::Alignment flag)
 {
+    qCDebug(logUtils) << "setting tool button alignment:" << flag;
     this->setProperty("_d_dtk_toolButtonAlign", QVariant(flag));
 }
 
@@ -79,10 +87,15 @@ void DToolButton::setAlignment(Qt::Alignment flag)
  */
 Qt::Alignment DToolButton::alignment() const
 {
-    if(this->property("_d_dtk_toolButtonAlign").isValid())
-        return static_cast<Qt::Alignment>(this->property("_d_dtk_toolButtonAlign").toInt());
-    else
+    qCDebug(logUtils) << "getting tool button alignment";
+    if(this->property("_d_dtk_toolButtonAlign").isValid()) {
+        const auto& alignment = static_cast<Qt::Alignment>(this->property("_d_dtk_toolButtonAlign").toInt());
+        qCDebug(logUtils) << "returning custom alignment:" << alignment;
+        return alignment;
+    } else {
+        qCDebug(logUtils) << "returning default alignment: AlignLeft";
         return Qt::AlignLeft;
+    }
 }
 
 DWIDGET_END_NAMESPACE

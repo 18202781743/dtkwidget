@@ -6,8 +6,13 @@
 #include "dapplicationsettings.h"
 #if DTK_VERSION < DTK_VERSION_CHECK(6, 0, 0, 0)
 #include <DObjectPrivate>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logSettingsConfig)
+}
 
 class DApplicationSettingsPrivate : public DCORE_NAMESPACE::DObjectPrivate
 {
@@ -53,6 +58,7 @@ DApplicationSettings::DApplicationSettings(QObject *parent)
     : QObject(parent)
     , DObject(*new DApplicationSettingsPrivate(this))
 {
+    qCDebug(logSettingsConfig) << "Creating application settings";
 }
 
 DWIDGET_END_NAMESPACE

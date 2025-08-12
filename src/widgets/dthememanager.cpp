@@ -8,6 +8,7 @@
 #include <QWidget>
 #include <QStyle>
 #include <QStyleFactory>
+#include <QLoggingCategory>
 
 #include <DObjectPrivate>
 
@@ -17,6 +18,10 @@
 #include "dapplication.h"
 #if DTK_VERSION < DTK_VERSION_CHECK(6, 0, 0, 0)
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logStyleTheme)
+}
 
 class DThemeManagerStaticPrivate : public DThemeManager
 {
@@ -77,6 +82,7 @@ Q_GLOBAL_STATIC(DThemeManagerStaticPrivate, DThemeManagerStatic)
  */
 DThemeManager *DThemeManager::instance()
 {
+    qCDebug(logStyleTheme) << "Getting theme manager instance";
     // 正在初始化时返回空对象，否则会导致当前线程陷入死锁
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     if (Q_QGS_DThemeManagerStatic::guard.loadRelaxed() == QtGlobalStatic::Initializing)
@@ -114,6 +120,7 @@ static QString getThemeNameByClassName(const QObject *obj)
 
 static void emitThemeChanged(DThemeManager *manager, QWidget *widget, const QString &theme)
 {
+    qCDebug(logStyleTheme) << "Emitting theme changed for widget:" << theme;
     Q_EMIT manager->widgetThemeChanged(widget, theme);
 
     for (QObject *child : widget->children()) {
@@ -187,11 +194,13 @@ public:
 
     QString getQssContent(const QString &themeURL) const
     {
+        qCDebug(logStyleTheme) << "Loading QSS from:" << themeURL;
         QString qss;
         QFile themeFile(themeURL);
         if (themeFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
             qss = themeFile.readAll();
             themeFile.close();
+            qCDebug(logStyleTheme) << "QSS loaded, length:" << qss.length();
         } else {
             /// !!! if do not privode qss file, do not register it!!!
             qWarning() << "open qss file failed" << themeURL << themeFile.errorString();

@@ -8,8 +8,11 @@
 
 #include <QPropertyAnimation>
 #include <QResizeEvent>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_LOGGING_CATEGORY(logContainers, "dtk.widgets.containers")
 
 class ContentBox : public QWidget
 {
@@ -19,21 +22,24 @@ public:
     explicit ContentBox(QWidget *parent = nullptr)
         : QWidget(parent)
     {
+        qCDebug(logContainers) << "ContentBox constructor called";
     }
 };
 
 DDrawerPrivate::DDrawerPrivate(DDrawer *qq)
     : DFramePrivate(qq)
 {
-
+    qCDebug(logContainers) << "DDrawerPrivate constructor called";
 }
 
 DDrawerPrivate::~DDrawerPrivate()
 {
+    qCDebug(logContainers) << "DDrawerPrivate destructor called";
 }
 
 void DDrawerPrivate::init()
 {
+    qCDebug(logContainers) << "DDrawerPrivate init called";
     DDrawer *qq = q_func();
     qq->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
     QVBoxLayout *mainLayout = new QVBoxLayout(qq);
@@ -166,9 +172,11 @@ void DDrawer::setHeader(QWidget *header)
  */
 void DDrawer::setContent(QWidget *content, Qt::Alignment alignment)
 {
+    qCDebug(logContainers) << "setContent called with alignment:" << alignment;
     Q_D(DDrawer);
 
     if (!content) {
+        qCDebug(logContainers) << "content is null, returning";
         return;
     }
 
@@ -180,6 +188,7 @@ void DDrawer::setContent(QWidget *content, Qt::Alignment alignment)
     d->m_contentLayout->addWidget(content, 1, alignment);
     d->m_contentLayout->addStretch(1);
     d->m_content = content;
+    qCDebug(logContainers) << "content set successfully";
 }
 
 /*!
@@ -189,7 +198,7 @@ void DDrawer::setContent(QWidget *content, Qt::Alignment alignment)
 QWidget *DDrawer::getContent() const
 {
     Q_D(const DDrawer);
-
+    qCDebug(logContainers) << "getContent called";
     return d->m_content;
 }
 
@@ -200,10 +209,14 @@ QWidget *DDrawer::getContent() const
  */
 void DDrawer::setHeaderHeight(int height)
 {
+    qCDebug(logContainers) << "setHeaderHeight called with height:" << height;
     Q_D(DDrawer);
 
     if (d->m_header) {
         d->m_header->setFixedHeight(height);
+        qCDebug(logContainers) << "header height set successfully";
+    } else {
+        qCDebug(logContainers) << "header is null, cannot set height";
     }
 }
 
@@ -214,9 +227,11 @@ void DDrawer::setHeaderHeight(int height)
  */
 void DDrawer::setExpand(bool value)
 {
+    qCDebug(logContainers) << "setExpand called with value:" << value;
     Q_D(DDrawer);
 
     if (d->m_expand == value) {
+        qCDebug(logContainers) << "expand value unchanged, returning";
         return;
     }
 
@@ -228,14 +243,17 @@ void DDrawer::setExpand(bool value)
     d->m_enableAnimation = !disableAnimation && isVisible();
 
     if (!d->m_enableAnimation) {
+        qCDebug(logContainers) << "animation disabled, updating height directly";
         d->updateHeightDirect();
         return;
     }
 
     if (value) {
+        qCDebug(logContainers) << "expanding drawer";
         d->m_animation->setStartValue(0);
         d->m_animation->setEndValue(d->m_boxWidget->height());
     } else {
+        qCDebug(logContainers) << "collapsing drawer";
         d->m_animation->setStartValue(d->m_boxWidget->height());
         d->m_animation->setEndValue(0);
     }
@@ -252,7 +270,9 @@ void DDrawer::setExpand(bool value)
 bool DDrawer::expand() const
 {
     Q_D(const DDrawer);
-    return d->m_expand;
+    const auto& expanded = d->m_expand;
+    qCDebug(logContainers) << "expand getter called, returning:" << expanded;
+    return expanded;
 }
 
 /*!

@@ -14,6 +14,7 @@
 #include <QScroller>
 #include <QMouseEvent>
 #include <QFormLayout>
+#include <QLoggingCategory>
 
 #include <DSettings>
 #include <DSettingsGroup>
@@ -27,6 +28,8 @@
 #include "contenttitle.h"
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logSettingsConfig)
 
 class ContentPrivate
 {
@@ -56,6 +59,8 @@ Content::Content(QWidget *parent)
 {
     Q_D(Content);
 
+    qCDebug(logSettingsConfig) << "Construct content panel"
+                               << reinterpret_cast<const void *>(this);
     setObjectName("RightFrame");
 
     auto layout = new QVBoxLayout(this);
@@ -92,6 +97,7 @@ Content::Content(QWidget *parent)
     this, [ = ](int value) {
         Q_D(Content);
 
+        qCDebug(logSettingsConfig) << "Scroll value" << value;
         // 当前显示的Title才参与滚动条的计算
         QList<QWidget *> visableSortTitles;
         for (auto idx = 0; idx < d->sortTitles.length(); ++idx) {
@@ -136,7 +142,9 @@ Content::Content(QWidget *parent)
             currentTitle = visableSortTitles.first();
 
         if (currentTitle) {
-            Q_EMIT scrollToGroup(currentTitle->property("key").toString());
+            const auto key = currentTitle->property("key").toString();
+            qCDebug(logSettingsConfig) << "Scroll to group" << key;
+            Q_EMIT scrollToGroup(key);
         }
     });
 }
@@ -149,6 +157,7 @@ Content::~Content()
 DSettingsWidgetFactory *Content::widgetFactory() const
 {
     Q_D(const Content);
+    qCDebug(logSettingsConfig) << "Get widget factory";
     return d->widgetFactory;
 }
 
@@ -156,6 +165,7 @@ bool Content::groupIsVisible(const QString &key) const
 {
     Q_D(const Content);
 
+    qCDebug(logSettingsConfig) << "Query group visible" << key;
     QWidget *title = d->titles.value(key);
 
     return title && title->isVisible();
@@ -165,6 +175,7 @@ void Content::setGroupVisible(const QString &key, bool visible)
 {
     Q_D(Content);
 
+    qCDebug(logSettingsConfig) << "Set group visible" << key << visible;
     QSet<QString> keys = {key}; // 需要改变visible的key集合
     for (QObject *obj : d->contentFrame->children()) {
         auto parentKey = obj->property("_d_dtk_group_key").toString();
@@ -188,6 +199,7 @@ void Content::onScrollToGroup(const QString &key)
 {
     Q_D(Content);
 
+    qCDebug(logSettingsConfig) << "On scroll to group" << key;
     if (!d->titles.contains(key)) { return; }
 
     auto title = d->titles.value(key);
@@ -202,6 +214,7 @@ void Content::updateSettings(const QByteArray &translateContext, QPointer<DTK_CO
 {
     Q_D(Content);
 
+    qCDebug(logSettingsConfig) << "Update content from settings";
     QString current_groupKey;
     QString current_subGroupKey;
 
@@ -340,6 +353,7 @@ void Content::updateSettings(const QByteArray &translateContext, QPointer<DTK_CO
 
     connect(resetBt, &QPushButton::released,
     this, [ = ]() {
+        qCDebug(logSettingsConfig) << "Reset settings clicked";
         settings->reset();
     });
 }
@@ -359,6 +373,7 @@ void Content::mouseMoveEvent(QMouseEvent *event)
 void Content::resizeEvent(QResizeEvent *event)
 {
     Q_D(Content);
+    qCDebug(logSettingsConfig) << "Resize content" << size();
     d->contentFrame->setMaximumWidth(d->contentArea->width());
 
     return QWidget::resizeEvent(event);

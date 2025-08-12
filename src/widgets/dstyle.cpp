@@ -38,6 +38,7 @@ DCORE_USE_NAMESPACE
 DGUI_USE_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
 
+Q_LOGGING_CATEGORY(logStyleTheme, "dtk.widgets.style")
 
 /*!
   \brief 该函数用于调整给定颜色.
@@ -54,6 +55,7 @@ QColor DStyle::adjustColor(const QColor &base,
                            qint8 hueFloat, qint8 saturationFloat, qint8 lightnessFloat,
                            qint8 redFloat, qint8 greenFloat, qint8 blueFloat, qint8 alphaFloat)
 {
+    qCDebug(logStyleTheme) << "Adjusting color with parameters:" << hueFloat << saturationFloat << lightnessFloat << redFloat << greenFloat << blueFloat << alphaFloat;
     return DGuiApplicationHelper::adjustColor(base, hueFloat, saturationFloat, lightnessFloat, redFloat, greenFloat, blueFloat, alphaFloat);
 }
 
@@ -68,6 +70,7 @@ QColor DStyle::adjustColor(const QColor &base,
  */
 QColor DStyle::blendColor(const QColor &substrate, const QColor &superstratum)
 {
+    qCDebug(logStyleTheme) << "Blending colors:" << substrate << "and" << superstratum;
     return DGuiApplicationHelper::blendColor(substrate, superstratum);
 }
 
@@ -79,6 +82,7 @@ QColor DStyle::blendColor(const QColor &substrate, const QColor &superstratum)
  */
 QPair<QIcon::Mode, QIcon::State> DStyle::toIconModeState(const QStyleOption *option)
 {
+    qCDebug(logStyleTheme) << "Converting to icon mode state";
     QIcon::Mode mode = QIcon::Normal;
     QIcon::State state = option->state & State_On ? QIcon::On : QIcon::Off;
 
@@ -97,6 +101,7 @@ QPair<QIcon::Mode, QIcon::State> DStyle::toIconModeState(const QStyleOption *opt
 
 DDciIcon::Mode DStyle::toDciIconMode(const QStyleOption *option)
 {
+    qCDebug(logStyleTheme) << "Converting to DCI icon mode";
     DDciIcon::Mode mode = DDciIcon::Normal;
 
     if (option->state & QStyle::State_Enabled) {
@@ -114,6 +119,7 @@ DDciIcon::Mode DStyle::toDciIconMode(const QStyleOption *option)
 
 static DDciIconPalette makeIconPalette(const QPalette &pal)
 {
+    qCDebug(logStyleTheme) << "Making icon palette from palette";
     DDciIconPalette iconPalette;
     iconPalette.setForeground(pal.color(QPalette::WindowText));
     iconPalette.setBackground(pal.color(QPalette::Window));
@@ -153,37 +159,44 @@ Qt::TextFormat DStyle::tooltipTextFormat()
 
 void DStyle::setFocusRectVisible(QWidget *widget, bool visible)
 {
+    qCDebug(logStyleTheme) << "Setting focus rect visible to:" << visible << "for widget:" << widget;
     widget->setProperty("_d_dtk_noFocusRect", !visible);
 }
 
 void DStyle::setFrameRadius(QWidget *widget, int radius)
 {
+    qCDebug(logStyleTheme) << "Setting frame radius to:" << radius << "for widget:" << widget;
     widget->setProperty("_d_dtk_frameRadius", radius);
 }
 
 void DStyle::setUncheckedItemIndicatorVisible(QWidget *widget, bool visible)
 {
+    qCDebug(logStyleTheme) << "Setting unchecked item indicator visible to:" << visible << "for widget:" << widget;
     widget->setProperty("_d_dtk_UncheckedItemIndicator", visible);
 }
 
 void DStyle::setRedPointVisible(QObject *object, bool visible)
 {
+    qCDebug(logStyleTheme) << "Setting red point visible to:" << visible << "for object:" << object;
     object->setProperty("_d_menu_item_redpoint", visible);
 }
 
 void DStyle::setShortcutUnderlineVisible(bool visible)
 {
+    qCDebug(logStyleTheme) << "Setting shortcut underline visible to:" << visible;
     qApp->setProperty("_d_menu_underlineshortcut", visible);
 }
 
 static inline bool hasConfig(const QString &key, bool fallback = false)
 {
+    qCDebug(logStyleTheme) << "Checking config for key:" << key << "with fallback:" << fallback;
     static DConfig config("org.deepin.dtk.preference");
     return config.value(key, fallback).toBool();
 }
 
 static inline bool hasProperty(const char *key, std::function<bool()> fallback)
 {
+    qCDebug(logStyleTheme) << "Checking property for key:" << key;
     const QVariant &prop = qApp->property(key);
     if (prop.isValid())
         return prop.toBool();
@@ -193,6 +206,7 @@ static inline bool hasProperty(const char *key, std::function<bool()> fallback)
 
 static inline bool hasEnv(const char *key, std::function<bool()> fallback)
 {
+    qCDebug(logStyleTheme) << "Checking environment variable for key:" << key;
     if (qEnvironmentVariableIsSet(key))
         return true;
 
@@ -201,30 +215,36 @@ static inline bool hasEnv(const char *key, std::function<bool()> fallback)
 
 bool DStyle::shortcutUnderlineVisible()
 {
-    return hasEnv("D_MENU_UNDERLINESHORTCUT", []()->bool {
+    const bool result = hasEnv("D_MENU_UNDERLINESHORTCUT", []()->bool {
         return hasProperty("_d_menu_underlineshortcut", []()->bool {
             return hasConfig("underlineShortcut");
         });
     });
+    qCDebug(logStyleTheme) << "Checking shortcut underline visible:" << result;
+    return result;
 }
 
 void DStyle::setMenuKeyboardSearchDisabled(bool disabled)
 {
+    qCDebug(logStyleTheme) << "Setting menu keyboard search disabled to:" << disabled;
     qApp->setProperty("_d_menu_keyboardsearch_disabled", disabled);
 }
 
 bool DStyle::isMenuKeyboardSearchDisabled()
 {
-    return hasEnv("D_MENU_DISABLE_KEYBOARDSEARCH", []()->bool {
+    const bool result = hasEnv("D_MENU_DISABLE_KEYBOARDSEARCH", []()->bool {
         return hasProperty("_d_menu_keyboardsearch_disabled", []()->bool {
             return hasConfig("keyboardsearchDisabled");
         });
     });
+    qCDebug(logStyleTheme) << "Checking menu keyboard search disabled:" << result;
+    return result;
 }
 
 namespace DDrawUtils {
 static QImage dropShadow(const QPixmap &px, qreal radius, const QColor &color)
 {
+    qCDebug(logStyleTheme) << "Creating drop shadow with radius:" << radius << "and color:" << color;
     if (px.isNull())
         return QImage();
 
@@ -260,6 +280,7 @@ static QImage dropShadow(const QPixmap &px, qreal radius, const QColor &color)
 
 static QList<QRect> sudokuByRect(const QRect &rect, QMargins borders)
 {
+    qCDebug(logStyleTheme) << "Creating sudoku rectangles for rect:" << rect << "with borders:" << borders;
     QList<QRect> list;
 
 //    qreal border_width = borders.left() + borders.right();
@@ -293,6 +314,7 @@ static QList<QRect> sudokuByRect(const QRect &rect, QMargins borders)
 
 static QImage borderImage(const QPixmap &px, const QMargins &borders, const QSize &size, QImage::Format format)
 {
+    qCDebug(logStyleTheme) << "Creating border image with size:" << size << "and borders:" << borders;
     QImage image(size, format);
     QPainter pa(&image);
 
@@ -312,6 +334,7 @@ static QImage borderImage(const QPixmap &px, const QMargins &borders, const QSiz
 
 void drawShadow(QPainter *pa, const QRect &rect, qreal xRadius, qreal yRadius, const QColor &sc, qreal radius, const QPoint &offset)
 {
+    qCDebug(logStyleTheme) << "Drawing shadow with radius:" << radius << "color:" << sc << "offset:" << offset;
     QPixmap shadow;
     qreal scale = pa->paintEngine()->paintDevice()->devicePixelRatioF();
     QRect shadow_rect = rect;
@@ -381,6 +404,7 @@ void drawShadow(QPainter *pa, const QRect &rect, const QPainterPath &path, const
 
 void drawFork(QPainter *pa, const QRectF &rect, const QColor &color, int width)
 {
+    qCDebug(logStyleTheme) << "Drawing fork with color:" << color << "width:" << width << "in rect:" << rect;
     QPen pen;
     pen.setWidth(width);
     pen.setColor(color);
@@ -1048,7 +1072,7 @@ void drawArrowElement(Qt::ArrowType arrow, QPainter *pa, const QRectF &rect)
  */
 DStyle::DStyle()
 {
-
+    qCDebug(logStyleTheme) << "Creating DStyle instance";
 }
 
 /*!
@@ -1968,6 +1992,7 @@ case static_cast<uint32_t>(SP_##Value): { \
  */
 int DStyle::styleHint(QStyle::StyleHint sh, const QStyleOption *opt, const QWidget *w, QStyleHintReturn *shret) const
 {
+    qCDebug(logStyleTheme) << "Getting style hint:" << sh << "for widget:" << w;
     switch (sh) {
     case SH_UnderlineShortcut: {
         return shortcutUnderlineVisible();
@@ -2036,6 +2061,7 @@ int DStyle::styleHint(QStyle::StyleHint sh, const QStyleOption *opt, const QWidg
  */
 QPalette DStyle::standardPalette() const
 {
+    qCDebug(logStyleTheme) << "Getting standard palette";
     QPalette pa = DGuiApplicationHelper::instance()->standardPalette(DGuiApplicationHelper::LightType);
     // 将无效的颜色fallback到QCommonStyle提供的palette，且在resolve操作中将detach pa对象
     // 防止在QApplication initSystemPalette的setSystemPalette中获取到一个和 QGuiApplicationPrivate::platformTheme()->palette()
@@ -2045,6 +2071,7 @@ QPalette DStyle::standardPalette() const
 
 QPixmap DStyle::generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &pixmap, const QStyleOption *opt) const
 {
+    qCDebug(logStyleTheme) << "Generating icon pixmap for mode:" << iconMode << "with size:" << pixmap.size();
     Q_UNUSED(opt)
     switch (iconMode) {
         case QIcon::Active: {
@@ -2092,6 +2119,7 @@ QPixmap DStyle::generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &pixmap,
 
 DStyle::StyleState DStyle::getState(const QStyleOption *option)
 {
+    qCDebug(logStyleTheme) << "Getting style state for option with state:" << option->state;
     DStyle::StyleState state = DStyle::SS_NormalState;
 
     if (!option->state.testFlag(DStyle::State_Enabled)) {
@@ -2140,6 +2168,7 @@ static DStyle::StateFlags getFlags(const QStyleOption *option)
  */
 void DStyle::drawPrimitive(QStyle::PrimitiveElement pe, const QStyleOption *opt, QPainter *p, const QWidget *w) const
 {
+    qCDebug(logStyleTheme) << "Drawing primitive element:" << pe << "for widget:" << w;
     switch (pe) {
     case PE_IndicatorArrowUp:
         p->setPen(QPen(opt->palette.windowText(), 1));
@@ -2181,6 +2210,7 @@ void DStyle::drawPrimitive(QStyle::PrimitiveElement pe, const QStyleOption *opt,
  */
 void DStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *opt, QPainter *p, const QWidget *w) const
 {
+    qCDebug(logStyleTheme) << "Drawing control element:" << ce << "for widget:" << w;
     if (Q_UNLIKELY(ce < QStyle::CE_CustomBase)) {
         return QCommonStyle::drawControl(ce, opt, p, w);
     }
@@ -2194,6 +2224,7 @@ void DStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *opt, QPa
  */
 int DStyle::pixelMetric(QStyle::PixelMetric m, const QStyleOption *opt, const QWidget *widget) const
 {
+    qCDebug(logStyleTheme) << "Getting pixel metric:" << m << "for widget:" << widget;
     switch (m) {
     case PM_ButtonDefaultIndicator:
     case PM_ButtonShiftHorizontal:
@@ -2284,6 +2315,7 @@ int DStyle::pixelMetric(QStyle::PixelMetric m, const QStyleOption *opt, const QW
  */
 QRect DStyle::subElementRect(QStyle::SubElement r, const QStyleOption *opt, const QWidget *widget) const
 {
+    qCDebug(logStyleTheme) << "Getting sub element rect:" << r << "for widget:" << widget;
     if (Q_UNLIKELY(r < QStyle::SE_CustomBase)) {
         return QCommonStyle::subElementRect(r, opt, widget);
     }
@@ -2297,6 +2329,7 @@ QRect DStyle::subElementRect(QStyle::SubElement r, const QStyleOption *opt, cons
  */
 QSize DStyle::sizeFromContents(QStyle::ContentsType ct, const QStyleOption *opt, const QSize &contentsSize, const QWidget *widget) const
 {
+    qCDebug(logStyleTheme) << "Getting size from contents:" << ct << "for widget:" << widget << "with content size:" << contentsSize;
     if (Q_UNLIKELY(ct < QStyle::CT_CustomBase)) {
         return QCommonStyle::sizeFromContents(ct, opt, contentsSize, widget);
     }
@@ -2310,6 +2343,7 @@ QSize DStyle::sizeFromContents(QStyle::ContentsType ct, const QStyleOption *opt,
  */
 QIcon DStyle::standardIcon(QStyle::StandardPixmap st, const QStyleOption *opt, const QWidget *widget) const
 {
+    qCDebug(logStyleTheme) << "Getting standard icon:" << st << "for widget:" << widget;
     switch (static_cast<uint32_t>(st)) {
         CASE_ICON(TitleBarMenuButton)
         CASE_ICON(TitleBarMinButton)

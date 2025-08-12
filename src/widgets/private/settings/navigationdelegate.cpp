@@ -8,8 +8,11 @@
 #include <QDebug>
 #include <DApplication>
 #include <DFontSizeManager>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logSettingsConfig)
 
 NavigationDelegate::NavigationDelegate(QAbstractItemView *parent)
     : DStyledItemDelegate(parent)
@@ -34,6 +37,7 @@ void NavigationDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
     // draw text
     switch (level) {
     case Level1: {
+        qCDebug(logSettingsConfig) << "Paint level1 item";
         QColor pen = option.palette.color(isSelected ? QPalette::HighlightedText : QPalette::BrightText);
         painter->setPen(pen);
         painter->setFont(DFontSizeManager::instance()->get(DFontSizeManager::T4, QFont::Medium, opt.font));
@@ -43,6 +47,7 @@ void NavigationDelegate::paint(QPainter *painter, const QStyleOptionViewItem &op
         break;
     }
     case Level2: {
+        qCDebug(logSettingsConfig) << "Paint level2 item";
         QColor pen = option.palette.color(isSelected ? QPalette::HighlightedText : QPalette::WindowText);
         painter->setPen(pen);
         auto rect = option.rect.marginsRemoved(QMargins(30, 0, 10, 0));

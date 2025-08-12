@@ -12,6 +12,7 @@
 #include <QEvent>
 #include <QIcon>
 #include <QLinearGradient>
+#include <QLoggingCategory>
 
 #include <DIconTheme>
 #include <DObjectPrivate>
@@ -20,6 +21,8 @@
 DCORE_USE_NAMESPACE
 DGUI_USE_NAMESPACE
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logProgressAnimation)
 
 struct Pop {
     Pop(double s, double xs, double ys):
@@ -78,6 +81,8 @@ public:
 DWaterProgress::DWaterProgress(QWidget *parent) :
     QWidget(parent), DObject(*new DWaterProgressPrivate(this))
 {
+    qCDebug(logProgressAnimation) << "Construct water progress"
+                                  << reinterpret_cast<const void *>(this);
     D_D(DWaterProgress);
     d->initUI();
 
@@ -91,6 +96,7 @@ DWaterProgress::DWaterProgress(QWidget *parent) :
 
 DWaterProgress::~DWaterProgress()
 {
+    qCDebug(logProgressAnimation) << "Destruct water progress";
 
 }
 
@@ -101,6 +107,7 @@ DWaterProgress::~DWaterProgress()
 int DWaterProgress::value() const
 {
     D_DC(DWaterProgress);
+    qCDebug(logProgressAnimation) << "Get value" << d->value;
     return d->value;
 }
 
@@ -111,6 +118,7 @@ int DWaterProgress::value() const
 void DWaterProgress::start()
 {
     D_DC(DWaterProgress);
+    qCDebug(logProgressAnimation) << "Start animation";
     d->timer->start();
 }
 
@@ -121,6 +129,7 @@ void DWaterProgress::start()
 void DWaterProgress::stop()
 {
     D_DC(DWaterProgress);
+    qCDebug(logProgressAnimation) << "Stop animation";
     d->timer->stop();
 }
 
@@ -132,6 +141,7 @@ void DWaterProgress::stop()
 void DWaterProgress::setValue(int value)
 {
     D_D(DWaterProgress);
+    qCDebug(logProgressAnimation) << "Set value" << value;
     if (d->value == value) {
         return;
     }
@@ -147,12 +157,14 @@ void DWaterProgress::setValue(int value)
 void DWaterProgress::setTextVisible(bool visible)
 {
     D_D(DWaterProgress);
+    qCDebug(logProgressAnimation) << "Set text visible" << visible;
     d->textVisible = visible;
 }
 
 void DWaterProgress::paintEvent(QPaintEvent *)
 {
     D_D(DWaterProgress);
+    qCDebug(logProgressAnimation) << "Repaint";
     QPainter p(this);
     d->paint(&p);
 }
@@ -161,6 +173,7 @@ void DWaterProgress::changeEvent(QEvent *e)
 {
     if (e->type() == QEvent::PaletteChange) {
         D_D(DWaterProgress);
+        qCDebug(logProgressAnimation) << "Palette changed, reset cache";
         d->waterBackImage = QImage();
         d->waterFrontImage = QImage();
     }
@@ -170,6 +183,8 @@ void DWaterProgress::changeEvent(QEvent *e)
 
 void DWaterProgressPrivate::resizePixmap(QSize sz)
 {
+    qCDebug(logProgressAnimation) << "Resize water pixmap"
+                                  << sz;
     // resize water;
     auto waterWidth = 500  * sz.width() / 100;
     auto waterHeight = 110  * sz.height() / 100;
@@ -196,6 +211,7 @@ void DWaterProgressPrivate::resizePixmap(QSize sz)
 void DWaterProgressPrivate::initUI()
 {
     D_Q(DWaterProgress);
+    qCDebug(logProgressAnimation) << "Init UI";
     q->setMinimumSize(100, 100);
 
     timer = new QTimer(q);
@@ -251,6 +267,7 @@ void DWaterProgressPrivate::initUI()
 
 void DWaterProgressPrivate::setValue(int v)
 {
+    qCDebug(logProgressAnimation) << "Private set value" << v;
     value = v;
     progressText = QString("%1").arg(v);
 }
@@ -258,6 +275,7 @@ void DWaterProgressPrivate::setValue(int v)
 void DWaterProgressPrivate::paint(QPainter *p)
 {
     D_Q(DWaterProgress);
+    qCDebug(logProgressAnimation) << "Paint water";
     p->setRenderHint(QPainter::Antialiasing);
 
     qreal pixelRatio = q->devicePixelRatioF();

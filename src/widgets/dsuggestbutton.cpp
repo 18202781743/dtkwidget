@@ -8,8 +8,13 @@
 #include <QStylePainter>
 #include <QStyleOptionButton>
 #include <DGuiApplicationHelper>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
+}
 
 /*!
 @~english
@@ -25,7 +30,7 @@ DWIDGET_BEGIN_NAMESPACE
 DSuggestButton::DSuggestButton(QWidget *parent)
     : QPushButton(parent)
 {
-
+    qCDebug(logBasicWidgets) << "Creating suggest button";
 }
 
 /*!
@@ -37,13 +42,14 @@ DSuggestButton::DSuggestButton(QWidget *parent)
 DSuggestButton::DSuggestButton(const QString &text, QWidget *parent)
     : QPushButton(text, parent)
 {
-
+    qCDebug(logBasicWidgets) << "Creating suggest button with text:" << text;
 }
 
 
 void DSuggestButton::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event)
+    qCDebug(logBasicWidgets) << "Painting suggest button";
     QStylePainter p(this);
     DStyleOptionButton option;
     initStyleOption(&option);
@@ -52,6 +58,7 @@ void DSuggestButton::paintEvent(QPaintEvent *event)
 
     QColor startColor = palette().color(QPalette::Highlight);
     QColor endColor = DGuiApplicationHelper::adjustColor(startColor, 0, 0, +10, 0, 0, 0, 0);
+    qCDebug(logBasicWidgets) << "Using colors - start:" << startColor << "end:" << endColor;
 
     option.palette.setBrush(QPalette::Light, QBrush(endColor));
     option.palette.setBrush(QPalette::Dark, QBrush(startColor));

@@ -6,8 +6,11 @@
 
 #include <QStyle>
 #include <QStyleOptionProgressBar>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logProgressAnimation)
 /*!
 @~english
   @class Dtk::Widget::DProgressBar
@@ -24,6 +27,8 @@ DWIDGET_BEGIN_NAMESPACE
 DProgressBar::DProgressBar(QWidget *parent)
     : QProgressBar(parent)
 {
+    qCDebug(logProgressAnimation) << "Construct progress bar"
+                                  << reinterpret_cast<const void *>(this);
 
 }
 
@@ -34,6 +39,7 @@ DProgressBar::DProgressBar(QWidget *parent)
 */
 QSize DProgressBar::sizeHint() const
 {
+    qCDebug(logProgressAnimation) << "Size hint";
     if (isTextVisible()) {
         return QProgressBar::sizeHint();
     }
@@ -50,6 +56,7 @@ QSize DProgressBar::sizeHint() const
 */
 QSize DProgressBar::minimumSizeHint() const
 {
+    qCDebug(logProgressAnimation) << "Minimum size hint";
     if (isTextVisible()) {
         return QProgressBar::minimumSizeHint();
     }

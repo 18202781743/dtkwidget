@@ -35,6 +35,8 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_LOGGING_CATEGORY(logSettingsConfig, "dtk.widgets.settings")
+
 #define SHORTCUT_VALUE "shortcut_null"
 
 class DSettingsWidgetFactoryPrivate;
@@ -45,10 +47,12 @@ public:
     KeySequenceEdit(DTK_CORE_NAMESPACE::DSettingsOption *opt, QWidget *parent = nullptr)
         : DKeySequenceEdit(parent)
     {
+        qCDebug(logSettingsConfig) << "KeySequenceEdit constructor called with option:" << opt;
         m_poption = opt;
     }
     DTK_CORE_NAMESPACE::DSettingsOption *option()
     {
+        qCDebug(logSettingsConfig) << "Getting option:" << m_poption;
         return m_poption;
     }
 private:
@@ -62,6 +66,7 @@ class ChangeDDialog : public DDialog
 public:
     ChangeDDialog(QString key, KeySequenceEdit *edit, QString text = QString())
     {
+        qCDebug(logSettingsConfig) << "ChangeDDialog constructor called with key:" << key << "text:" << text;
         QPushButton *cancel = new QPushButton(qApp->translate("DSettingsDialog", "Cancel"));
         DSuggestButton *replace = new DSuggestButton(qApp->translate("DSettingsDialog", "Replace"));
 
@@ -73,6 +78,7 @@ public:
         insertButton(1, cancel);
         insertButton(1, replace);
         connect(replace, &DSuggestButton::clicked, [ = ] {  //替换
+            qCDebug(logSettingsConfig) << "Replace button clicked";
             auto value = shortcutMap.value(key);
             value->option()->setValue(SHORTCUT_VALUE);
             shortcutMap.remove(key);
@@ -80,18 +86,22 @@ public:
             edit->option()->setValue(key);
         });
         connect(cancel, &QPushButton::clicked, [ = ] {  //取消
+            qCDebug(logSettingsConfig) << "Cancel button clicked";
             cancelSettings(edit);
         });
         connect(this, &DDialog::closed, [ = ] {
+            qCDebug(logSettingsConfig) << "Dialog closed";
             cancelSettings(edit);
         });
         connect(this, &DDialog::rejected, [ = ] {
+            qCDebug(logSettingsConfig) << "Dialog rejected";
             cancelSettings(edit);
         });
     }
 private:
     void cancelSettings(KeySequenceEdit *edit)
     {
+        qCDebug(logSettingsConfig) << "Canceling settings for edit";
         if (shortcutMap.key(edit).isEmpty()) {  //第一次被设置
             edit->clear();
         } else {
@@ -643,12 +653,12 @@ public:
 DSettingsWidgetFactory::DSettingsWidgetFactory(QObject *parent) :
     QObject(parent), dd_ptr(new DSettingsWidgetFactoryPrivate(this))
 {
-
+    qCDebug(logSettingsConfig) << "DSettingsWidgetFactory constructor called";
 }
 
 DSettingsWidgetFactory::~DSettingsWidgetFactory()
 {
-
+    qCDebug(logSettingsConfig) << "DSettingsWidgetFactory destructor called";
 }
 
 /*!
@@ -660,12 +670,14 @@ DSettingsWidgetFactory::~DSettingsWidgetFactory()
 void DSettingsWidgetFactory::registerWidget(const QString &viewType, std::function<WidgetCreateHandler> handler)
 {
     Q_D(DSettingsWidgetFactory);
+    qCDebug(logSettingsConfig) << "Registering widget with viewType:" << viewType;
     d->widgetCreateHandles.insert(viewType, handler);
 }
 
 void DSettingsWidgetFactory::registerWidget(const QString &viewType, std::function<DSettingsWidgetFactory::ItemCreateHandler> handler)
 {
     Q_D(DSettingsWidgetFactory);
+    qCDebug(logSettingsConfig) << "Registering item widget with viewType:" << viewType;
     d->itemCreateHandles.insert(viewType, handler);
 }
 
@@ -678,6 +690,7 @@ void DSettingsWidgetFactory::registerWidget(const QString &viewType, std::functi
  */
 QWidget *DSettingsWidgetFactory::createWidget(QPointer<DTK_CORE_NAMESPACE::DSettingsOption> option)
 {
+    qCDebug(logSettingsConfig) << "Creating widget with option:" << option;
     return createWidget(QByteArray(), option);
 }
 /*!
@@ -690,32 +703,39 @@ QWidget *DSettingsWidgetFactory::createWidget(QPointer<DTK_CORE_NAMESPACE::DSett
  */
 QWidget *DSettingsWidgetFactory::createWidget(const QByteArray &translateContext, QPointer<DTK_CORE_NAMESPACE::DSettingsOption> option)
 {
+    qCDebug(logSettingsConfig) << "Creating widget with translateContext:" << translateContext << "option:" << option;
     option->setProperty(PRIVATE_PROPERTY_translateContext, translateContext);
 
     Q_D(DSettingsWidgetFactory);
     auto handle = d->widgetCreateHandles.value(option->viewType());
     if (handle) {
+        qCDebug(logSettingsConfig) << "Found widget handle for viewType:" << option->viewType();
         return handle(option.data());
     } else {
+        qCDebug(logSettingsConfig) << "No widget handle found for viewType:" << option->viewType() << "using unsupport handle";
         return createUnsupportHandle(option.data());
     }
 }
 
 QPair<QWidget *, QWidget *> DSettingsWidgetFactory::createItem(QPointer<Core::DSettingsOption> option) const
 {
+    qCDebug(logSettingsConfig) << "Creating item with option:" << option;
     return createItem(QByteArray(), option);
 }
 
 QPair<QWidget *, QWidget *> DSettingsWidgetFactory::createItem(const QByteArray &translateContext, QPointer<Core::DSettingsOption> option) const
 {
+    qCDebug(logSettingsConfig) << "Creating item with translateContext:" << translateContext << "option:" << option;
     option->setProperty(PRIVATE_PROPERTY_translateContext, translateContext);
 
     Q_D(const DSettingsWidgetFactory);
     auto handle = d->itemCreateHandles.value(option->viewType());
     if (handle) {
+        qCDebug(logSettingsConfig) << "Found item handle for viewType:" << option->viewType();
         return handle(option.data());
     }
 
+    qCDebug(logSettingsConfig) << "No item handle found for viewType:" << option->viewType();
     return qMakePair(nullptr, nullptr);
 }
 

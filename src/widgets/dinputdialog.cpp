@@ -7,6 +7,7 @@
 #include <QShowEvent>
 #include <QApplication>
 #include <QComboBox>
+#include <QLoggingCategory>
 
 #include "dinputdialog.h"
 #include "private/dinputdialog_p.h"
@@ -15,6 +16,8 @@
 #include "dpasswordedit.h"
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 DInputDialogPrivate::DInputDialogPrivate(DInputDialog *qq) :
     DDialogPrivate(qq)
@@ -25,6 +28,9 @@ DInputDialogPrivate::DInputDialogPrivate(DInputDialog *qq) :
 void DInputDialogPrivate::init()
 {
     D_Q(DInputDialog);
+
+    qCDebug(logBasicWidgets) << "Init input dialog"
+                             << reinterpret_cast<const void *>(q);
 
     q->addButtons(QStringList() << QApplication::translate("DInputDialog", "Cancel")
                                 << QApplication::translate("DInputDialog", "Confirm"));
@@ -47,6 +53,8 @@ void DInputDialogPrivate::init()
 
     q->setInputMode(DInputDialog::TextInput);
 
+    qCDebug(logBasicWidgets) << "Set default input mode" << 0;
+
     q->connect(lineEdit, &DLineEdit::textChanged, q, &DInputDialog::textValueChanged);
     q->connect(lineEdit, &DLineEdit::alertChanged, q, &DInputDialog::textAlertChanged);
     q->connect(comboBox, &QComboBox::currentTextChanged, q, &DInputDialog::textValueChanged);
@@ -54,10 +62,12 @@ void DInputDialogPrivate::init()
     q->connect(spinBox, SIGNAL(valueChanged(int)), q, SIGNAL(intValueChanged(int)));
     q->connect(doubleSpinBox, SIGNAL(valueChanged(double)), q, SIGNAL(doubleValueChanged(double)));
     q->connect(cancelButton, &QAbstractButton::clicked, q, [q] {
+        qCDebug(logBasicWidgets) << "Click cancel";
         q->done(QDialog::Rejected);
         q->cancelButtonClicked();
     });
     q->connect(okButton, &QAbstractButton::clicked, q, [q, this] {
+        qCDebug(logBasicWidgets) << "Click ok";
         q->done(QDialog::Accepted);
         q->okButtonClicked();
 
@@ -136,6 +146,8 @@ void DInputDialogPrivate::init()
 DInputDialog::DInputDialog(QWidget *parent) :
     DDialog(*new DInputDialogPrivate(this), parent)
 {
+    qCDebug(logBasicWidgets) << "Construct input dialog"
+                             << reinterpret_cast<const void *>(this);
     d_func()->init();
 }
 
@@ -146,34 +158,41 @@ void DInputDialog::setInputMode(DInputDialog::InputMode mode)
 {
     D_D(DInputDialog);
 
+    qCDebug(logBasicWidgets) << "Update input mode"
+                             << static_cast<int>(mode);
     d->inputMode = mode;
 
     switch (mode) {
     case InputMode::TextInput:
+        qCDebug(logBasicWidgets) << "Switching to text input mode";
         d->lineEdit->show();
         d->comboBox->hide();
         d->spinBox->hide();
         d->doubleSpinBox->hide();
         break;
     case InputMode::ComboBox:
+        qCDebug(logBasicWidgets) << "Switching to combo box mode";
         d->comboBox->show();
         d->lineEdit->hide();
         d->spinBox->hide();
         d->doubleSpinBox->hide();
         break;
     case InputMode::IntInput:
+        qCDebug(logBasicWidgets) << "Switching to integer input mode";
         d->spinBox->show();
         d->lineEdit->hide();
         d->comboBox->hide();
         d->doubleSpinBox->hide();
         break;
     case InputMode::DoubleInput:
+        qCDebug(logBasicWidgets) << "Switching to double input mode";
         d->doubleSpinBox->show();
         d->lineEdit->hide();
         d->comboBox->hide();
         d->spinBox->hide();
         break;
     default:
+        qCDebug(logBasicWidgets) << "Unknown input mode";
         break;
     }
 }
@@ -237,27 +256,34 @@ void DInputDialog::setTextEchoMode(QLineEdit::EchoMode mode)
 {
     D_D(DInputDialog);
 
-    if(mode == d->lineEdit->echoMode())
+    qCDebug(logBasicWidgets) << "Update echo mode"
+                             << static_cast<int>(mode);
+    if(mode == d->lineEdit->echoMode()) {
+        qCDebug(logBasicWidgets) << "Echo mode unchanged, skipping";
         return;
+    }
 
     DLineEdit *edit;
 
     if(mode == QLineEdit::Normal) {
+        qCDebug(logBasicWidgets) << "Creating normal line edit";
         edit = new DLineEdit;
     } else {
+        qCDebug(logBasicWidgets) << "Creating password edit";
         edit = new DPasswordEdit;
-
         edit->setEchoMode(mode);
     }
 
     edit->setClearButtonEnabled(true);
 
+    qCDebug(logBasicWidgets) << "Reconnecting signals";
     disconnect(d->lineEdit, &DLineEdit::alertChanged, this, &DInputDialog::textAlertChanged);
     disconnect(d->lineEdit, &DLineEdit::textChanged, this, &DInputDialog::textValueChanged);
     connect(edit, &DLineEdit::alertChanged, this, &DInputDialog::textAlertChanged);
     connect(edit, &DLineEdit::textChanged, this, &DInputDialog::textValueChanged);
 
     edit->setText(d->lineEdit->text());
+    qCDebug(logBasicWidgets) << "Replacing line edit widget";
     insertContent(d->getContentLayout()->indexOf(d->lineEdit), edit);
     removeContent(d->lineEdit);
 
@@ -286,6 +312,7 @@ void DInputDialog::setComboBoxEditable(bool editable)
 {
     D_D(DInputDialog);
 
+    qCDebug(logBasicWidgets) << "Set combobox editable" << editable;
     d->comboBox->setEditable(editable);
 
     if (editable)
@@ -723,6 +750,10 @@ QString DInputDialog::getText(QWidget *parent, const QString &title, const QStri
                               QLineEdit::EchoMode echo, const QString &text, bool *ok,
                               Qt::WindowFlags flags, Qt::InputMethodHints inputMethodHints)
 {
+    Q_UNUSED(title)
+    Q_UNUSED(message)
+    Q_UNUSED(text)
+    qCDebug(logBasicWidgets) << "Show text input dialog";
     DInputDialog dialog(parent);
 
     dialog.setTitle(title);
@@ -755,6 +786,10 @@ QString DInputDialog::getItem(QWidget *parent, const QString &title, const QStri
                               const QStringList &items, int current, bool editable, bool *ok,
                               Qt::WindowFlags flags, Qt::InputMethodHints inputMethodHints)
 {
+    Q_UNUSED(title)
+    Q_UNUSED(message)
+    Q_UNUSED(items)
+    qCDebug(logBasicWidgets) << "Show combobox dialog";
     DInputDialog dialog(parent);
 
     dialog.setComboBoxItems(items);
@@ -788,6 +823,9 @@ int DInputDialog::getInt(QWidget *parent, const QString &title, const QString &m
                          int value, int minValue, int maxValue, int step, bool *ok,
                          Qt::WindowFlags flags)
 {
+    Q_UNUSED(title)
+    Q_UNUSED(message)
+    qCDebug(logBasicWidgets) << "Show int input dialog";
     DInputDialog dialog(parent);
 
     dialog.setIntValue(value);
@@ -820,6 +858,9 @@ double DInputDialog::getDouble(QWidget *parent, const QString &title, const QStr
                                double value, double minValue, double maxValue, int decimals,
                                bool *ok, Qt::WindowFlags flags)
 {
+    Q_UNUSED(title)
+    Q_UNUSED(message)
+    qCDebug(logBasicWidgets) << "Show double input dialog";
     DInputDialog dialog(parent);
 
     dialog.setDoubleValue(value);
@@ -840,6 +881,8 @@ void DInputDialog::showEvent(QShowEvent *e)
     DDialog::showEvent(e);
 
     Q_D(DInputDialog);
+    qCDebug(logBasicWidgets) << "Show dialog"
+                             << reinterpret_cast<const void *>(this);
     d->lineEdit->setFocus();
 }
 

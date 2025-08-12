@@ -7,6 +7,7 @@
 #include <QDBusReply>
 #include <QDebug>
 #include <QTimer>
+#include <QLoggingCategory>
 
 #include "dlineedit.h"
 #include "private/dlineedit_p.h"
@@ -24,6 +25,8 @@
 #undef private
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
 
 /*!
 @~english
@@ -56,13 +59,14 @@ DLineEdit::DLineEdit(QWidget *parent)
     : QWidget(parent)
     , DObject(*new DLineEditPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "DLineEdit constructor called";
     D_D(DLineEdit);
     d->init();
 }
 
 DLineEdit::~DLineEdit()
 {
-
+    qCDebug(logBasicWidgets) << "DLineEdit destructor called";
 }
 
 /*!
@@ -76,6 +80,7 @@ DLineEdit::~DLineEdit()
 QLineEdit *DLineEdit::lineEdit() const
 {
     D_DC(DLineEdit);
+    qCDebug(logBasicWidgets) << "lineEdit getter called";
     return d->lineEdit;
 }
 
@@ -83,12 +88,14 @@ DLineEdit::DLineEdit(DLineEditPrivate &q, QWidget *parent)
     : QWidget(parent)
     , DObject(q)
 {
+    qCDebug(logBasicWidgets) << "DLineEdit private constructor called";
     d_func()->init();
 }
 
 
 void DLineEdit::setAlert(bool isAlert)
 {
+    qCDebug(logBasicWidgets) << "setAlert called with value:" << isAlert;
     Q_D(DLineEdit);
     //qDebug() << "setAlert..." << isAlert;
     d->control->setAlert(isAlert);
@@ -97,11 +104,13 @@ void DLineEdit::setAlert(bool isAlert)
 bool DLineEdit::isAlert() const
 {
     D_DC(DLineEdit);
+    qCDebug(logBasicWidgets) << "isAlert called, returning:" << d->control->isAlert();
     return d->control->isAlert();
 }
 
 void DLineEdit::showAlertMessage(const QString &text, int duration)
 {
+    qCDebug(logBasicWidgets) << "showAlertMessage called with text:" << text << "duration:" << duration;
     showAlertMessage(text, nullptr, duration);
 }
 
@@ -117,6 +126,9 @@ void DLineEdit::showAlertMessage(const QString &text, int duration)
  */
 void DLineEdit::showAlertMessage(const QString &text, QWidget *follower, int duration)
 {
+    qCDebug(logBasicWidgets) << "showAlertMessage called with text:" << text 
+                              << "follower:" << (follower ? "valid" : "null") 
+                              << "duration:" << duration;
     D_D(DLineEdit);
     d->control->showAlertMessage(text, follower ? follower : this->lineEdit(), duration);
 }
@@ -131,6 +143,7 @@ void DLineEdit::showAlertMessage(const QString &text, QWidget *follower, int dur
  */
 void DLineEdit::setAlertMessageAlignment(Qt::Alignment alignment)
 {
+    qCDebug(logBasicWidgets) << "setAlertMessageAlignment called with alignment:" << alignment;
     D_D(DLineEdit);
     d->control->setMessageAlignment(alignment);
 }
@@ -138,7 +151,9 @@ void DLineEdit::setAlertMessageAlignment(Qt::Alignment alignment)
 Qt::Alignment DLineEdit::alertMessageAlignment() const
 {
     D_DC(DLineEdit);
-    return d->control->messageAlignment();
+    const auto& alignment = d->control->messageAlignment();
+    qCDebug(logBasicWidgets) << "alertMessageAlignment called, returning:" << alignment;
+    return alignment;
 }
 
 /*!
@@ -149,6 +164,7 @@ Qt::Alignment DLineEdit::alertMessageAlignment() const
 
 void DLineEdit:: hideAlertMessage()
 {
+    qCDebug(logBasicWidgets) << "hideAlertMessage called";
     Q_D(DLineEdit);
     if (d->control) {
         d->control->hideAlertMessage();
@@ -173,16 +189,20 @@ void DLineEdit:: hideAlertMessage()
 
 void DLineEdit::setLeftWidgets(const QList<QWidget *> &list)
 {
+    qCDebug(logBasicWidgets) << "setLeftWidgets called with widget count:" << list.size();
     Q_D(DLineEdit);
 
     if (d->leftWidget != nullptr) {
+        qCDebug(logBasicWidgets) << "removing existing left widget";
         d->leftWidget->hide();
         d->leftWidget->deleteLater();
         d->leftWidget = nullptr;
     }
 
-    if (list.isEmpty())
+    if (list.isEmpty()) {
+        qCDebug(logBasicWidgets) << "widget list is empty, returning";
         return;
+    }
 
     d->leftWidget = new QWidget;
     QHBoxLayout *layout = new QHBoxLayout(d->leftWidget);
@@ -196,6 +216,7 @@ void DLineEdit::setLeftWidgets(const QList<QWidget *> &list)
     }
 
     d->leftWidget->adjustSize();
+    qCDebug(logBasicWidgets) << "left widgets set successfully";
 }
 
 /*!
@@ -209,16 +230,20 @@ void DLineEdit::setLeftWidgets(const QList<QWidget *> &list)
 
 void DLineEdit::setRightWidgets(const QList<QWidget *> &list)
 {
+    qCDebug(logBasicWidgets) << "setRightWidgets called with widget count:" << list.size();
     Q_D(DLineEdit);
 
     if (d->rightWidget != nullptr) {
+        qCDebug(logBasicWidgets) << "removing existing right widget";
         d->rightWidget->hide();
         d->rightWidget->deleteLater();
         d->rightWidget = nullptr;
     }
 
-    if (list.isEmpty())
+    if (list.isEmpty()) {
+        qCDebug(logBasicWidgets) << "widget list is empty, returning";
         return;
+    }
 
     d->rightWidget = new QWidget;
     d->rightWidget->setAccessibleName("DLineEditRightWidget");
@@ -232,6 +257,7 @@ void DLineEdit::setRightWidgets(const QList<QWidget *> &list)
     }
 
     d->rightWidget->adjustSize();
+    qCDebug(logBasicWidgets) << "right widgets set successfully";
 }
 
 /*!
@@ -242,6 +268,7 @@ void DLineEdit::setRightWidgets(const QList<QWidget *> &list)
  */
 void DLineEdit::setLeftWidgetsVisible(bool visible)
 {
+    qCDebug(logBasicWidgets) << "setLeftWidgetsVisible called with visible:" << visible;
     Q_D(DLineEdit);
     d->leftWidget->setVisible(visible);
 }
@@ -253,6 +280,7 @@ void DLineEdit::setLeftWidgetsVisible(bool visible)
  */
 void DLineEdit::setRightWidgetsVisible(bool visible)
 {
+    qCDebug(logBasicWidgets) << "setRightWidgetsVisible called with visible:" << visible;
     Q_D(DLineEdit);
     d->rightWidget->setVisible(visible);
 }
@@ -265,12 +293,15 @@ void DLineEdit::setRightWidgetsVisible(bool visible)
  */
 void DLineEdit::setClearButtonEnabled(bool enable)
 {
+    qCDebug(logBasicWidgets) << "setClearButtonEnabled called with enable:" << enable;
     Q_D(DLineEdit);
     d->lineEdit->setClearButtonEnabled(enable);
 
-    if (enable)
+    if (enable) {
+        qCDebug(logBasicWidgets) << "setting accessible name for clear button";
         if (QToolButton *lineEditClearButton = d->lineEdit->findChild<QToolButton *>())
             lineEditClearButton->setAccessibleName("DLineEditClearButton");
+    }
 }
 
 /*!
@@ -282,7 +313,9 @@ void DLineEdit::setClearButtonEnabled(bool enable)
 bool DLineEdit::isClearButtonEnabled() const
 {
     D_DC(DLineEdit);
-    return  d->lineEdit->isClearButtonEnabled();
+    const auto& enabled = d->lineEdit->isClearButtonEnabled();
+    qCDebug(logBasicWidgets) << "isClearButtonEnabled called, returning:" << enabled;
+    return enabled;
 }
 
 /*!
@@ -293,6 +326,7 @@ bool DLineEdit::isClearButtonEnabled() const
  */
 void DLineEdit::setText(const QString &text)
 {
+    qCDebug(logBasicWidgets) << "setText called with text:" << text;
     D_D(DLineEdit);
     d->lineEdit->setText(text);
 }
@@ -306,7 +340,9 @@ void DLineEdit::setText(const QString &text)
 QString DLineEdit::text()
 {
     D_DC(DLineEdit);
-    return d->lineEdit->text();
+    const auto& text = d->lineEdit->text();
+    qCDebug(logBasicWidgets) << "text getter called, returning:" << text;
+    return text;
 }
 
 /*!
@@ -315,6 +351,7 @@ QString DLineEdit::text()
  */
 void DLineEdit::clear()
 {
+    qCDebug(logBasicWidgets) << "clear called";
     D_D(DLineEdit);
     return d->lineEdit->clear();
 }
@@ -339,6 +376,7 @@ QLineEdit::EchoMode DLineEdit::echoMode() const
  */
 void DLineEdit::setEchoMode(QLineEdit::EchoMode mode)
 {
+    qCDebug(logBasicWidgets) << "setEchoMode called with mode:" << mode;
     D_D(DLineEdit);
     d->lineEdit->setEchoMode(mode);
 }
@@ -353,6 +391,7 @@ void DLineEdit::setEchoMode(QLineEdit::EchoMode mode)
  */
 void DLineEdit::setContextMenuPolicy(Qt::ContextMenuPolicy policy)
 {
+    qCDebug(logBasicWidgets) << "setContextMenuPolicy called with policy:" << policy;
     D_D(DLineEdit);
     d->lineEdit->setContextMenuPolicy(policy);
 }
@@ -366,11 +405,13 @@ void DLineEdit::setContextMenuPolicy(Qt::ContextMenuPolicy policy)
 bool DLineEdit::speechToTextIsEnabled() const
 {
     D_D(const DLineEdit);
+    qCDebug(logBasicWidgets) << "speechToTextIsEnabled called, returning:" << d->bSpeechToText;
     return d->bSpeechToText;
 }
 
 void DLineEdit::setPlaceholderText(const QString& placeholderText)
 {
+    qCDebug(logBasicWidgets) << "setPlaceholderText called with text:" << placeholderText;
     D_D(DLineEdit);
     d->lineEdit->setPlaceholderText(placeholderText);
 }
@@ -383,6 +424,7 @@ void DLineEdit::setPlaceholderText(const QString& placeholderText)
  */
 void DLineEdit::setSpeechToTextEnabled(bool enable)
 {
+    qCDebug(logBasicWidgets) << "setSpeechToTextEnabled called with enable:" << enable;
     D_D(DLineEdit);
     d->bSpeechToText = enable;
 }
@@ -396,6 +438,7 @@ void DLineEdit::setSpeechToTextEnabled(bool enable)
 bool DLineEdit::textToSpeechIsEnabled() const
 {
     D_D(const DLineEdit);
+    qCDebug(logBasicWidgets) << "textToSpeechIsEnabled called, returning:" << d->bTextToSpeech;
     return d->bTextToSpeech;
 }
 
@@ -407,6 +450,7 @@ bool DLineEdit::textToSpeechIsEnabled() const
  */
 void DLineEdit::setTextToSpeechEnabled(bool enable)
 {
+    qCDebug(logBasicWidgets) << "setTextToSpeechEnabled called with enable:" << enable;
     D_D(DLineEdit);
     d->bTextToSpeech = enable;
 }
@@ -420,6 +464,7 @@ void DLineEdit::setTextToSpeechEnabled(bool enable)
 bool DLineEdit::textToTranslateIsEnabled() const
 {
     D_D(const DLineEdit);
+    qCDebug(logBasicWidgets) << "textToTranslateIsEnabled called, returning:" << d->bTextToTranslate;
     return d->bTextToTranslate;
 }
 
@@ -430,6 +475,8 @@ bool DLineEdit::textToTranslateIsEnabled() const
   \a enable True to display, false to not display
  */
 void DLineEdit::setTextToTranslateEnabled(bool enable)
+{
+    qCDebug(logBasicWidgets) << "setTextToTranslateEnabled called with enable:" << enable;
 {
     D_D(DLineEdit);
     d->bTextToTranslate = enable;
@@ -443,6 +490,7 @@ void DLineEdit::setTextToTranslateEnabled(bool enable)
 bool DLineEdit::cutEnabled() const
 {
     D_DC(DLineEdit);
+    qCDebug(logBasicWidgets) << "cutEnabled called, returning:" << d->bEnableCut;
     return d->bEnableCut;
 }
 
@@ -453,6 +501,7 @@ bool DLineEdit::cutEnabled() const
  */
 void DLineEdit::setCutEnabled(bool enable)
 {
+    qCDebug(logBasicWidgets) << "setCutEnabled called with enable:" << enable;
     D_D(DLineEdit);
     d->bEnableCut = enable;
 }
@@ -465,6 +514,7 @@ void DLineEdit::setCutEnabled(bool enable)
 bool DLineEdit::copyEnabled() const
 {
     D_DC(DLineEdit);
+    qCDebug(logBasicWidgets) << "copyEnabled called, returning:" << d->bEnableCopy;
     return d->bEnableCopy;
 }
 
@@ -475,6 +525,7 @@ bool DLineEdit::copyEnabled() const
  */
 void DLineEdit::setCopyEnabled(bool enable)
 {
+    qCDebug(logBasicWidgets) << "setCopyEnabled called with enable:" << enable;
     D_D(DLineEdit);
     d->bEnableCopy = enable;
 }
@@ -491,6 +542,7 @@ void DLineEdit::setCopyEnabled(bool enable)
  */
 bool DLineEdit::eventFilter(QObject *watched, QEvent *event)
 {
+    qCDebug(logBasicWidgets) << "eventFilter called with event type:" << event->type();
     D_D(DLineEdit);
 
     if (event->type() == QEvent::FocusIn) {
@@ -681,6 +733,7 @@ bool DLineEdit::eventFilter(QObject *watched, QEvent *event)
 
 bool DLineEdit::event(QEvent *e)
 {
+    qCDebug(logBasicWidgets) << "event called with event type:" << e->type();
     //D_D(DLineEdit);
 
 //    if (e->type() == QEvent::Move || e->type() == QEvent::Resize) {
@@ -707,6 +760,7 @@ void DLineEditPrivate::updateTooltipPos()
 
 void DLineEditPrivate::init()
 {
+    qCDebug(logBasicWidgets) << "DLineEditPrivate::init called";
     Q_Q(DLineEdit);
 
     hLayout = new QHBoxLayout(q);

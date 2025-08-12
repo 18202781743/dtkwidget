@@ -14,8 +14,10 @@
 #include <DPaletteHelper>
 #include <DFontSizeManager>
 #include <DGuiApplicationHelper>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logUtils)
 
 class SliderStrip : public QWidget
 {
@@ -102,6 +104,7 @@ DSlider::DSlider(Qt::Orientation orientation, QWidget *parent)
     : QWidget(parent)
     , DObject(*new DSliderPrivate(this))
 {
+    qCDebug(logUtils) << "create dslider";
     Q_D(DSlider);
     d->orientation = orientation;
     d->init();
@@ -116,6 +119,7 @@ DSlider::DSlider(DSliderPrivate &q, QWidget *parent)
 
 bool DSlider::event(QEvent *e)
 {
+    qCDebug(logUtils) << "event type" << static_cast<int>(e->type());
     D_D(DSlider);
     if (d->tipvalue && (e->type() == QEvent::Resize || e->type() == QEvent::LayoutRequest)) {
         d->updtateTool(value());
@@ -149,6 +153,7 @@ bool DSlider::eventFilter(QObject *watched, QEvent *e)
 Qt::Orientation DSlider::orientation() const
 {
     D_DC(DSlider);
+    qCDebug(logUtils) << "get orientation" << static_cast<int>(d->slider->orientation());
     return d->slider->orientation();
 }
 /*!
@@ -160,6 +165,7 @@ Qt::Orientation DSlider::orientation() const
 QSlider *DSlider::slider()
 {
     Q_D(DSlider);
+    qCDebug(logUtils) << "get slider" << static_cast<void*>(d->slider);
     return d->slider;
 }
 
@@ -170,26 +176,34 @@ QSlider *DSlider::slider()
  */
 void DSlider::setLeftIcon(const QIcon &left)
 {
+    qCDebug(logUtils) << "set left icon, is null:" << left.isNull();
     D_D(DSlider);
 
     if (d->leftIcon == nullptr) {
+        qCDebug(logUtils) << "creating new left icon button";
         d->leftIcon = new DIconButton(nullptr);
         d->leftIcon->setFlat(true);
         d->leftIcon->setFocusPolicy(Qt::NoFocus);
         connect(d->leftIcon, &DIconButton::clicked, this, [this](bool checked) {
+            qCDebug(logUtils) << "left icon clicked, checked:" << checked;
             this->iconClicked(LeftIcon, checked);
         });
 
         if (orientation() == Qt::Horizontal) {
+            qCDebug(logUtils) << "adding left icon to horizontal layout";
             d->layout->addWidget(d->leftIcon, 1, 0, Qt::AlignVCenter);
         } else {
+            qCDebug(logUtils) << "adding left icon to vertical layout";
             d->layout->addWidget(d->leftIcon, 0, 1, Qt::AlignHCenter);
         }
 
-        if (d->iconSize.isValid())
+        if (d->iconSize.isValid()) {
+            qCDebug(logUtils) << "setting icon size:" << d->iconSize;
             d->leftIcon->setIconSize(d->iconSize);
+        }
     }
     d->leftIcon->setIcon(left);
+    qCDebug(logUtils) << "left icon set successfully";
 }
 
 /*!
@@ -199,25 +213,33 @@ void DSlider::setLeftIcon(const QIcon &left)
  */
 void DSlider::setRightIcon(const QIcon &right)
 {
+    qCDebug(logUtils) << "set right icon, is null:" << right.isNull();
     D_D(DSlider);
 
     if (d->rightIcon == nullptr) {
+        qCDebug(logUtils) << "creating new right icon button";
         d->rightIcon = new DIconButton(nullptr);
         d->rightIcon->setFlat(true);
         d->rightIcon->setFocusPolicy(Qt::NoFocus);
         if (orientation() == Qt::Horizontal) {
+            qCDebug(logUtils) << "adding right icon to horizontal layout";
             d->layout->addWidget(d->rightIcon, 1, 2, Qt::AlignVCenter);
         } else {
+            qCDebug(logUtils) << "adding right icon to vertical layout";
             d->layout->addWidget(d->rightIcon, 2, 1, Qt::AlignHCenter);
         }
         connect(d->rightIcon, &DIconButton::clicked, this, [this](bool checked) {
+            qCDebug(logUtils) << "right icon clicked, checked:" << checked;
             this->iconClicked(RightIcon, checked);
         });
 
-        if (d->iconSize.isValid())
+        if (d->iconSize.isValid()) {
+            qCDebug(logUtils) << "setting icon size:" << d->iconSize;
             d->rightIcon->setIconSize(d->iconSize);
+        }
     }
     d->rightIcon->setIcon(right);
+    qCDebug(logUtils) << "right icon set successfully";
 }
 
 /*!
@@ -227,17 +249,27 @@ void DSlider::setRightIcon(const QIcon &right)
  */
 void DSlider::setIconSize(const QSize &size)
 {
+    qCDebug(logUtils) << "set icon size" << size;
     D_D(DSlider);
+
+    if (d->iconSize == size) {
+        qCDebug(logUtils) << "icon size unchanged, skipping update";
+        return;
+    }
 
     d->iconSize = size;
 
     if (d->leftIcon != nullptr) {
+        qCDebug(logUtils) << "updating left icon size";
         d->leftIcon->setIconSize(size);
     }
 
     if (d->rightIcon != nullptr) {
+        qCDebug(logUtils) << "updating right icon size";
         d->rightIcon->setIconSize(size);
     }
+    
+    qCDebug(logUtils) << "icon size updated successfully";
 }
 
 /*!
@@ -249,7 +281,15 @@ void DSlider::setIconSize(const QSize &size)
 void DSlider::setMinimum(int min)
 {
     D_D(DSlider);
+    qCDebug(logUtils) << "set minimum" << min;
+    
+    if (d->slider->minimum() == min) {
+        qCDebug(logUtils) << "minimum value unchanged, skipping update";
+        return;
+    }
+    
     d->slider->setMinimum(min);
+    qCDebug(logUtils) << "minimum value updated successfully";
 }
 
 /*!
@@ -273,7 +313,15 @@ int DSlider::minimum() const
 void DSlider::setValue(int value)
 {
     D_D(DSlider);
+    qCDebug(logUtils) << "set value" << value;
+    
+    if (d->slider->value() == value) {
+        qCDebug(logUtils) << "value unchanged, skipping update";
+        return;
+    }
+    
     d->slider->setValue(value);
+    qCDebug(logUtils) << "value updated successfully";
 }
 
 /*!
@@ -297,7 +345,15 @@ int DSlider::value() const
 void DSlider::setPageStep(int pageStep)
 {
     D_D(DSlider);
+    qCDebug(logUtils) << "set page step" << pageStep;
+    
+    if (d->slider->pageStep() == pageStep) {
+        qCDebug(logUtils) << "page step unchanged, skipping update";
+        return;
+    }
+    
     d->slider->setPageStep(pageStep);
+    qCDebug(logUtils) << "page step updated successfully";
 }
 
 /*!
@@ -321,7 +377,15 @@ int DSlider::pageStep() const
 void DSlider::setMaximum(int max)
 {
     D_D(DSlider);
+    qCDebug(logUtils) << "set maximum" << max;
+    
+    if (d->slider->maximum() == max) {
+        qCDebug(logUtils) << "maximum value unchanged, skipping update";
+        return;
+    }
+    
     d->slider->setMaximum(max);
+    qCDebug(logUtils) << "maximum value updated successfully";
 }
 
 /*!
@@ -347,29 +411,37 @@ int DSlider::maximum() const
 void DSlider::setLeftTicks(const QStringList &info)
 {
     D_D(DSlider);
+    qCDebug(logUtils) << "set left ticks" << info.size();
 
     if (info.isEmpty()) {
+        qCDebug(logUtils) << "info is empty, checking if left strip should be removed";
         if (d->left) {
             if (d->left->getList().empty()) {
+                qCDebug(logUtils) << "removing left strip as it has no marks";
                 d->left->deleteLater();
                 d->left = nullptr;
             }
         }
-
         return;
     }
 
     if (d->left == nullptr) {
+        qCDebug(logUtils) << "creating new left slider strip";
         d->left = new SliderStrip(orientation());
         d->left->setScaleInfo(info, QSlider::TicksLeft);
 
         if (orientation() == Qt::Horizontal) {
+            qCDebug(logUtils) << "adding left strip to horizontal layout";
             d->layout->addWidget(d->left, 0, 1, Qt::AlignTop);
         } else {
+            qCDebug(logUtils) << "adding left strip to vertical layout";
             d->layout->addWidget(d->left, 1, 0, Qt::AlignRight);
         }
+    } else {
+        qCDebug(logUtils) << "updating existing left strip";
     }
     d->left->setScaleInfo(info, QSlider::TicksLeft);
+    qCDebug(logUtils) << "left ticks set successfully";
 }
 
 /*!
@@ -383,29 +455,37 @@ void DSlider::setLeftTicks(const QStringList &info)
 void DSlider::setRightTicks(const QStringList &info)
 {
     D_D(DSlider);
+    qCDebug(logUtils) << "set right ticks" << info.size();
 
     if (info.isEmpty()) {
+        qCDebug(logUtils) << "info is empty, checking if right strip should be removed";
         if (d->right) {
             if (d->right->getList().isEmpty()){
+                qCDebug(logUtils) << "removing right strip as it has no marks";
                 d->right->deleteLater();
                 d->right = nullptr;
             }
         }
-
         return;
     }
 
     if (d->right == nullptr) {
+        qCDebug(logUtils) << "creating new right slider strip";
         d->right = new SliderStrip(orientation());
         d->right->setScaleInfo(info, QSlider::TicksRight);
 
         if (orientation() == Qt::Horizontal) {
+            qCDebug(logUtils) << "adding right strip to horizontal layout";
             d->layout->addWidget(d->right, 2, 1, Qt::AlignTop);
         } else {
+            qCDebug(logUtils) << "adding right strip to vertical layout";
             d->layout->addWidget(d->right, 1, 2, Qt::AlignLeft);
         }
+    } else {
+        qCDebug(logUtils) << "updating existing right strip";
     }
     d->right->setScaleInfo(info, QSlider::TicksRight);
+    qCDebug(logUtils) << "right ticks set successfully";
 }
 
 /*!
@@ -457,10 +537,13 @@ void DSlider::setBelowTicks(const QStringList &info)
 void DSlider::setMarkPositions(QList<int> list)
 {
     D_D(DSlider);
+    qCDebug(logUtils) << "set mark positions, count:" << list.size();
 
     if (list.isEmpty()) {
+        qCDebug(logUtils) << "mark list is empty, checking if strips should be removed";
         if (d->left) {
             if (d->left->getScaleInfo().isEmpty()) {
+                qCDebug(logUtils) << "removing left strip as it has no scale info";
                 d->left->deleteLater();
                 d->left = nullptr;
             }
@@ -468,36 +551,44 @@ void DSlider::setMarkPositions(QList<int> list)
 
         if (d->right) {
             if (d->right->getScaleInfo().isEmpty()) {
+                qCDebug(logUtils) << "removing right strip as it has no scale info";
                 d->right->deleteLater();
                 d->right = nullptr;
             }
         }
-
         return;
     }
 
     if (d->left == nullptr) {
+        qCDebug(logUtils) << "creating new left strip for marks";
         d->left = new SliderStrip(orientation());
 
         if (orientation() == Qt::Horizontal) {
+            qCDebug(logUtils) << "adding left strip to horizontal layout";
             d->layout->addWidget(d->left, 0, 1, Qt::AlignTop);
         } else {
+            qCDebug(logUtils) << "adding left strip to vertical layout";
             d->layout->addWidget(d->left, 1, 0, Qt::AlignRight);
         }
     }
 
     if (d->right == nullptr) {
+        qCDebug(logUtils) << "creating new right strip for marks";
         d->right = new SliderStrip(orientation());
 
         if (orientation() == Qt::Horizontal) {
+            qCDebug(logUtils) << "adding right strip to horizontal layout";
             d->layout->addWidget(d->right, 2, 1, Qt::AlignTop);
         } else {
+            qCDebug(logUtils) << "adding right strip to vertical layout";
             d->layout->addWidget(d->right, 1, 2, Qt::AlignLeft);
         }
     }
 
+    qCDebug(logUtils) << "setting mark list on both strips";
     d->left->setMarkList(list, QSlider::TicksLeft);
     d->right->setMarkList(list, QSlider::TicksRight);
+    qCDebug(logUtils) << "mark positions set successfully";
 }
 
 /*!
@@ -509,7 +600,13 @@ void DSlider::setMarkPositions(QList<int> list)
 void DSlider::setMouseWheelEnabled(bool enabled)
 {
     D_D(DSlider);
+    qCDebug(logUtils) << "set mouse wheel enabled:" << enabled;
+    if (d->mouseWheelEnabled == enabled) {
+        qCDebug(logUtils) << "mouse wheel enabled state unchanged, skipping update";
+        return;
+    }
     d->mouseWheelEnabled = enabled;
+    qCDebug(logUtils) << "mouse wheel enabled state updated";
 }
 
 void DSliderPrivate::updtateTool(int value)
@@ -559,8 +656,10 @@ void DSliderPrivate::updtateTool(int value)
 void DSlider::setTipValue(const QString &value)
 {
     D_D(DSlider);
+    qCDebug(logUtils) << "set tip value:" << value;
 
     if (d->tipvalue == nullptr) {
+        qCDebug(logUtils) << "creating new tip value widget";
         d->label = new DLabel(value);
         d->tipvalue = new DFloatingWidget;
         d->tipvalue->setWidget(d->label);
@@ -571,16 +670,20 @@ void DSlider::setTipValue(const QString &value)
         d->tipvalue->setFramRadius(DStyle::pixelMetric(d->label->style(), DStyle::PM_FrameRadius));
         d->tipvalue->adjustSize();
         d->tipvalue->show();
+        qCDebug(logUtils) << "tip value widget created and shown";
     }
 
     if (value.isEmpty()) {
+        qCDebug(logUtils) << "value is empty, removing tip value widget";
         d->tipvalue->deleteLater();
         d->tipvalue = nullptr;
         return;
     }
 
+    qCDebug(logUtils) << "updating tip value text and position";
     d->label->setText(value);
     d->updtateTool(slider()->value());
+    qCDebug(logUtils) << "tip value updated successfully";
 }
 
 /*!
@@ -637,11 +740,15 @@ QSize DSlider::sizeHint() const
 void DSlider::setHandleVisible(bool b)
 {
     D_D(DSlider);
+    qCDebug(logUtils) << "set handle visible:" << b;
 
-    if (d->handleVisible == b)
+    if (d->handleVisible == b) {
+        qCDebug(logUtils) << "handle visibility unchanged, skipping update";
         return;
+    }
 
     d->handleVisible = b;
+    qCDebug(logUtils) << "handle visibility updated, triggering repaint";
     update();
 }
 
@@ -665,7 +772,9 @@ bool DSlider::handleVisible() const
  */
 void DSlider::setEnabledAcrossStyle(bool enabled)
 {
+    qCDebug(logUtils) << "set enabled across style:" << enabled;
     slider()->setProperty("_d_dtk_sldier_across", enabled);
+    qCDebug(logUtils) << "across style property set on slider";
 }
 
 DSliderPrivate::DSliderPrivate(DSlider *q)

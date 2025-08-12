@@ -8,8 +8,10 @@
 
 #include <QStyleOptionButton>
 #include <QStylePainter>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 /*!
 @~english
@@ -28,6 +30,7 @@ DWIDGET_BEGIN_NAMESPACE
  */
 DWarningButton::DWarningButton(QWidget *parent): DPushButton(parent)
 {
+    qCDebug(logBasicWidgets) << "create dwarningbutton";
 }
 
 /*!
@@ -37,6 +40,7 @@ DWarningButton::DWarningButton(QWidget *parent): DPushButton(parent)
  */
 void DWarningButton::initStyleOption(QStyleOptionButton *option) const
 {
+    qCDebug(logBasicWidgets) << "init warning option";
     DPushButton::initStyleOption(option);
     DPalette pa = DPaletteHelper::instance()->palette(this);
     option->palette.setBrush(QPalette::ButtonText, pa.textWarning());
@@ -46,6 +50,7 @@ void DWarningButton::initStyleOption(QStyleOptionButton *option) const
 void DWarningButton::paintEvent(QPaintEvent *e)
 {
     Q_UNUSED(e)
+    qCDebug(logBasicWidgets) << "paint warning button";
 
     QStyleOptionButton opt;
     initStyleOption(&opt);

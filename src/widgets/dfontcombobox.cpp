@@ -15,6 +15,9 @@
 #endif
 #include <QEvent>
 #include <QApplication>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
 
 DWIDGET_BEGIN_NAMESPACE
 
@@ -26,6 +29,7 @@ public:
       : DComboBoxPrivate(q)
       , impl(new QFontComboBox())
     {
+        qCDebug(logBasicWidgets) << "Creating DFontComboBoxPrivate";
     }
 
     virtual ~DFontComboBoxPrivate() override;
@@ -36,6 +40,7 @@ public:
 
 DFontComboBoxPrivate::~DFontComboBoxPrivate()
 {
+    qCDebug(logBasicWidgets) << "Destroying DFontComboBoxPrivate";
     impl->deleteLater();
 }
 
@@ -60,6 +65,7 @@ DFontComboBoxPrivate::~DFontComboBoxPrivate()
 DFontComboBox::DFontComboBox(QWidget *parent)
     : DComboBox(*new DFontComboBoxPrivate(this), parent)
 {
+    qCDebug(logBasicWidgets) << "Creating DFontComboBox";
     setModel(d_func()->impl->model());
     setItemDelegate(d_func()->impl->itemDelegate());
 
@@ -76,6 +82,7 @@ DFontComboBox::DFontComboBox(QWidget *parent)
 
 DFontComboBox::~DFontComboBox()
 {
+    qCDebug(logBasicWidgets) << "Destroying DFontComboBox";
 }
 
 /*!
@@ -84,6 +91,7 @@ DFontComboBox::~DFontComboBox()
  */
 void DFontComboBox::setWritingSystem(QFontDatabase::WritingSystem script)
 {
+    qCDebug(logBasicWidgets) << "Setting writing system to:" << script;
     D_D(DFontComboBox);
     d->impl->setWritingSystem(script);
 }
@@ -94,6 +102,7 @@ void DFontComboBox::setWritingSystem(QFontDatabase::WritingSystem script)
  */
 QFontDatabase::WritingSystem DFontComboBox::writingSystem() const
 {
+    qCDebug(logBasicWidgets) << "Getting writing system:" << d->impl->writingSystem();
     D_DC(DFontComboBox);
     return d->impl->writingSystem();
 }
@@ -104,6 +113,7 @@ QFontDatabase::WritingSystem DFontComboBox::writingSystem() const
  */
 void DFontComboBox::setFontFilters(QFontComboBox::FontFilters filters)
 {
+    qCDebug(logBasicWidgets) << "Setting font filters to:" << filters;
     D_DC(DFontComboBox);
     return d->impl->setFontFilters(filters);
 }
@@ -114,6 +124,7 @@ void DFontComboBox::setFontFilters(QFontComboBox::FontFilters filters)
  */
 QFontComboBox::FontFilters DFontComboBox::fontFilters() const
 {
+    qCDebug(logBasicWidgets) << "Getting font filters:" << d->impl->fontFilters();
     D_DC(DFontComboBox);
     return d->impl->fontFilters();
 }
@@ -124,6 +135,7 @@ QFontComboBox::FontFilters DFontComboBox::fontFilters() const
  */
 QFont DFontComboBox::currentFont() const
 {
+    qCDebug(logBasicWidgets) << "Getting current font:" << d->impl->currentFont().family();
     D_DC(DFontComboBox);
     return d->impl->currentFont();
 }
@@ -134,6 +146,7 @@ QFont DFontComboBox::currentFont() const
  */
 QSize DFontComboBox::sizeHint() const
 {
+    qCDebug(logBasicWidgets) << "Getting size hint:" << d->impl->sizeHint();
     D_DC(DFontComboBox);
     return d->impl->sizeHint();
 }
@@ -144,6 +157,7 @@ QSize DFontComboBox::sizeHint() const
  */
 void DFontComboBox::setCurrentFont(const QFont &f)
 {
+    qCDebug(logBasicWidgets) << "Setting current font to:" << f.family();
     D_DC(DFontComboBox);
     d->impl->setCurrentFont(f);
 }
@@ -154,13 +168,20 @@ void DFontComboBox::setCurrentFont(const QFont &f)
  */
 bool DFontComboBox::event(QEvent *e)
 {
+    qCDebug(logBasicWidgets) << "Font combo box event type:" << e->type();
     if (e->type() == QEvent::Resize) {
+        qCDebug(logBasicWidgets) << "Handling resize event";
         QListView *lview = qobject_cast<QListView*>(view());
         if (lview) {
-          lview->winId();
-          auto window = lview->window();
-          window->setFixedWidth(qMin(width() * 5 / 3,
-                               window->windowHandle()->screen()->availableGeometry().width()));
+            qCDebug(logBasicWidgets) << "Found list view, adjusting window width";
+            lview->winId();
+            auto window = lview->window();
+            int newWidth = qMin(width() * 5 / 3,
+                               window->windowHandle()->screen()->availableGeometry().width());
+            qCDebug(logBasicWidgets) << "Setting window width to:" << newWidth;
+            window->setFixedWidth(newWidth);
+        } else {
+            qCDebug(logBasicWidgets) << "No list view found";
         }
     }
     return DComboBox::event(e);

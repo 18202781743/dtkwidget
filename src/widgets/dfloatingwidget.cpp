@@ -12,30 +12,40 @@
 #include <QEvent>
 #include <QDebug>
 #include <QPaintEvent>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logContainers, "dtk.widgets.containers")
 
 DWIDGET_BEGIN_NAMESPACE
 
 DFloatingWidgetPrivate::DFloatingWidgetPrivate(DFloatingWidget *qq)
     : DObjectPrivate(qq)
 {
+    qCDebug(logContainers) << "DFloatingWidgetPrivate created";
 }
 
 DFloatingWidgetPrivate::~DFloatingWidgetPrivate()
 {
+    qCDebug(logContainers) << "DFloatingWidgetPrivate destroyed";
 }
 
 void DFloatingWidgetPrivate::init()
 {
+    qCDebug(logContainers) << "Initializing floating widget";
 }
 
 void DFloatingWidgetPrivate::adjustPalette()
 {
-    if (!layout || layout->count() == 0)
+    qCDebug(logContainers) << "Adjusting floating widget palette";
+    if (!layout || layout->count() == 0) {
+        qCDebug(logContainers) << "No layout or no items, skipping palette adjustment";
         return;
+    }
 
     QWidget *content = layout->itemAt(0)->widget();
 
     if (background) {
+        qCDebug(logContainers) << "Setting background palette";
         D_Q(DFloatingWidget);
         // 开启模糊背景后应到调整调色板
         QPalette pa = q->palette();
@@ -45,6 +55,7 @@ void DFloatingWidgetPrivate::adjustPalette()
 
         content->setPalette(pa);
     } else {
+        qCDebug(logContainers) << "Clearing palette";
         content->setPalette(QPalette());
     }
 }
@@ -56,8 +67,10 @@ void DFloatingWidgetPrivate::adjustPalette()
 void DFloatingWidget::setWidget(QWidget *widget)
 {
     D_D(DFloatingWidget);
+    qCDebug(logContainers) << "Setting floating widget";
 
     if (!d->layout) {
+        qCDebug(logContainers) << "Creating new layout";
         d->layout = new QHBoxLayout(this);
         d->layout->setContentsMargins(0, 0, 0, 0);
     }
@@ -77,8 +90,11 @@ void DFloatingWidget::setWidget(QWidget *widget)
 void DFloatingWidget::setFramRadius(int radius)
 {
     D_D(DFloatingWidget);
-    if (d->framRadius == radius)
+    qCDebug(logContainers) << "Setting frame radius:" << radius;
+    if (d->framRadius == radius) {
+        qCDebug(logContainers) << "Frame radius unchanged, skipping update";
         return;
+    }
     d->framRadius = radius;
     update();
 }
@@ -93,6 +109,7 @@ DFloatingWidget::DFloatingWidget(DFloatingWidgetPrivate &dd, QWidget *parent)
     , DObject(dd)
 {
     D_D(DFloatingWidget);
+    qCDebug(logContainers) << "DFloatingWidget created";
     d->init();
     setAutoFillBackground(false);
 }
@@ -220,12 +237,16 @@ DBlurEffectWidget *DFloatingWidget::blurBackground() const
  */
 void DFloatingWidget::setBlurBackgroundEnabled(bool blurBackgroundEnabled)
 {
+    qCDebug(logContainers) << "Setting blur background enabled:" << blurBackgroundEnabled;
     D_D(DFloatingWidget);
 
-    if (bool(d->background) == blurBackgroundEnabled)
+    if (bool(d->background) == blurBackgroundEnabled) {
+        qCDebug(logContainers) << "Blur background state unchanged, skipping";
         return;
+    }
 
     if (blurBackgroundEnabled) {
+        qCDebug(logContainers) << "Enabling blur background";
         d->background = new DBlurEffectWidget(this);
         d->background->setGeometry(contentsRect());
         d->background->lower();
@@ -234,6 +255,7 @@ void DFloatingWidget::setBlurBackgroundEnabled(bool blurBackgroundEnabled)
         d->background->show();
 
         int radius = DStyleHelper(style()).pixelMetric(DStyle::PM_TopLevelWindowRadius);
+        qCDebug(logContainers) << "Setting blur radius:" << radius;
 
         d->background->setBlurRectXRadius(radius);
         d->background->setBlurRectYRadius(radius);
@@ -242,6 +264,7 @@ void DFloatingWidget::setBlurBackgroundEnabled(bool blurBackgroundEnabled)
         connect(d->background, &DBlurEffectWidget::blurSourceImageDirtied,
                 this, static_cast<void(DFloatingWidget::*)()>(&DFloatingWidget::update));
     } else {
+        qCDebug(logContainers) << "Disabling blur background";
         d->background->hide();
         d->background->deleteLater();
     }

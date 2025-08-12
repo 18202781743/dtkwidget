@@ -4,6 +4,7 @@
 
 #include <QDebug>
 #include <QScrollBar>
+#include <QLoggingCategory>
 
 #include "dboxwidget.h"
 #include "dlistview.h"
@@ -17,43 +18,51 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_LOGGING_CATEGORY(logListWidgets, "dtk.widgets.list")
+
 DVariantListModel::DVariantListModel(QObject *parent) :
     QAbstractListModel(parent)
 {
-
+    qCDebug(logListWidgets) << "DVariantListModel constructor called";
 }
 
 int DVariantListModel::rowCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-
-    return dataList.count();
+    const auto& count = dataList.count();
+    qCDebug(logListWidgets) << "rowCount called, returning:" << count;
+    return count;
 }
 
 QVariant DVariantListModel::data(const QModelIndex &index, int role) const
 {
     Q_UNUSED(role);
-
+    qCDebug(logListWidgets) << "data called with index:" << index.row() << "role:" << role;
     return dataList.value(index.row());
 }
 
 bool DVariantListModel::setData(const QModelIndex &index,
                                 const QVariant &value, int role)
 {
+    qCDebug(logListWidgets) << "setData called with index:" << index.row() << "role:" << role;
     if (index.row() >= 0 && index.row() < dataList.size()) {
         dataList.replace(index.row(), value);
         Q_EMIT dataChanged(index, index, QVector<int>() << role);
-
+        qCDebug(logListWidgets) << "data set successfully";
         return true;
     }
 
+    qCDebug(logListWidgets) << "setData failed, invalid index";
     return false;
 }
 
 bool DVariantListModel::insertRows(int row, int count, const QModelIndex &parent)
 {
-    if (count < 1 || row < 0 || row > rowCount(parent))
+    qCDebug(logListWidgets) << "insertRows called with row:" << row << "count:" << count;
+    if (count < 1 || row < 0 || row > rowCount(parent)) {
+        qCDebug(logListWidgets) << "insertRows failed, invalid parameters";
         return false;
+    }
 
     beginInsertRows(QModelIndex(), row, row + count - 1);
 
@@ -61,14 +70,17 @@ bool DVariantListModel::insertRows(int row, int count, const QModelIndex &parent
         dataList.insert(row, QVariant());
 
     endInsertRows();
-
+    qCDebug(logListWidgets) << "rows inserted successfully";
     return true;
 }
 
 bool DVariantListModel::removeRows(int row, int count, const QModelIndex &parent)
 {
-    if (count <= 0 || row < 0 || (row + count) > rowCount(parent))
+    qCDebug(logListWidgets) << "removeRows called with row:" << row << "count:" << count;
+    if (count <= 0 || row < 0 || (row + count) > rowCount(parent)) {
+        qCDebug(logListWidgets) << "removeRows failed, invalid parameters";
         return false;
+    }
 
     beginRemoveRows(QModelIndex(), row, row + count - 1);
 
@@ -76,23 +88,24 @@ bool DVariantListModel::removeRows(int row, int count, const QModelIndex &parent
         dataList.removeAt(row);
 
     endRemoveRows();
-
+    qCDebug(logListWidgets) << "rows removed successfully";
     return true;
 }
 
 DListViewPrivate::DListViewPrivate(DListView *qq) :
     DObjectPrivate(qq)
 {
-
+    qCDebug(logListWidgets) << "DListViewPrivate constructor called";
 }
 
 DListViewPrivate::~DListViewPrivate()
 {
-
+    qCDebug(logListWidgets) << "DListViewPrivate destructor called";
 }
 
 void DListViewPrivate::init()
 {
+    qCDebug(logListWidgets) << "DListViewPrivate init called";
     D_Q(DListView);
 
     q->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
@@ -222,45 +235,57 @@ QAbstractItemView::State DListView::state() const
 
 void DListView::setFlow(QListView::Flow flow)
 {
+    qCDebug(logListWidgets) << "setFlow called with flow:" << flow;
     QListView::setFlow(flow);
 }
 
 void DListView::setWrapping(bool enable)
 {
+    qCDebug(logListWidgets) << "setWrapping called with enable:" << enable;
     QListView::setWrapping(enable);
 }
 
 QSize DListView::viewportSizeHint() const
 {
-    return sizeAdjustPolicy() == QAbstractScrollArea::AdjustToContents ? QSize(0, 0) : QListView::viewportSizeHint();
+    qCDebug(logListWidgets) << "viewportSizeHint called";
+    const auto& size = sizeAdjustPolicy() == QAbstractScrollArea::AdjustToContents ? QSize(0, 0) : QListView::viewportSizeHint();
+    qCDebug(logListWidgets) << "viewportSizeHint returning:" << size;
+    return size;
 }
 
 int DListView::horizontalOffset() const
 {
+    qCDebug(logListWidgets) << "horizontalOffset called";
     if (viewMode() != IconMode || flow() != LeftToRight || !isWrapping()
             || (!gridSize().isValid() && !itemSize().isValid())) {
+        qCDebug(logListWidgets) << "using default horizontal offset";
         return QListView::horizontalOffset();
     }
 
     int width = contentsSize().width();
     int offset = gridSize().isValid() ? 0 : spacing() / 2;
-
-    return -(viewport()->width() - width) / 2 + offset;
+    const auto& result = -(viewport()->width() - width) / 2 + offset;
+    qCDebug(logListWidgets) << "calculated horizontal offset:" << result;
+    return result;
 }
 
 QSize DListView::minimumSizeHint() const
 {
+    qCDebug(logListWidgets) << "minimumSizeHint called";
     QSize size = QListView::minimumSizeHint();
     QSize content_size = QListView::contentsSize();
 
     if (horizontalScrollBarPolicy() == Qt::ScrollBarAlwaysOff) {
         size.setWidth(content_size.width());
+        qCDebug(logListWidgets) << "horizontal scroll bar always off, setting width to:" << content_size.width();
     }
 
     if (verticalScrollBarPolicy() == Qt::ScrollBarAlwaysOff) {
         size.setHeight(content_size.height());
+        qCDebug(logListWidgets) << "vertical scroll bar always off, setting height to:" << content_size.height();
     }
 
+    qCDebug(logListWidgets) << "minimumSizeHint returning:" << size;
     return size;
 }
 
@@ -281,6 +306,7 @@ QSize DListView::minimumSizeHint() const
  */
 QWidget *DListView::getHeaderWidget(int index) const
 {
+    qCDebug(logListWidgets) << "getHeaderWidget called with index:" << index;
     return d_func()->headerList.value(index);
 }
 
@@ -293,6 +319,7 @@ QWidget *DListView::getHeaderWidget(int index) const
  */
 QWidget *DListView::getFooterWidget(int index) const
 {
+    qCDebug(logListWidgets) << "getFooterWidget called with index:" << index;
     return d_func()->footerList.value(index);
 }
 
@@ -309,10 +336,12 @@ QWidget *DListView::getFooterWidget(int index) const
 bool DListView::isActiveRect(const QRect &rect) const
 {
 //    D_DC(DListView);
+    qCDebug(logListWidgets) << "isActiveRect called with rect:" << rect;
 
     const QRect &area = viewport()->geometry();
-
-    return area.intersects(rect);
+    const auto& result = area.intersects(rect);
+    qCDebug(logListWidgets) << "isActiveRect returning:" << result;
+    return result;
 }
 
 /*!

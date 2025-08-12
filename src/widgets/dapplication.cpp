@@ -26,6 +26,7 @@
 #include <QStyleFactory>
 #include <QSystemSemaphore>
 #include <QtConcurrent/QtConcurrent>
+#include <QLoggingCategory>
 
 #include <qpa/qplatformintegrationfactory_p.h>
 #include <qpa/qplatforminputcontext.h>
@@ -64,6 +65,8 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_LOGGING_CATEGORY(logWindowPlatform, "dtk.widgets.window")
+
 DCORE_USE_NAMESPACE
 #define DXCB_PLUGIN_KEY "dxcb"
 #define DXCB_PLUGIN_SYMBOLIC_PROPERTY "_d_isDxcb"
@@ -72,9 +75,11 @@ DCORE_USE_NAMESPACE
 DApplicationPrivate::DApplicationPrivate(DApplication *q) :
     DObjectPrivate(q)
 {
+    qCDebug(logWindowPlatform) << "Creating DApplicationPrivate";
 #ifdef Q_OS_LINUX
     StartupNotificationMonitor *monitor = StartupNotificationMonitor::instance();
     auto cancelNotification = [this, q](const QString id) {
+        qCDebug(logWindowPlatform) << "Canceling startup notification for app:" << id;
         m_monitoredStartupApps.removeAll(id);
         if (m_monitoredStartupApps.isEmpty()) {
             q->restoreOverrideCursor();
@@ -82,6 +87,7 @@ DApplicationPrivate::DApplicationPrivate(DApplication *q) :
     };
     QObject::connect(monitor, &StartupNotificationMonitor::appStartup,
                      q, [this, q, cancelNotification](const QString id) {
+        qCDebug(logWindowPlatform) << "App startup notification:" << id;
         // FIX bug start app quikly cursor will not restore...
         // Every setOverrideCursor() must eventually be followed by a corresponding restoreOverrideCursor(),
         // otherwise the stack will never be emptied.
@@ -668,17 +674,20 @@ void DApplication::setTheme(const QString &theme)
  */
 void DApplication::setOOMScoreAdj(const int score)
 {
-    if (score > 1000 || score < -1000)
-        qWarning() << "OOM score adjustment value out of range: " << score;
+    qCDebug(logWindowPlatform) << "Setting OOM score adjustment:" << score;
+    if (score > 1000 || score < -1000) {
+        qCWarning(logWindowPlatform) << "OOM score adjustment value out of range:" << score;
+    }
 
     QFile f("/proc/self/oom_score_adj");
     if (!f.open(QIODevice::WriteOnly))
     {
-        qWarning() << "OOM score adjust failed, open file error: " << f.errorString();
+        qCWarning(logWindowPlatform) << "OOM score adjust failed, open file error:" << f.errorString();
         return;
     }
 
     f.write(std::to_string(score).c_str());
+    qCDebug(logWindowPlatform) << "OOM score adjustment applied successfully";
 }
 #endif
 
@@ -695,6 +704,7 @@ void DApplication::setOOMScoreAdj(const int score)
  */
 bool DApplication::setSingleInstance(const QString &key)
 {
+    qCDebug(logWindowPlatform) << "Setting single instance with key:" << key;
     return setSingleInstance(key, UserScope);
 }
 
@@ -710,13 +720,20 @@ bool DApplication::setSingleInstance(const QString &key)
  */
 bool DApplication::setSingleInstance(const QString &key, SingleScope singleScope)
 {
+    qCDebug(logWindowPlatform) << "Setting single instance with key:" << key << "scope:" << static_cast<int>(singleScope);
     D_D(DApplication);
 
     auto scope = singleScope == SystemScope ? DGuiApplicationHelper::WorldScope : DGuiApplicationHelper::UserScope;
+    qCDebug(logWindowPlatform) << "Using scope:" << (scope == DGuiApplicationHelper::WorldScope ? "WorldScope" : "UserScope");
+
+    qCDebug(logWindowPlatform) << "Connecting newProcessInstance signal";
     connect(DGuiApplicationHelper::instance(), &DGuiApplicationHelper::newProcessInstance,
             this, &DApplication::newInstanceStarted, Qt::UniqueConnection);
 
-    return DGuiApplicationHelper::setSingleInstance(key, scope);
+    qCDebug(logWindowPlatform) << "Calling DGuiApplicationHelper::setSingleInstance";
+    const auto& result = DGuiApplicationHelper::setSingleInstance(key, scope);
+    qCDebug(logWindowPlatform) << "Single instance setup result:" << result;
+    return result;
 }
 
 /*!
@@ -755,13 +772,20 @@ bool DApplication::setSingleInstance(const QString &key, SingleScope singleScope
  */
 bool DApplication::loadTranslator(QList<QLocale> localeFallback)
 {
+    qCDebug(logWindowPlatform) << "Loading translators for locales:" << localeFallback;
     D_D(DApplication);
 
-    bool loadDtkTranslator =  d->loadDtkTranslator(localeFallback);
-    // qt && qtbase && appName
-    bool loadQtAppTranslator = DGuiApplicationHelper::loadTranslator(localeFallback);
+    qCDebug(logWindowPlatform) << "Loading DTK translator";
+    bool loadDtkTranslator = d->loadDtkTranslator(localeFallback);
+    qCDebug(logWindowPlatform) << "DTK translator load result:" << loadDtkTranslator;
 
-    return loadDtkTranslator && loadQtAppTranslator;
+    qCDebug(logWindowPlatform) << "Loading Qt and application translators";
+    bool loadQtAppTranslator = DGuiApplicationHelper::loadTranslator(localeFallback);
+    qCDebug(logWindowPlatform) << "Qt and application translators load result:" << loadQtAppTranslator;
+
+    bool result = loadDtkTranslator && loadQtAppTranslator;
+    qCDebug(logWindowPlatform) << "Overall translator loading result:" << result;
+    return result;
 }
 
 /*!
@@ -775,16 +799,24 @@ bool DApplication::loadTranslator(QList<QLocale> localeFallback)
 #if DTK_VERSION < DTK_VERSION_CHECK(6, 0, 0, 0)
 bool DApplication::loadDXcbPlugin()
 {
+    qCDebug(logWindowPlatform) << "Attempting to load DXcb plugin";
     Q_ASSERT_X(!qApp, "DApplication::loadDxcbPlugin", "Must call before QGuiApplication defined object");
 
-    if (!QPlatformIntegrationFactory::keys().contains(DXCB_PLUGIN_KEY)) {
+    QStringList availableKeys = QPlatformIntegrationFactory::keys();
+    qCDebug(logWindowPlatform) << "Available platform integration keys:" << availableKeys;
+
+    if (!availableKeys.contains(DXCB_PLUGIN_KEY)) {
+        qCDebug(logWindowPlatform) << "DXcb plugin not available";
         return false;
     }
 
-    // fix QGuiApplication::platformName() to xcb
+    qCDebug(logWindowPlatform) << "Setting DXCB_FAKE_PLATFORM_NAME_XCB to fix platform name";
     qputenv("DXCB_FAKE_PLATFORM_NAME_XCB", "true");
 
-    return qputenv("QT_QPA_PLATFORM", DXCB_PLUGIN_KEY);
+    qCDebug(logWindowPlatform) << "Setting QT_QPA_PLATFORM to" << DXCB_PLUGIN_KEY;
+    bool result = qputenv("QT_QPA_PLATFORM", DXCB_PLUGIN_KEY);
+    qCDebug(logWindowPlatform) << "DXcb plugin load result:" << result;
+    return result;
 }
 #endif
 
@@ -795,7 +827,10 @@ bool DApplication::loadDXcbPlugin()
  */
 bool DApplication::isDXcbPlatform()
 {
-    return DGUI_NAMESPACE::DPlatformHandle::isDXcbPlatform();
+    qCDebug(logWindowPlatform) << "Checking if using DXcb platform";
+    bool result = DGUI_NAMESPACE::DPlatformHandle::isDXcbPlatform();
+    qCDebug(logWindowPlatform) << "DXcb platform check result:" << result;
+    return result;
 }
 
 /*!
@@ -803,7 +838,10 @@ bool DApplication::isDXcbPlatform()
  */
 int DApplication::buildDtkVersion()
 {
-    return DtkBuildVersion::value;
+    qCDebug(logWindowPlatform) << "Getting DTK build version";
+    int version = DtkBuildVersion::value;
+    qCDebug(logWindowPlatform) << "DTK build version:" << version;
+    return version;
 }
 
 /*!
@@ -811,7 +849,10 @@ int DApplication::buildDtkVersion()
  */
 int DApplication::runtimeDtkVersion()
 {
-    return DTK_VERSION;
+    qCDebug(logWindowPlatform) << "Getting DTK runtime version";
+    int version = DTK_VERSION;
+    qCDebug(logWindowPlatform) << "DTK runtime version:" << version;
+    return version;
 }
 
 /*!
@@ -822,12 +863,18 @@ int DApplication::runtimeDtkVersion()
 void DApplication::registerDDESession()
 {
 #ifdef Q_OS_LINUX
+    qCDebug(logWindowPlatform) << "Registering DDE session";
     QString envName("DDE_SESSION_PROCESS_COOKIE_ID");
+    qCDebug(logWindowPlatform) << "Getting environment variable:" << envName;
 
     QByteArray cookie = qgetenv(envName.toUtf8().data());
+    qCDebug(logWindowPlatform) << "Cookie value length:" << cookie.length();
+    
+    qCDebug(logWindowPlatform) << "Unsetting environment variable:" << envName;
     qunsetenv(envName.toUtf8().data());
 
     if (!cookie.isEmpty()) {
+        qCDebug(logWindowPlatform) << "Registering with session manager using cookie";
         DDBusSender()
                 .service("com.deepin.SessionManager")
                 .path("/com/deepin/SessionManager")
@@ -835,7 +882,12 @@ void DApplication::registerDDESession()
                 .method("Register")
                 .arg(QString(cookie))
                 .call();
+        qCDebug(logWindowPlatform) << "Session registration completed";
+    } else {
+        qCDebug(logWindowPlatform) << "No cookie found, skipping session registration";
     }
+#else
+    qCDebug(logWindowPlatform) << "DDE session registration not supported on this platform";
 #endif
 }
 
@@ -848,7 +900,10 @@ void DApplication::registerDDESession()
  */
 void DApplication::customQtThemeConfigPathByUserHome(const QString &home)
 {
-    customQtThemeConfigPath(home + "/.config");
+    qCDebug(logWindowPlatform) << "Setting Qt theme config path by user home:" << home;
+    QString configPath = home + "/.config";
+    qCDebug(logWindowPlatform) << "Calculated config path:" << configPath;
+    customQtThemeConfigPath(configPath);
 }
 
 /*!
@@ -866,8 +921,12 @@ void DApplication::customQtThemeConfigPathByUserHome(const QString &home)
  */
 void DApplication::customQtThemeConfigPath(const QString &path)
 {
+    qCDebug(logWindowPlatform) << "Setting custom Qt theme config path:" << path;
     Q_ASSERT_X(!qApp, "DApplication::customQtThemeConfigPath", "Must call before QGuiApplication defined object");
-    qputenv(QT_THEME_CONFIG_PATH, path.toLocal8Bit());
+    
+    qCDebug(logWindowPlatform) << "Setting" << QT_THEME_CONFIG_PATH << "environment variable";
+    bool result = qputenv(QT_THEME_CONFIG_PATH, path.toLocal8Bit());
+    qCDebug(logWindowPlatform) << "Environment variable set result:" << result;
 }
 
 /*!
@@ -878,7 +937,11 @@ void DApplication::customQtThemeConfigPath(const QString &path)
  */
 QString DApplication::customizedQtThemeConfigPath()
 {
-    return QString::fromLocal8Bit(qgetenv(QT_THEME_CONFIG_PATH));
+    qCDebug(logWindowPlatform) << "Getting customized Qt theme config path";
+    QByteArray envValue = qgetenv(QT_THEME_CONFIG_PATH);
+    QString path = QString::fromLocal8Bit(envValue);
+    qCDebug(logWindowPlatform) << "Current Qt theme config path:" << (path.isEmpty() ? "not set" : path);
+    return path;
 }
 
 /*!
@@ -896,9 +959,12 @@ QString DApplication::customizedQtThemeConfigPath()
  */
 QString DApplication::productName() const
 {
+    qCDebug(logWindowPlatform) << "Getting product name";
     D_DC(DApplication);
 
-    return d->productName.isEmpty() ? applicationDisplayName() : d->productName;
+    QString name = d->productName.isEmpty() ? applicationDisplayName() : d->productName;
+    qCDebug(logWindowPlatform) << "Product name:" << name << "(using" << (d->productName.isEmpty() ? "display name" : "custom name") << ")";
+    return name;
 }
 
 /*!
@@ -908,9 +974,11 @@ QString DApplication::productName() const
  */
 void DApplication::setProductName(const QString &productName)
 {
+    qCDebug(logWindowPlatform) << "Setting product name to:" << productName;
     D_D(DApplication);
 
     d->productName = productName;
+    qCDebug(logWindowPlatform) << "Product name updated";
 }
 
 /*!
@@ -1055,8 +1123,11 @@ void DApplication::setApplicationAcknowledgementPage(const QString &link)
  */
 bool DApplication::applicationAcknowledgementVisible() const
 {
+    qCDebug(logWindowPlatform) << "Getting application acknowledgement visibility";
     D_DC(DApplication);
-    return d->acknowledgementPageVisible;
+    bool visible = d->acknowledgementPageVisible;
+    qCDebug(logWindowPlatform) << "Application acknowledgement visible:" << visible;
+    return visible;
 }
 
 /*!
@@ -1144,9 +1215,11 @@ void DApplication::setFeatureDisplayDialog(DFeatureDisplayDialog *featureDisplay
  */
 bool DApplication::visibleMenuShortcutText() const
 {
+    qCDebug(logWindowPlatform) << "Getting menu shortcut text visibility";
     D_DC(DApplication);
-
-    return d->visibleMenuShortcutText;
+    bool visible = d->visibleMenuShortcutText;
+    qCDebug(logWindowPlatform) << "Menu shortcut text visible:" << visible;
+    return visible;
 }
 
 void DApplication::setVisibleMenuShortcutText(bool value)
@@ -1522,14 +1595,17 @@ static inline bool basePrintPropertiesDialog(const QWidget *w)
 bool DApplication::notify(QObject *obj, QEvent *event)
 {
     if (event->type() == QEvent::FocusIn) {
+        qCDebug(logWindowPlatform) << "Processing FocusIn event for object:" << obj;
         QFocusEvent *fe = static_cast<QFocusEvent*>(event);
         QWidget *widget = qobject_cast<QWidget*>(obj);
         if (widget && fe->reason() == Qt::ActiveWindowFocusReason && !widget->isWindow()
                 && ((widget->focusPolicy() & Qt::StrongFocus) != Qt::StrongFocus || qobject_cast<DTitlebar *>(widget)))  {
+            qCDebug(logWindowPlatform) << "Handling active window focus reason for widget:" << widget;
             // 针对激活窗口所获得的焦点，为了避免被默认给到窗口内部的控件上，此处将焦点还给主窗口并且只设置一次
 #define NON_FIRST_ACTIVE "_d_dtk_non_first_active_focus"
             QWidget *top_window = widget->topLevelWidget();
             if (top_window->isWindow() && !top_window->property(NON_FIRST_ACTIVE).toBool()) {
+                qCDebug(logWindowPlatform) << "Setting focus to top window:" << top_window;
                 top_window->setFocus();
                 top_window->setProperty(NON_FIRST_ACTIVE, true);
             }

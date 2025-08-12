@@ -18,6 +18,9 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QTime>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
 
 #include <private/qtextdocument_p.h>
 
@@ -40,6 +43,7 @@ enum Background {
 
 QBrush static getGradientBrush(Background background)
 {
+    qCDebug(logBasicWidgets) << "Getting gradient brush for background:" << background;
     QStringList gradient;
     switch (background) {
     case Background::lightGreen:
@@ -289,6 +293,7 @@ public:
         : DObjectPrivate(qq)
         , object(new CrumbObjectInterface(qq))
     {
+        qCDebug(logBasicWidgets) << "DCrumbEditPrivate created";
         widgetTop = new QWidget(qq);
         widgetBottom = new QWidget(qq);
         widgetLeft = new QWidget(qq);
@@ -306,9 +311,11 @@ public:
 
     void registerHandler(QAbstractTextDocumentLayout *layout)
     {
+        qCDebug(logBasicWidgets) << "Registering crumb edit handler";
         for (int i = QTextFormat::UserObject + 1; ; ++i) {
             if (!layout->handlerForObject(i)) {
                 objectType = i;
+                qCDebug(logBasicWidgets) << "Found available object type:" << i;
                 break;
             }
         }
@@ -318,49 +325,64 @@ public:
 
     bool canAddCrumb(const QString &text) const
     {
+        qCDebug(logBasicWidgets) << "Checking if can add crumb:" << text;
         return !formats.contains(text);
     }
 
     void makeCrumb(QTextCursor &cursor, const QString &text)
     {
+        qCDebug(logBasicWidgets) << "Making crumb for text:" << text;
         const QString tag_text = text.simplified();
 
-        if (tag_text.isEmpty())
+        if (tag_text.isEmpty()) {
+            qCDebug(logBasicWidgets) << "Tag text is empty, skipping";
             return;
+        }
 
-        if (!canAddCrumb(tag_text))
+        if (!canAddCrumb(tag_text)) {
+            qCDebug(logBasicWidgets) << "Cannot add crumb, already exists";
             return;
+        }
 
         D_Q(DCrumbEdit);
 
         DCrumbTextFormat format = q->makeTextFormat();
 
         format.setText(tag_text);
-        if (currentText == tag_text)
+        if (currentText == tag_text) {
+            qCDebug(logBasicWidgets) << "Using current brush for crumb";
             format.setBackground(currentBrush);
+        }
         cursor.insertText(QString(QChar::ObjectReplacementCharacter), format);
     }
 
     bool makeCrumb()
     {
+        qCDebug(logBasicWidgets) << "Making crumb from current text";
         D_Q(DCrumbEdit);
 
         QString text = q->toPlainText().remove(QChar::ObjectReplacementCharacter);
+        qCDebug(logBasicWidgets) << "Plain text for crumb creation:" << text;
 
-        if (text.isEmpty())
+        if (text.isEmpty()) {
+            qCDebug(logBasicWidgets) << "Text is empty, cannot create crumb";
             return false;
+        }
 
         QTextCursor cursor = q->document()->find(text);
 
-        if (cursor.isNull())
+        if (cursor.isNull()) {
+            qCDebug(logBasicWidgets) << "Cursor is null, cannot create crumb";
             return false;
+        }
 
         if (splitter.isEmpty()) {
+            qCDebug(logBasicWidgets) << "No splitter defined, creating single crumb";
             makeCrumb(cursor, text);
-
             return true;
         }
 
+        qCDebug(logBasicWidgets) << "Splitting text by splitter:" << splitter;
         for (const QString &tag_text : text.split(splitter)) {
             makeCrumb(cursor, tag_text);
         }
@@ -370,33 +392,46 @@ public:
 
     bool editCrumb(const QPoint &mousePos)
     {
+        qCDebug(logBasicWidgets) << "Editing crumb at mouse position:" << mousePos;
         D_Q(DCrumbEdit);
 
         QTextCursor cursor = q->cursorForPosition(mousePos);
 
-        if (cursor.charFormat().objectType() != objectType)
+        if (cursor.charFormat().objectType() != objectType) {
+            qCDebug(logBasicWidgets) << "Cursor not on crumb object, cannot edit";
             return false;
+        }
 
         auto fmt = q->document()->documentLayout()->formatAt(mousePos);
         DCrumbTextFormat format = formats.value(fmt.stringProperty(QTextFormat::UserProperty + 1));
 
         currentText = format.text();
         currentBrush = format.background();
+        qCDebug(logBasicWidgets) << "Editing crumb with text:" << currentText;
 
-        if (format.text().isEmpty())
+        if (format.text().isEmpty()) {
+            qCDebug(logBasicWidgets) << "Format text is empty, cannot edit";
             return false;
+        }
 
-        if (cursor.atEnd() && mousePos.x() > q->cursorRect().right())
+        if (cursor.atEnd() && mousePos.x() > q->cursorRect().right()) {
+            qCDebug(logBasicWidgets) << "Mouse position beyond cursor, cannot edit";
             return false;
+        }
 
+        qCDebug(logBasicWidgets) << "Making crumb for editing";
         makeCrumb();
 
         if (mousePos.x() < q->cursorRect().left() ||
-            mousePos.y() < q->cursorRect().top())
+            mousePos.y() < q->cursorRect().top()) {
+            qCDebug(logBasicWidgets) << "Adjusting cursor position backward";
             cursor.setPosition(cursor.position() - 1, QTextCursor::KeepAnchor);
-        else
+        } else {
+            qCDebug(logBasicWidgets) << "Adjusting cursor position forward";
             cursor.setPosition(cursor.position() + 1, QTextCursor::KeepAnchor);
+        }
 
+        qCDebug(logBasicWidgets) << "Inserting edited text:" << format.text();
         cursor.insertText(format.text());
 
         return true;
@@ -938,9 +973,16 @@ QString DCrumbEdit::splitter() const
  */
 void DCrumbEdit::setCrumbReadOnly(bool crumbReadOnly)
 {
+    qCDebug(logBasicWidgets) << "Setting crumb read only:" << crumbReadOnly;
     D_D(DCrumbEdit);
 
+    if (d->crumbReadOnly == crumbReadOnly) {
+        qCDebug(logBasicWidgets) << "Crumb read only state unchanged, skipping update";
+        return;
+    }
+
     d->crumbReadOnly = crumbReadOnly;
+    qCDebug(logBasicWidgets) << "Crumb read only state updated successfully";
 }
 
 /*!
@@ -951,10 +993,17 @@ void DCrumbEdit::setCrumbReadOnly(bool crumbReadOnly)
  */
 void DCrumbEdit::setCrumbRadius(int crumbRadius)
 {
+    qCDebug(logBasicWidgets) << "Setting crumb radius:" << crumbRadius;
     D_D(DCrumbEdit);
+
+    if (d->crumbRadius == crumbRadius) {
+        qCDebug(logBasicWidgets) << "Crumb radius unchanged, skipping update";
+        return;
+    }
 
     d->crumbRadius = crumbRadius;
     d->explicitCrumbRadius = true;
+    qCDebug(logBasicWidgets) << "Crumb radius updated, explicit radius set to true";
 }
 
 /*!
@@ -968,17 +1017,31 @@ void DCrumbEdit::setCrumbRadius(int crumbRadius)
  */
 void DCrumbEdit::setSplitter(const QString &splitter)
 {
+    qCDebug(logBasicWidgets) << "Setting splitter:" << splitter;
     D_D(DCrumbEdit);
 
+    if (d->splitter == splitter) {
+        qCDebug(logBasicWidgets) << "Splitter unchanged, skipping update";
+        return;
+    }
+
     d->splitter = splitter;
+    qCDebug(logBasicWidgets) << "Splitter updated";
 }
 
 // is that a typo?
 void DCrumbEdit::setDualClickMakeCrumb(bool flag) Q_DECL_NOEXCEPT
 {
+    qCDebug(logBasicWidgets) << "Setting dual click make crumb:" << flag;
     D_D(DCrumbEdit);
 
+    if (d->dualClickMakeCrumb == flag) {
+        qCDebug(logBasicWidgets) << "Dual click make crumb state unchanged, skipping update";
+        return;
+    }
+
     d->dualClickMakeCrumb = flag;
+    qCDebug(logBasicWidgets) << "Dual click make crumb state updated";
 }
 
 bool DCrumbEdit::event(QEvent *e)

@@ -4,6 +4,7 @@
 
 #include "dprintpickcolorwidget.h"
 
+#include <QLoggingCategory>
 #include "diconbutton.h"
 #include "dlabel.h"
 #include "dlineedit.h"
@@ -27,6 +28,10 @@ const int IMAGE_HEIGHT = 10;
 
 DWIDGET_BEGIN_NAMESPACE
 DGUI_USE_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logUtils)
+}
 /*!
   \brief ColorButton::ColorButton 取色框颜色选择按钮
  */
@@ -34,9 +39,11 @@ ColorButton::ColorButton(QColor color, QWidget *parent)
     : DPushButton(parent)
     , m_color(color)
 {
+    qCDebug(logUtils) << "Creating color button with color:" << color.name();
     setFixedSize(34, 34);
     setCheckable(true);
     QObject::connect(this, &ColorButton::clicked, this, [=] {
+        qCDebug(logUtils) << "Color button clicked:" << m_color.name();
         this->setChecked(true);
         Q_EMIT this->selectColorButton(m_color);
     });
@@ -70,12 +77,14 @@ DPrintPickColorWidget::DPrintPickColorWidget(QWidget *parent)
     : DWidget(parent)
     , pinterface(nullptr)
 {
+    qCDebug(logUtils) << "Creating print pick color widget";
     initUI();
     initConnection();
 }
 
 void DPrintPickColorWidget::initUI()
 {
+    qCDebug(logUtils) << "Initializing color picker UI";
     QVBoxLayout *mainlayout = new QVBoxLayout(this);
     QGridLayout *btnLayout = new QGridLayout;
     colorList
@@ -213,8 +222,11 @@ void DPrintPickColorWidget::convertColor(QColor color, bool btnColor)
  */
 void DPrintPickColorWidget::slotColorPick(QString uuid, QString colorName)
 {
+    qCDebug(logUtils) << "Color picked - UUID:" << uuid << "color:" << colorName;
     if (uuid == QString("%1").arg(qApp->applicationPid())) {
         setRgbEdit(QColor(colorName));
+    } else {
+        qCDebug(logUtils) << "Color pick UUID mismatch";
     }
 }
 

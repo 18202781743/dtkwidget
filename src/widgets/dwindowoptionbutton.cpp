@@ -4,8 +4,11 @@
 
 #include "dwindowoptionbutton.h"
 #include "dstyleoption.h"
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 /*!
 @~english
@@ -29,6 +32,8 @@ DWIDGET_BEGIN_NAMESPACE
 DWindowOptionButton::DWindowOptionButton(QWidget * parent)
     : DIconButton(parent)
 {
+    qCDebug(logBasicWidgets) << "Construct window option button"
+                             << reinterpret_cast<const void *>(this);
     //QStyle::SP_TitleBarMenuButton
     auto iconEngine = new DStyledIconEngine(DDrawUtils::drawTitleBarMenuButton, QStringLiteral("TitleBarMenuButton"));
     setIcon(QIcon(iconEngine));
@@ -38,6 +43,7 @@ DWindowOptionButton::DWindowOptionButton(QWidget * parent)
 
 QSize DWindowOptionButton::sizeHint() const
 {
+    qCDebug(logBasicWidgets) << "Size hint";
     return iconSize();
 }
 
@@ -45,6 +51,7 @@ void DWindowOptionButton::initStyleOption(DStyleOptionButton *option) const
 {
     DIconButton::initStyleOption(option);
 
+    qCDebug(logBasicWidgets) << "Init style option";
     option->features |= QStyleOptionButton::ButtonFeature(DStyleOptionButton::TitleBarButton);
 }
 

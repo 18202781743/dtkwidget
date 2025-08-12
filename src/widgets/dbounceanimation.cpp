@@ -9,6 +9,9 @@
 #include <QScrollBar>
 #include <QWheelEvent>
 #include <QTimer>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(logProgressAnimation)
 
 DBounceAnimationPrivate::DBounceAnimationPrivate(DBounceAnimation *qq)
     : DObjectPrivate (qq)
@@ -16,17 +19,22 @@ DBounceAnimationPrivate::DBounceAnimationPrivate(DBounceAnimation *qq)
     , m_animationTarget(nullptr)
     , m_deltaSum(0)
 {
+    qCDebug(logProgressAnimation) << "Construct bounce private";
 }
 
 DBounceAnimation::DBounceAnimation(QObject *parent)
     : QObject(parent)
     , DObject(*new DBounceAnimationPrivate(this))
 {
+    qCDebug(logProgressAnimation) << "Construct bounce"
+                                  << reinterpret_cast<const void *>(this);
 }
 
 void DBounceAnimation::setAnimationTarget(QAbstractScrollArea *w)
 {
     D_D(DBounceAnimation);
+    qCDebug(logProgressAnimation) << "Set animation target"
+                                  << reinterpret_cast<const void *>(w);
     if (!w)
         return;
 
@@ -39,6 +47,7 @@ void DBounceAnimation::setAnimationTarget(QAbstractScrollArea *w)
 void DBounceAnimation::setAniMationEnable(bool enable)
 {
     D_D(DBounceAnimation);
+    qCDebug(logProgressAnimation) << "Enable animation" << enable;
     enable ? d->m_animationTarget->installEventFilter(this)
            : d->m_animationTarget->removeEventFilter(this);
 }
@@ -46,11 +55,16 @@ void DBounceAnimation::setAniMationEnable(bool enable)
 bool DBounceAnimation::eventFilter(QObject *o, QEvent *e)
 {
     D_D(DBounceAnimation);
+    qCDebug(logProgressAnimation) << "Event filter"
+                                  << reinterpret_cast<const void *>(o)
+                                  << static_cast<int>(e->type());
     if (e->type() == QEvent::Wheel) {
         if (auto absscroll = dynamic_cast<QAbstractScrollArea *>(o)) {
             if (auto wheelEvent = dynamic_cast<QWheelEvent *>(e)) {
                 if (absscroll->verticalScrollBar()->value() <= 0 || absscroll->verticalScrollBar()->value() >= absscroll->verticalScrollBar()->maximum()) {
                     d->m_deltaSum += wheelEvent->pixelDelta().x() != 0 ? wheelEvent->pixelDelta().x() : wheelEvent->pixelDelta().y();
+                    qCDebug(logProgressAnimation) << "Trigger bounce"
+                                                  << d->m_deltaSum;
                     bounceBack(wheelEvent->angleDelta().x() == 0 ? Qt::Vertical : Qt::Horizontal);
                 }
             }
@@ -63,6 +77,8 @@ bool DBounceAnimation::eventFilter(QObject *o, QEvent *e)
 void DBounceAnimation::bounceBack(Qt::Orientation orientation)
 {
     D_D(DBounceAnimation);
+    qCDebug(logProgressAnimation) << "Do bounce"
+                                  << static_cast<int>(orientation);
     if (d->m_animation)
         return;
 
@@ -89,10 +105,12 @@ void DBounceAnimation::bounceBack(Qt::Orientation orientation)
                 QPoint(d->m_animationTarget->viewport()->x() + d->m_deltaSum / 16, d->m_animationTarget->viewport()->y()));
         }
 
+        qCDebug(logProgressAnimation) << "Start bounce animation";
         d->m_animation->start();
 
         connect(d->m_animation, &QPropertyAnimation::finished, this, [d]() {
             if (d->m_animation->direction() == QPropertyAnimation::Backward) {
+                qCDebug(logProgressAnimation) << "Bounce finished, cleanup";
                 delete d->m_animation;
                 d->m_animation = nullptr;
                 return;

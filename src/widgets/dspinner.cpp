@@ -11,8 +11,10 @@
 #include <QEvent>
 
 #include <DObjectPrivate>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logProgressAnimation)
 
 class DSpinnerPrivate : public DTK_CORE_NAMESPACE::DObjectPrivate
 {
@@ -35,7 +37,7 @@ public:
 DSpinnerPrivate::DSpinnerPrivate(DSpinner *qq)
     : DObjectPrivate(qq)
 {
-
+    qCDebug(logProgressAnimation) << "init spinner private";
 }
 
 /*!
@@ -59,6 +61,7 @@ DSpinnerPrivate::DSpinnerPrivate(DSpinner *qq)
 DSpinner::DSpinner(QWidget *parent) :
     QWidget(parent), DObject(*new DSpinnerPrivate(this))
 {
+    qCDebug(logProgressAnimation) << "create spinner";
     Q_D(DSpinner);
 
     d->refreshTimer.setInterval(30);
@@ -85,7 +88,9 @@ DSpinner::~DSpinner()
 bool DSpinner::isPlaying() const
 {
     Q_D(const DSpinner);
-    return d->refreshTimer.isActive();
+    const auto &active = d->refreshTimer.isActive();
+    qCDebug(logProgressAnimation) << "get playing state" << active;
+    return active;
 }
 
 /*!
@@ -94,6 +99,7 @@ bool DSpinner::isPlaying() const
  */
 void DSpinner::start()
 {
+    qCDebug(logProgressAnimation) << "start spinner";
     Q_D(DSpinner);
     d->refreshTimer.start();
 }
@@ -104,6 +110,7 @@ void DSpinner::start()
  */
 void DSpinner::stop()
 {
+    qCDebug(logProgressAnimation) << "stop spinner";
     Q_D(DSpinner);
     d->refreshTimer.stop();
 }
@@ -114,6 +121,7 @@ void DSpinner::stop()
  */
 void DSpinner::setBackgroundColor(QColor color)
 {
+    qCDebug(logProgressAnimation) << "set background color" << color;
     setAutoFillBackground(true);
     QPalette pal = palette();
     pal.setColor(QPalette::Window, color);
@@ -122,6 +130,7 @@ void DSpinner::setBackgroundColor(QColor color)
 
 void DSpinner::paintEvent(QPaintEvent *)
 {
+    qCDebug(logProgressAnimation) << "paint spinner";
     Q_D(DSpinner);
 
     if (d->colorGroup != palette().currentColorGroup()) {
@@ -166,6 +175,7 @@ void DSpinner::paintEvent(QPaintEvent *)
 
 void DSpinner::changeEvent(QEvent *e)
 {
+    qCDebug(logProgressAnimation) << "change event" << static_cast<int>(e->type());
     Q_D(DSpinner);
 
     if (e->type() == QEvent::PaletteChange)

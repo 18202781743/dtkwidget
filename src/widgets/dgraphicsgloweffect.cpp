@@ -3,12 +3,14 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include "dgraphicsgloweffect.h"
+#include <QLoggingCategory>
 
 QT_BEGIN_NAMESPACE
 extern Q_WIDGETS_EXPORT void qt_blurImage(QPainter *p, QImage &blurImage, qreal radius, bool quality, bool alphaOnly, int transposed = 0);
 QT_END_NAMESPACE
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logContainers)
 
 /*!
   \class Dtk::Widget::DGraphicsGlowEffect
@@ -32,6 +34,7 @@ DGraphicsGlowEffect::DGraphicsGlowEffect(QObject *parent) :
     m_blurRadius(10.0),
     m_color(0, 0, 0, 80)
 {
+    qCDebug(logContainers) << "create glow effect";
 }
 
 /*!
@@ -42,6 +45,7 @@ DGraphicsGlowEffect::DGraphicsGlowEffect(QObject *parent) :
  */
 void DGraphicsGlowEffect::draw(QPainter *painter)
 {
+    qCDebug(logContainers) << "draw glow";
     // if nothing to show outside the item, just draw source
     if ((blurRadius() + distance()) <= 0) {
         drawSource(painter);
@@ -113,6 +117,7 @@ void DGraphicsGlowEffect::draw(QPainter *painter)
  */
 QRectF DGraphicsGlowEffect::boundingRectFor(const QRectF &rect) const
 {
+    qCDebug(logContainers) << "bounding rect for" << rect;
     qreal delta = blurRadius() + distance();
     return rect.united(rect.adjusted(-delta - xOffset(), -delta - yOffset(), delta - xOffset(), delta - yOffset()));
 }

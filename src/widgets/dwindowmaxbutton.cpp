@@ -5,18 +5,23 @@
 #include "dwindowmaxbutton.h"
 #include "private/diconbutton_p.h"
 #include "dstyleoption.h"
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 class DWindowMaxButtonPrivate : public DIconButtonPrivate {
 public:
     DWindowMaxButtonPrivate(DWindowMaxButton* qq)
         : DIconButtonPrivate(qq)
     {
+        qCDebug(logBasicWidgets) << "Construct max button private";
     }
 
     void setMaximized(bool isMaximized)
     {
+        qCDebug(logBasicWidgets) << "Set maximized" << isMaximized;
         if (isMaximized == m_isMaximized)
             return;
 
@@ -29,6 +34,7 @@ public:
 
     void updateIcon()
     {
+        qCDebug(logBasicWidgets) << "Update button icon";
         auto drawFun = !m_isMaximized ? DDrawUtils::drawTitleBarMaxButton : DDrawUtils::drawTitleBarNormalButton;
         QString iconName = !m_isMaximized ? QStringLiteral("TitleBarMaxButton") : QStringLiteral("TitleBarNormalButton");
 
@@ -61,6 +67,8 @@ private:
 DWindowMaxButton::DWindowMaxButton(QWidget * parent) :
     DIconButton(*new DWindowMaxButtonPrivate(this), parent)
 {
+    qCDebug(logBasicWidgets) << "Construct max button"
+                             << reinterpret_cast<const void *>(this);
     setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
     d_func()->updateIcon();
     setFlat(true);
@@ -87,11 +95,13 @@ bool DWindowMaxButton::isMaximized() const
 {
     D_DC(DWindowMaxButton);
 
+    qCDebug(logBasicWidgets) << "Get maximized" << d->m_isMaximized;
     return d->m_isMaximized;
 }
 
 QSize DWindowMaxButton::sizeHint() const
 {
+    qCDebug(logBasicWidgets) << "Size hint";
     return iconSize();
 }
 
@@ -99,6 +109,7 @@ void DWindowMaxButton::setMaximized(bool isMaximized)
 {
     D_D(DWindowMaxButton);
 
+    qCDebug(logBasicWidgets) << "External set maximized" << isMaximized;
     d->setMaximized(isMaximized);
 }
 
@@ -106,6 +117,7 @@ void DWindowMaxButton::initStyleOption(DStyleOptionButton *option) const
 {
     DIconButton::initStyleOption(option);
 
+    qCDebug(logBasicWidgets) << "Init style option";
     option->features |= QStyleOptionButton::ButtonFeature(DStyleOptionButton::TitleBarButton);
 }
 

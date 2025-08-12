@@ -7,6 +7,9 @@
 
 #include <DStyleOption>
 #include <DStylePainter>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
 
 DWIDGET_BEGIN_NAMESPACE
 
@@ -36,6 +39,7 @@ enum Margins{
 DCommandLinkButton::DCommandLinkButton(const QString text, QWidget *parent)
     : QAbstractButton(parent)
 {
+    qCDebug(logBasicWidgets) << "Creating DCommandLinkButton with text:" << text;
     this->setText(text);
 }
 
@@ -46,9 +50,14 @@ DCommandLinkButton::DCommandLinkButton(const QString text, QWidget *parent)
  */
 QSize DCommandLinkButton::sizeHint() const
 {
+    qCDebug(logBasicWidgets) << "Calculating size hint for text:" << this->text();
     QString text = this->text();
-    QSize size = fontMetrics().size(0, text);
-    size += QSize(LeftMargins + RightMargins + TextMargins *2, TopLeftMargins + BottomMargins);
+    QSize textSize = fontMetrics().size(0, text);
+    qCDebug(logBasicWidgets) << "Text size:" << textSize;
+    
+    QSize margins(LeftMargins + RightMargins + TextMargins *2, TopLeftMargins + BottomMargins);
+    QSize size = textSize + margins;
+    qCDebug(logBasicWidgets) << "Final size hint:" << size;
     return size;
 }
 
@@ -59,14 +68,18 @@ QSize DCommandLinkButton::sizeHint() const
  */
 void DCommandLinkButton::initStyleOption(DStyleOptionButton *option) const
 {
+    qCDebug(logBasicWidgets) << "Initializing style option, isDown:" << isDown();
     option->initFrom(this);
 
-    if (isDown())
+    if (isDown()) {
+        qCDebug(logBasicWidgets) << "Button is down, setting sunken state";
         option->state |= QStyle::State_Sunken;
+    }
 
     DPalette pa = DPaletteHelper::instance()->palette(this);
     option->palette.setBrush(DPalette::ButtonText, pa.highlight());
     option->text = this->text();
+    qCDebug(logBasicWidgets) << "Style option initialized with text:" << option->text;
 }
 
 /*!
@@ -76,6 +89,7 @@ void DCommandLinkButton::initStyleOption(DStyleOptionButton *option) const
  */
 void DCommandLinkButton::paintEvent(QPaintEvent *e)
 {
+    qCDebug(logBasicWidgets) << "Paint event";
     Q_UNUSED(e)
 
     DStyleOptionButton opt;

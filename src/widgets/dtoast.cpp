@@ -13,11 +13,14 @@
 #include <QPropertyAnimation>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLoggingCategory>
 
 #include "dthememanager.h"
 #include "dgraphicsgloweffect.h"
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logMessageNotification)
 
 class DToastPrivate: public DTK_CORE_NAMESPACE::DObjectPrivate
 {
@@ -51,6 +54,8 @@ DToast::DToast(QWidget *parent) :
     QFrame(parent), DObject(*new DToastPrivate(this))
 {
     D_D(DToast);
+    qCDebug(logMessageNotification) << "Construct toast"
+                                    << reinterpret_cast<const void *>(this);
     d->initUI();
 }
 
@@ -65,6 +70,7 @@ DToast::~DToast()
 QString DToast::text() const
 {
     D_DC(DToast);
+    qCDebug(logMessageNotification) << "Get text";
     return d->textLabel->text();
 }
 
@@ -74,6 +80,7 @@ QString DToast::text() const
 QIcon DToast::icon() const
 {
     D_DC(DToast);
+    qCDebug(logMessageNotification) << "Get icon";
     return d->icon;
 }
 
@@ -83,6 +90,7 @@ QIcon DToast::icon() const
 int DToast::duration() const
 {
     D_DC(DToast);
+    qCDebug(logMessageNotification) << "Get duration";
     return d->duration;
 }
 
@@ -92,6 +100,7 @@ int DToast::duration() const
 qreal DToast::opacity() const
 {
     D_DC(DToast);
+    qCDebug(logMessageNotification) << "Get opacity";
     return d->effect->opacity();
 }
 
@@ -103,6 +112,7 @@ qreal DToast::opacity() const
 void DToast::setText(QString text)
 {
     D_D(DToast);
+    qCDebug(logMessageNotification) << "Set text";
     d->textLabel->setVisible(true);
     d->textLabel->setText(text);
 }
@@ -114,6 +124,7 @@ void DToast::setText(QString text)
 void DToast::setIcon(QString iconfile)
 {
     D_D(DToast);
+    qCDebug(logMessageNotification) << "Set icon by file";
     d->icon = QIcon(iconfile);
     d->iconLabel->setVisible(true);
     d->iconLabel->setPixmap(DTK_GUI_NAMESPACE::DIcon::loadNxPixmap(iconfile));
@@ -127,6 +138,7 @@ void DToast::setIcon(QString iconfile)
 void DToast::setIcon(QIcon icon, QSize defaultSize)
 {
     D_D(DToast);
+    qCDebug(logMessageNotification) << "Set icon by QIcon";
     d->icon = icon;
     d->iconLabel->setVisible(true);
     d->iconLabel->setPixmap(d->icon.pixmap(icon.actualSize(defaultSize)));
@@ -139,6 +151,7 @@ void DToast::setIcon(QIcon icon, QSize defaultSize)
 void DToast::setDuration(int duration)
 {
     D_D(DToast);
+    qCDebug(logMessageNotification) << "Set duration" << duration;
     d->duration = duration;
 }
 
@@ -149,6 +162,7 @@ void DToast::setDuration(int duration)
 void DToast::setOpacity(qreal opacity)
 {
     D_D(DToast);
+    qCDebug(logMessageNotification) << "Set opacity" << opacity;
     d->effect->setOpacity(opacity);
     update();
 }
@@ -159,6 +173,7 @@ void DToast::setOpacity(qreal opacity)
 void DToast::pop()
 {
     Q_D(DToast);
+    qCDebug(logMessageNotification) << "Pop toast";
 
     adjustSize();
     show();
@@ -179,6 +194,7 @@ void DToast::pop()
     d->animation->connect(d->animation, &QPropertyAnimation::finished,
     this, [ = ]() {
         hide();
+        qCDebug(logMessageNotification) << "Toast finished";
         d->animation->deleteLater();
         d->animation = Q_NULLPTR;
     });
@@ -190,6 +206,7 @@ void DToast::pop()
 void DToast::pack()
 {
     Q_D(DToast);
+    qCDebug(logMessageNotification) << "Pack toast";
     hide();
     if (d->animation) {
         d->animation->stop();
@@ -200,12 +217,14 @@ void DToast::pack()
 
 void DToast::showEvent(QShowEvent *event)
 {
+    qCDebug(logMessageNotification) << "Show event";
     Q_EMIT visibleChanged(true);
     return QWidget::showEvent(event);
 }
 
 void DToast::hideEvent(QHideEvent *event)
 {
+    qCDebug(logMessageNotification) << "Hide event";
     Q_EMIT visibleChanged(false);
     return QWidget::hideEvent(event);
 }
@@ -219,6 +238,7 @@ DToastPrivate::DToastPrivate(DToast *qq)
 void DToastPrivate::initUI()
 {
     D_Q(DToast);
+    qCDebug(logMessageNotification) << "Init toast UI";
     q->setAttribute(Qt::WA_TransparentForMouseEvents,true);
     q->setWindowFlags(q->windowFlags() | Qt::WindowStaysOnTopHint);
 

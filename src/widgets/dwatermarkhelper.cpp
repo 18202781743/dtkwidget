@@ -9,8 +9,10 @@
 #include <QPainter>
 
 #include <DObjectPrivate>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+Q_DECLARE_LOGGING_CATEGORY(logUtils)
 
 DTK_USE_NAMESPACE
 DWIDGET_USE_NAMESPACE
@@ -55,6 +57,7 @@ QMap<QWidget *, DWaterMarkWidget *>DWaterMarkHelperPrivate::widgetMap;
  */
 DWaterMarkHelper *DWaterMarkHelper::instance()
 {
+    qCDebug(logUtils) << "get watermark helper instance";
     return wmhGlobal;
 }
 
@@ -69,6 +72,7 @@ DWaterMarkHelper::DWaterMarkHelper(QObject *parent)
     : QObject(parent)
     , DObject(*new DWaterMarkHelperPrivate(this))
 {
+    qCDebug(logUtils) << "create DWaterMarkHelper";
     D_D(DWaterMarkHelper);
     d->init();
 }
@@ -79,6 +83,7 @@ DWaterMarkHelper::DWaterMarkHelper(QObject *parent)
  */
 void DWaterMarkHelper::registerWidget(QWidget *widget)
 {
+    qCDebug(logUtils) << "register widget" << static_cast<void*>(widget);
     D_D(DWaterMarkHelper);
 
     if (widget && !d->widgetMap.contains(widget)) {
@@ -99,6 +104,7 @@ void DWaterMarkHelper::registerWidget(QWidget *widget)
 WaterMarkData DWaterMarkHelper::data() const
 {
     D_DC(DWaterMarkHelper);
+    qCDebug(logUtils) << "get watermark data";
     return d->data;
 }
 
@@ -108,6 +114,7 @@ WaterMarkData DWaterMarkHelper::data() const
  */
 void DWaterMarkHelper::setData(const WaterMarkData &data)
 {
+    qCDebug(logUtils) << "set watermark data";
     D_D(DWaterMarkHelper);
     d->data = data;
 

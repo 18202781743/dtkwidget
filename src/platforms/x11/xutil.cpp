@@ -7,6 +7,7 @@
 #include <QDebug>
 #include <QTimer>
 #include <QWidget>
+#include <QLoggingCategory>
 
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)
 #include <QX11Info>
@@ -19,6 +20,8 @@
 #include <X11/extensions/shape.h>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_LOGGING_CATEGORY(logPlatformSpecific, "dtk.platform")
 
 namespace XUtils
 {
@@ -88,6 +91,7 @@ enum {
 
 static int CornerEdge2WmGravity(const CornerEdge &ce)
 {
+    qCDebug(logPlatformSpecific) << "Converting corner edge to WM gravity:" << static_cast<int>(ce);
     switch (ce) {
     case CornerEdge::kTopLeft:     return _NET_WM_MOVERESIZE_SIZE_TOPLEFT;
     case CornerEdge::kTop:         return _NET_WM_MOVERESIZE_SIZE_TOP;
@@ -103,6 +107,7 @@ static int CornerEdge2WmGravity(const CornerEdge &ce)
 
 static XCursorType CornerEdge2XCursor(const CornerEdge &ce)
 {
+    qCDebug(logPlatformSpecific) << "Converting corner edge to X cursor:" << static_cast<int>(ce);
     switch (ce) {
     case CornerEdge::kTop:         return XCursorType::kTop;
     case CornerEdge::kTopRight:    return XCursorType::kTopRight;
@@ -118,6 +123,7 @@ static XCursorType CornerEdge2XCursor(const CornerEdge &ce)
 
 void ChangeWindowMaximizedState(const QWidget *widget, int wm_state)
 {
+    qCDebug(logPlatformSpecific) << "Changing window maximized state:" << wm_state << "for widget:" << widget;
     const auto display = QX11Info::display();
     const auto screen = QX11Info::appScreen();
 
@@ -148,10 +154,12 @@ void ChangeWindowMaximizedState(const QWidget *widget, int wm_state)
                SubstructureRedirectMask | SubstructureNotifyMask,
                &xev);
     XFlush(display);
+    qCDebug(logPlatformSpecific) << "Window maximized state change event sent";
 }
 
 CornerEdge GetCornerEdge(const QWidget *widget, int x, int y, const QMargins &margins, int border_width)
 {
+    qCDebug(logPlatformSpecific) << "Getting corner edge for widget:" << widget << "at position:" << x << y;
     QRect fullRect = widget->rect();
     fullRect = fullRect.marginsRemoved(margins);
     unsigned int ce = static_cast<unsigned int>(CornerEdge::kInvalid);
@@ -171,11 +179,14 @@ CornerEdge GetCornerEdge(const QWidget *widget, int x, int y, const QMargins &ma
             && (x > fullRect.right())) {
         ce = ce | static_cast<unsigned int>(CornerEdge::kRight);
     }
-    return static_cast<CornerEdge>(ce);
+    const auto& cornerEdge = static_cast<CornerEdge>(ce);
+    qCDebug(logPlatformSpecific) << "Corner edge result:" << static_cast<int>(cornerEdge);
+    return cornerEdge;
 }
 
 void SendMoveResizeMessage(const QWidget *widget, Qt::MouseButton qbutton, int action)
 {
+    qCDebug(logPlatformSpecific) << "Send move resize message" << "action:" << action;
     const auto display = QX11Info::display();
     const auto screen = QX11Info::appScreen();
 
@@ -206,29 +217,39 @@ void SendMoveResizeMessage(const QWidget *widget, Qt::MouseButton qbutton, int a
                SubstructureRedirectMask | SubstructureNotifyMask,
                &xev);
     XFlush(display);
+    qCDebug(logPlatformSpecific) << "Move resize message sent";
 }
 
 bool IsCornerEdget(const QWidget *widget, int x, int y, const QMargins &margins, int border_width)
 {
-    return GetCornerEdge(widget, x, y, margins, border_width) != CornerEdge::kInvalid;
+    qCDebug(logPlatformSpecific) << "Check is corner edge at" << x << y;
+    const auto& result = GetCornerEdge(widget, x, y, margins, border_width) != CornerEdge::kInvalid;
+    qCDebug(logPlatformSpecific) << "Is corner edge result:" << result;
+    return result;
 }
 
 void MoveWindow(const QWidget *widget, Qt::MouseButton qbutton)
 {
+    qCDebug(logPlatformSpecific) << "Move window";
     SendMoveResizeMessage(widget, qbutton, _NET_WM_MOVERESIZE_MOVE);
 }
 
 void MoveResizeWindow(const QWidget *widget, Qt::MouseButton qbutton, int x, int y, const QMargins &margins, int border_width)
 {
+    qCDebug(logPlatformSpecific) << "Move resize window at" << x << y;
     const CornerEdge ce = GetCornerEdge(widget, x, y, margins, border_width);
     if (ce != CornerEdge::kInvalid) {
         const int action = CornerEdge2WmGravity(ce);
         SendMoveResizeMessage(widget, qbutton, action);
+        qCDebug(logPlatformSpecific) << "Resize action sent";
+    } else {
+        qCDebug(logPlatformSpecific) << "Invalid corner edge, skip resize";
     }
 }
 
 void ResetCursorShape(const QWidget *widget)
 {
+    qCDebug(logPlatformSpecific) << "Reset cursor shape";
     const auto display = QX11Info::display();
     const WId window_id = widget->winId();
     XUndefineCursor(display, window_id);
@@ -237,20 +258,25 @@ void ResetCursorShape(const QWidget *widget)
 
 bool SetCursorShape(const QWidget *widget, int cursor_id)
 {
+    qCDebug(logPlatformSpecific) << "Set cursor shape" << cursor_id;
     const auto display = QX11Info::display();
     const WId window_id = widget->winId();
     const Cursor cursor = XCreateFontCursor(display, cursor_id);
     if (!cursor) {
         qWarning() << "[ui]::SetCursorShape() call XCreateFontCursor() failed";
+        qCDebug(logPlatformSpecific) << "Create font cursor failed";
         return false;
     }
     const int result = XDefineCursor(display, window_id, cursor);
     XFlush(display);
-    return result == Success;
+    const auto& success = result == Success;
+    qCDebug(logPlatformSpecific) << "Set cursor result:" << success;
+    return success;
 }
 
 void ShowFullscreenWindow(const QWidget *widget, bool is_fullscreen)
 {
+    qCDebug(logPlatformSpecific) << "Show fullscreen window" << is_fullscreen;
     const auto display = QX11Info::display();
     const auto screen = QX11Info::appScreen();
 
@@ -280,15 +306,18 @@ void ShowFullscreenWindow(const QWidget *widget, bool is_fullscreen)
                &xev
               );
     XFlush(display);
+    qCDebug(logPlatformSpecific) << "Fullscreen state changed";
 }
 
 void ShowMaximizedWindow(const QWidget *widget)
 {
+    qCDebug(logPlatformSpecific) << "Show maximized window";
     ChangeWindowMaximizedState(widget, _NET_WM_STATE_ADD);
 }
 
 void ShowMinimizedWindow(const QWidget *widget, bool minimized)
 {
+    qCDebug(logPlatformSpecific) << "Show minimized window" << minimized;
     const auto display = QX11Info::display();
     const auto screen = QX11Info::appScreen();
 
@@ -320,26 +349,33 @@ void ShowMinimizedWindow(const QWidget *widget, bool minimized)
 
     XIconifyWindow(display, widget->winId(), screen);
     XFlush(display);
+    qCDebug(logPlatformSpecific) << "Minimize window operation completed";
 }
 
 void ShowNormalWindow(const QWidget *widget)
 {
+    qCDebug(logPlatformSpecific) << "Show normal window";
     ChangeWindowMaximizedState(widget, _NET_WM_STATE_REMOVE);
 }
 
 void ToggleMaximizedWindow(const QWidget *widget)
 {
+    qCDebug(logPlatformSpecific) << "Toggle maximized window";
     ChangeWindowMaximizedState(widget, _NET_WM_STATE_TOGGLE);
 }
 
 bool UpdateCursorShape(const QWidget *widget, int x, int y, const QMargins &margins, int border_width)
 {
+    qCDebug(logPlatformSpecific) << "Update cursor shape at" << x << y;
     const CornerEdge ce = GetCornerEdge(widget, x, y, margins, border_width);
     const XCursorType x_cursor = CornerEdge2XCursor(ce);
     if (x_cursor != XCursorType::kInvalid) {
-        return SetCursorShape(widget, static_cast<unsigned int>(x_cursor));
+        const auto& result = SetCursorShape(widget, static_cast<unsigned int>(x_cursor));
+        qCDebug(logPlatformSpecific) << "Cursor shape updated:" << result;
+        return result;
     } else {
         ResetCursorShape(widget);
+        qCDebug(logPlatformSpecific) << "Reset cursor shape";
         return false;
     }
 }
@@ -347,6 +383,7 @@ bool UpdateCursorShape(const QWidget *widget, int x, int y, const QMargins &marg
 void SkipTaskbarPager(const QWidget *widget)
 {
     Q_ASSERT(widget);
+    qCDebug(logPlatformSpecific) << "Skip taskbar and pager";
 
     const auto display = QX11Info::display();
     const auto screen = QX11Info::appScreen();
@@ -375,11 +412,13 @@ void SkipTaskbarPager(const QWidget *widget)
                SubstructureRedirectMask | SubstructureNotifyMask,
                &xev);
     XFlush(display);
+    qCDebug(logPlatformSpecific) << "Skip taskbar pager applied";
 }
 
 void SetStayOnTop(const QWidget *widget, bool on)
 {
     Q_ASSERT(widget);
+    qCDebug(logPlatformSpecific) << "Set stay on top" << on;
 
     const auto display = QX11Info::display();
     const auto screen = QX11Info::appScreen();
@@ -410,11 +449,13 @@ void SetStayOnTop(const QWidget *widget, bool on)
                SubstructureRedirectMask | SubstructureNotifyMask,
                &xev);
     XFlush(display);
+    qCDebug(logPlatformSpecific) << "Stay on top property set";
 }
 
 void SetMouseTransparent(const QWidget *widget, bool on)
 {
     Q_ASSERT(widget);
+    qCDebug(logPlatformSpecific) << "Set mouse transparent" << on;
 
     const auto display = QX11Info::display();
     XRectangle XRect;
@@ -426,10 +467,12 @@ void SetMouseTransparent(const QWidget *widget, bool on)
         XRect.width = 0;
         XRect.height = 0;
         nRects = 0;
+        qCDebug(logPlatformSpecific) << "Enable mouse transparency";
     } else {
         XRect.width = widget->width();
         XRect.height = widget->height();
         nRects = 1;
+        qCDebug(logPlatformSpecific) << "Disable mouse transparency";
     }
     XShapeCombineRectangles(display, widget->winId(), ShapeInput,
                             0, 0,
@@ -438,12 +481,14 @@ void SetMouseTransparent(const QWidget *widget, bool on)
 
 void SetWindowExtents(const QWidget *widget, const QMargins &margins, const int resizeHandleWidth)
 {
+    qCDebug(logPlatformSpecific) << "Set window extents";
     SetWindowExtents(widget->winId(), widget->rect(), margins, resizeHandleWidth);
 }
 
 
 void PropagateSizeHints(const QWidget *w)
 {
+    qCDebug(logPlatformSpecific) << "Propagate size hints";
     const auto display = QX11Info::display();
     XSizeHints *sh = XAllocSizeHints();
     sh->flags = PPosition | PSize | PMinSize | PMaxSize | PResizeInc;
@@ -459,10 +504,12 @@ void PropagateSizeHints(const QWidget *w)
     sh->height_inc = w->sizeIncrement().height();
     XSetWMNormalHints(display, w->winId(), sh);
     XFree(sh);
+    qCDebug(logPlatformSpecific) << "Size hints set";
 }
 
 void DisableResize(const QWidget *w)
 {
+    qCDebug(logPlatformSpecific) << "Disable resize";
     Display *display = QX11Info::display();
     Atom mwmHintsProperty = XInternAtom(display, "_MOTIF_WM_HINTS", 0);
     struct MwmHints *hints;
@@ -489,9 +536,11 @@ void DisableResize(const QWidget *w)
     hints->flags |= MWM_HINTS_FUNCTIONS;
     if (hints->functions == MWM_FUNC_ALL) {
         hints->functions = MWM_FUNC_MOVE | MWM_FUNC_MINIMIZE | MWM_FUNC_CLOSE;
+        qCDebug(logPlatformSpecific) << "Disable all resize functions";
     } else {
         hints->functions &= ~MWM_FUNC_RESIZE;
         hints->functions |= MWM_FUNC_CLOSE;
+        qCDebug(logPlatformSpecific) << "Remove resize function";
     }
 
     if (hints->decorations == MWM_DECOR_ALL) {
@@ -499,8 +548,10 @@ void DisableResize(const QWidget *w)
         hints->decorations = (MWM_DECOR_BORDER
                               | MWM_DECOR_TITLE
                               | MWM_DECOR_MENU);
+        qCDebug(logPlatformSpecific) << "Set decoration without resize";
     } else {
         hints->decorations &= ~MWM_DECOR_RESIZEH;
+        qCDebug(logPlatformSpecific) << "Remove resize handle decoration";
     }
     XChangeProperty(display,
                     w->winId(),
@@ -514,6 +565,7 @@ void DisableResize(const QWidget *w)
 
 void StartResizing(const QWidget *w, const QPoint &globalPoint, const CornerEdge &ce)
 {
+    qCDebug(logPlatformSpecific) << "Start resizing at" << globalPoint << "edge:" << static_cast<int>(ce);
     const auto display = QX11Info::display();
     const auto winId = w->winId();
     const auto screen = QX11Info::appScreen();
@@ -539,15 +591,18 @@ void StartResizing(const QWidget *w, const QPoint &globalPoint, const CornerEdge
                SubstructureRedirectMask | SubstructureNotifyMask,
                &xev);
     XFlush(display);
+    qCDebug(logPlatformSpecific) << "Resize operation started";
 }
 
 void CancelMoveWindow(const QWidget *widget, Qt::MouseButton qbutton)
 {
+    qCDebug(logPlatformSpecific) << "Cancel move window";
     SendMoveResizeMessage(widget, qbutton, _NET_WM_MOVERESIZE_CANCEL);
 }
 
 void SetWindowExtents(uint wid, const QRect &windowRect, const QMargins &margins, const int resizeHandleSize)
 {
+    qCDebug(logPlatformSpecific) << "Set window extents for window" << wid;
     Atom frameExtents;
     unsigned long value[4] = {
         (unsigned long)(margins.left()),
@@ -558,6 +613,7 @@ void SetWindowExtents(uint wid, const QRect &windowRect, const QMargins &margins
     frameExtents = XInternAtom(QX11Info::display(), "_GTK_FRAME_EXTENTS", False);
     if (frameExtents == None) {
         qWarning() << "Failed to create atom with name DEEPIN_WINDOW_SHADOW";
+        qCDebug(logPlatformSpecific) << "Create frame extents atom failed";
         return;
     }
     XChangeProperty(QX11Info::display(),
@@ -584,6 +640,7 @@ void SetWindowExtents(uint wid, const QRect &windowRect, const QMargins &margins
                             margins.left() - resizeHandleSize,
                             margins.top() - resizeHandleSize,
                             &contentXRect, 1, ShapeSet, YXBanded);
+    qCDebug(logPlatformSpecific) << "Window extents applied";
 }
 
 }

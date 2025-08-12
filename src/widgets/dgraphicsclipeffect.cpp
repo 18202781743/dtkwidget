@@ -8,6 +8,9 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QDebug>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logContainers, "dtk.widgets.containers")
 
 DWIDGET_BEGIN_NAMESPACE
 
@@ -25,7 +28,7 @@ public:
 DGraphicsClipEffectPrivate::DGraphicsClipEffectPrivate(DGraphicsClipEffect *qq)
     : DObjectPrivate(qq)
 {
-
+    qCDebug(logContainers) << "Creating DGraphicsClipEffectPrivate";
 }
 
 /*!
@@ -85,7 +88,7 @@ DGraphicsClipEffect::DGraphicsClipEffect(QObject *parent)
     : QGraphicsEffect(parent)
     , DObject(*new DGraphicsClipEffectPrivate(this))
 {
-
+    qCDebug(logContainers) << "Creating DGraphicsClipEffect";
 }
 
 /*!
@@ -94,6 +97,7 @@ DGraphicsClipEffect::DGraphicsClipEffect(QObject *parent)
  */
 QMargins DGraphicsClipEffect::margins() const
 {
+    qCDebug(logContainers) << "Getting margins:" << d->margins;
     D_DC(DGraphicsClipEffect);
 
     return d->margins;
@@ -107,6 +111,7 @@ QMargins DGraphicsClipEffect::margins() const
  */
 QPainterPath DGraphicsClipEffect::clipPath() const
 {
+    qCDebug(logContainers) << "Getting clip path, element count:" << d->clipPath.elementCount();
     D_DC(DGraphicsClipEffect);
 
     return d->clipPath;
@@ -117,12 +122,18 @@ QPainterPath DGraphicsClipEffect::clipPath() const
  */
 void DGraphicsClipEffect::setMargins(const QMargins &margins)
 {
+    qCDebug(logContainers) << "Setting margins to" << margins;
     D_D(DGraphicsClipEffect);
 
-    if (d->margins == margins)
+    if (d->margins == margins) {
+        qCDebug(logContainers) << "Margins unchanged, skipping update";
         return;
+    }
 
+    QMargins oldMargins = d->margins;
     d->margins = margins;
+    qCDebug(logContainers) << "Margins changed from" << oldMargins << "to" << margins;
+    qCDebug(logContainers) << "Emitting marginsChanged signal";
     Q_EMIT marginsChanged(margins);
 }
 
@@ -131,20 +142,26 @@ void DGraphicsClipEffect::setMargins(const QMargins &margins)
  */
 void DGraphicsClipEffect::setClipPath(const QPainterPath &clipPath)
 {
+    qCDebug(logContainers) << "Setting clip path with" << clipPath.elementCount() << "elements";
     D_D(DGraphicsClipEffect);
 
-    if (d->clipPath == clipPath)
+    if (d->clipPath == clipPath) {
+        qCDebug(logContainers) << "Clip path unchanged, skipping update";
         return;
+    }
 
+    int oldElementCount = d->clipPath.elementCount();
     d->clipPath = clipPath;
+    qCDebug(logContainers) << "Clip path changed from" << oldElementCount << "to" << clipPath.elementCount() << "elements";
+    qCDebug(logContainers) << "Emitting clipPathChanged signal";
     Q_EMIT clipPathChanged(clipPath);
 }
 
 void DGraphicsClipEffect::draw(QPainter *painter)
 {
+    qCDebug(logContainers) << "Drawing graphics clip effect, painter active:" << painter->isActive();
     if (!painter->isActive()) {
-        qWarning() << "DGraphicsClipEffect::draw: The painter is not active!";
-
+        qCWarning(logContainers) << "DGraphicsClipEffect::draw: The painter is not active!";
         drawSource(painter);
         return;
     }
@@ -153,24 +170,33 @@ void DGraphicsClipEffect::draw(QPainter *painter)
 
     QPoint offset;
     Qt::CoordinateSystem system = sourceIsPixmap() ? Qt::LogicalCoordinates : Qt::DeviceCoordinates;
+    qCDebug(logContainers) << "Using coordinate system:" << (system == Qt::LogicalCoordinates ? "Logical" : "Device");
+    
     QPixmap pixmap = sourcePixmap(system, &offset, QGraphicsEffect::PadToEffectiveBoundingRect);
 
-    if (pixmap.isNull())
+    if (pixmap.isNull()) {
+        qCDebug(logContainers) << "Source pixmap is null, skipping draw";
         return;
+    }
 
+    qCDebug(logContainers) << "Drawing with pixmap size:" << pixmap.size() << "offset:" << offset;
     QPainter pixmapPainter(&pixmap);
     QPainterPath newPath;
 
     newPath.addRect(pixmap.rect().marginsRemoved(d->margins));
     newPath -= d->clipPath;
+    qCDebug(logContainers) << "Clipping path has" << newPath.elementCount() << "elements";
+    
     pixmapPainter.setRenderHints(painter->renderHints() | QPainter::Antialiasing);
     pixmapPainter.setCompositionMode(QPainter::CompositionMode_Clear);
     pixmapPainter.fillPath(newPath, Qt::transparent);
 
     painter->save();
 
-    if (system == Qt::DeviceCoordinates)
+    if (system == Qt::DeviceCoordinates) {
+        qCDebug(logContainers) << "Resetting world transform for device coordinates";
         painter->setWorldTransform(QTransform());
+    }
 
     painter->drawPixmap(offset, pixmap);
     painter->restore();

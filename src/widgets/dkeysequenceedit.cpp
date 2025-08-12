@@ -17,11 +17,14 @@
 #include <DGuiApplicationHelper>
 #include <DPaletteHelper>
 #include <DStyle>
+#include <QLoggingCategory>
 
 #include <QVBoxLayout>
 #include "private/qkeymapper_p.h"
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
 
 class DKeyLabel : public DFrame
 {
@@ -103,6 +106,7 @@ public:
 
     void setKeyVisible(bool visible)    //true 隐藏文字 false显示文字
     {
+        qCDebug(logBasicWidgets) << "setKeyVisible called with visible:" << visible;
         label->setVisible(!visible);
         keyHide(!visible);
         fastMode = visible;
@@ -110,11 +114,13 @@ public:
 
     bool isFastMode()
     {
+        qCDebug(logBasicWidgets) << "isFastMode called, returning:" << fastMode;
         return fastMode;
     }
 
     void keyHide(bool hide)
     {
+        qCDebug(logBasicWidgets) << "keyHide called with hide:" << hide;
         for (int i = 0; i < labelList.count(); i++) {
             labelList.at(i)->setVisible(!hide);
         }
@@ -122,6 +128,7 @@ public:
 
     void keyDelete()
     {
+        qCDebug(logBasicWidgets) << "keyDelete called";
         for (int i = 0; i < labelList.count(); i++) {
             labelList.at(i)->deleteLater();
         }
@@ -137,8 +144,10 @@ private:
 protected:
     void mousePressEvent(QMouseEvent *event) override
     {
+        qCDebug(logBasicWidgets) << "mousePressEvent called";
         parentWidget()->setFocus();
         if (fastMode) {
+            qCDebug(logBasicWidgets) << "fast mode active, hiding keys";
             setKeyVisible(false);
         }
         QWidget::mousePressEvent(event);
@@ -146,22 +155,29 @@ protected:
 
     void focusOutEvent(QFocusEvent *event) override
     {
+        qCDebug(logBasicWidgets) << "focusOutEvent called";
         Q_UNUSED(event)
 
         if (fastMode) {
+            qCDebug(logBasicWidgets) << "fast mode active, returning early";
             return;
         } else {
+            qCDebug(logBasicWidgets) << "showing keys and labels";
             setKeyVisible(true);
             for (int i = 0; i < labelList.count(); i++) {
                 labelList.at(i)->setVisible(true);
             }
-            if (labelList.isEmpty())
+            if (labelList.isEmpty()) {
+                qCDebug(logBasicWidgets) << "no labels, hiding keys";
                 setKeyVisible(false);
+            }
         }
     }
     void changeEvent(QEvent *event) override
     {
+        qCDebug(logBasicWidgets) << "changeEvent called with event type:" << event->type();
         if (event->type() == QEvent::StyleChange) {
+            qCDebug(logBasicWidgets) << "style changed, updating label heights";
             for (auto item : labelList) {
                 item->setMinimumHeight(DSizeModeHelper::element(18, 24));
             }
@@ -178,6 +194,7 @@ DKeySequenceEdit::DKeySequenceEdit(QWidget *parent)
     : QLineEdit(parent)
     , DObject(*new DKeySequenceEditPrivate(this))
 {
+    qCDebug(logBasicWidgets) << "DKeySequenceEdit constructor called with parent:" << (parent ? "valid" : "null");
     Q_D(DKeySequenceEdit);
 
     d->init();
@@ -188,6 +205,7 @@ DKeySequenceEdit::DKeySequenceEdit(QWidget *parent)
  */
 void DKeySequenceEdit::clear()
 {
+    qCDebug(logBasicWidgets) << "clear called";
     D_D(DKeySequenceEdit);
 
     d->rightWidget->keyDelete();
@@ -202,26 +220,36 @@ void DKeySequenceEdit::clear()
  */
 bool DKeySequenceEdit::setKeySequence(const QKeySequence &keySequence)
 {
+    qCDebug(logBasicWidgets) << "setKeySequence called with sequence:" << keySequence.toString();
     D_D(DKeySequenceEdit);
     QString writing = getKeySequence(keySequence);
+    qCDebug(logBasicWidgets) << "Processed key sequence writing:" << writing;
     QStringList keyText;
     keyText << writing.split("+", Qt::SkipEmptyParts);
 
     if (writing.contains("++")) {
+        qCDebug(logBasicWidgets) << "adding plus sign to key text";
         keyText << "+";
     }
 
     if (keyText.isEmpty() || (keyText.count() > 4)) {
+        qCDebug(logBasicWidgets) << "invalid key text count:" << keyText.count() << "expected 1-4";
         return false;
     }
 
+    qCDebug(logBasicWidgets) << "Processing" << keyText.count() << "key components";
     for (int i = 0; i < keyText.count(); ++i) {
+        QString original = keyText[i];
         keyText[i] = d->replaceWriting(keyText[i]);
+        if (original != keyText[i]) {
+            qCDebug(logBasicWidgets) << "Replaced key text:" << original << "->" << keyText[i];
+        }
     }
 
     d->rightWidget->setKeyName(keyText);
     d->sequencekey = keySequence;
     Q_EMIT keySequenceChanged(keySequence);
+    qCDebug(logBasicWidgets) << "key sequence set successfully";
     return true;
 }
 
@@ -241,9 +269,13 @@ QKeySequence DKeySequenceEdit::keySequence()
  */
 void DKeySequenceEdit::ShortcutDirection(Qt::AlignmentFlag alig)
 {
+    qCDebug(logBasicWidgets) << "Setting shortcut direction:" << alig;
     if (alig == Qt::AlignLeft || alig == Qt::AlignRight) {
-       layout()->setAlignment(alig);
-       setAlignment(alig == Qt::AlignLeft ? Qt::AlignRight : Qt::AlignLeft);
+        qCDebug(logBasicWidgets) << "Valid alignment, updating layout";
+        layout()->setAlignment(alig);
+        setAlignment(alig == Qt::AlignLeft ? Qt::AlignRight : Qt::AlignLeft);
+    } else {
+        qCDebug(logBasicWidgets) << "Invalid alignment flag, ignoring";
     }
 }
 

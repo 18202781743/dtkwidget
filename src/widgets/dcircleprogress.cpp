@@ -9,12 +9,16 @@
 #include <QPainter>
 #include <QDebug>
 #include <QVBoxLayout>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logProgressAnimation, "dtk.widgets.progress")
 
 DWIDGET_USE_NAMESPACE
 
 DCircleProgressPrivate::DCircleProgressPrivate(DCircleProgress *q)
     : DObjectPrivate(q)
 {
+    qCDebug(logProgressAnimation) << "DCircleProgressPrivate created";
     m_topLabel.setAttribute(Qt::WA_TranslucentBackground);
     m_topLabel.setAlignment(Qt::AlignCenter);
     m_topLabel.setObjectName("TopLabel");
@@ -39,6 +43,7 @@ DCircleProgressPrivate::DCircleProgressPrivate(DCircleProgress *q)
 void DCircleProgressPrivate::paint(QPainter *painter)
 {
     Q_Q(const DCircleProgress);
+    qCDebug(logProgressAnimation) << "DCircleProgress paint event";
 
     painter->setRenderHints(QPainter::Antialiasing);
 
@@ -49,15 +54,19 @@ void DCircleProgressPrivate::paint(QPainter *painter)
     QRect outerCircleRect = widgetRect;
     outerCircleRect.setWidth(outerCircleRect.width() - (m_lineWidth - 1) * 2);
     outerCircleRect.setHeight(outerCircleRect.height() - (m_lineWidth - 1) * 2);
-    if (outerCircleRect.width() < outerCircleRect.height())
+    if (outerCircleRect.width() < outerCircleRect.height()) {
+        qCDebug(logProgressAnimation) << "Adjusting circle height to match width";
         outerCircleRect.setHeight(outerCircleRect.width());
-    else
+    } else {
+        qCDebug(logProgressAnimation) << "Adjusting circle width to match height";
         outerCircleRect.setWidth(outerCircleRect.height());
+    }
     outerCircleRect.setTop((widgetRect.height() - outerCircleRect.height()) / 2);
     outerCircleRect.setLeft((widgetRect.width() - outerCircleRect.width()) / 2);
 
     const double percent = double(m_currentValue) / (m_maximumValue - m_minmumValue);
     const int splitPos = -percent * 16 * 360;
+    qCDebug(logProgressAnimation) << "Drawing progress arc with percent:" << percent;
     painter->drawArc(outerCircleRect, 90 * 16, splitPos);
     pen.setColor(m_backgroundColor);
     painter->setPen(pen);
@@ -77,7 +86,7 @@ DCircleProgress::DCircleProgress(QWidget *parent)
     : QWidget(parent),
       DObject(*new DCircleProgressPrivate(this))
 {
-
+    qCDebug(logProgressAnimation) << "DCircleProgress created";
 }
 
 /*!
@@ -89,7 +98,7 @@ DCircleProgress::DCircleProgress(QWidget *parent)
 int DCircleProgress::value() const
 {
     Q_D(const DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Getting circle progress value:" << d->m_currentValue;
     return d->m_currentValue;
 }
 
@@ -103,10 +112,15 @@ int DCircleProgress::value() const
 void DCircleProgress::setValue(int value)
 {
     Q_D(DCircleProgress);
+    qCDebug(logProgressAnimation) << "Setting circle progress value:" << value;
     if (d->m_currentValue == value){
+        qCDebug(logProgressAnimation) << "Value unchanged, skipping update";
         return;
     }
+    
+    int oldValue = d->m_currentValue;
     d->m_currentValue = value;
+    qCDebug(logProgressAnimation) << "Value changed from" << oldValue << "to" << value;
     emit valueChanged(value);
     update();
 }
@@ -118,7 +132,7 @@ void DCircleProgress::setValue(int value)
 const QString DCircleProgress::text() const
 {
     Q_D(const DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Getting circle progress text";
     return d->m_topLabel.text();
 }
 
@@ -130,8 +144,15 @@ const QString DCircleProgress::text() const
 void DCircleProgress::setText(const QString &text)
 {
     Q_D(DCircleProgress);
-
-    return d->m_topLabel.setText(text);
+    qCDebug(logProgressAnimation) << "Setting circle progress text:" << text;
+    
+    if (d->m_topLabel.text() == text) {
+        qCDebug(logProgressAnimation) << "Text unchanged, skipping update";
+        return;
+    }
+    
+    d->m_topLabel.setText(text);
+    qCDebug(logProgressAnimation) << "Text updated successfully";
 }
 
 /*!
@@ -142,7 +163,7 @@ void DCircleProgress::setText(const QString &text)
 const QColor DCircleProgress::backgroundColor() const
 {
     Q_D(const DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Getting circle progress background color";
     return d->m_backgroundColor;
 }
 
@@ -155,8 +176,14 @@ const QColor DCircleProgress::backgroundColor() const
 void DCircleProgress::setBackgroundColor(const QColor &color)
 {
     Q_D(DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Setting circle progress background color:" << color;
+    if (d->m_backgroundColor == color) {
+        qCDebug(logProgressAnimation) << "Background color unchanged, skipping update";
+        return;
+    }
     d->m_backgroundColor = color;
+    qCDebug(logProgressAnimation) << "Background color updated, triggering repaint";
+    update();
 }
 
 /*!
@@ -167,7 +194,7 @@ void DCircleProgress::setBackgroundColor(const QColor &color)
 const QColor DCircleProgress::chunkColor() const
 {
     Q_D(const DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Getting circle progress chunk color";
     return d->m_chunkColor;
 }
 
@@ -180,8 +207,14 @@ const QColor DCircleProgress::chunkColor() const
 void DCircleProgress::setChunkColor(const QColor &color)
 {
     Q_D(DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Setting circle progress chunk color:" << color;
+    if (d->m_chunkColor == color) {
+        qCDebug(logProgressAnimation) << "Chunk color unchanged, skipping update";
+        return;
+    }
     d->m_chunkColor = color;
+    qCDebug(logProgressAnimation) << "Chunk color updated, triggering repaint";
+    update();
 }
 
 /*!
@@ -192,7 +225,7 @@ void DCircleProgress::setChunkColor(const QColor &color)
 int DCircleProgress::lineWidth() const
 {
     Q_D(const DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Getting circle progress line width:" << d->m_lineWidth;
     return d->m_lineWidth;
 }
 
@@ -205,8 +238,16 @@ int DCircleProgress::lineWidth() const
 void DCircleProgress::setLineWidth(const int width)
 {
     Q_D(DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Setting circle progress line width:" << width;
+    
+    if (d->m_lineWidth == width) {
+        qCDebug(logProgressAnimation) << "Line width unchanged, skipping update";
+        return;
+    }
+    
     d->m_lineWidth = width;
+    qCDebug(logProgressAnimation) << "Line width updated, triggering repaint";
+    update();
 }
 
 /*!
@@ -217,7 +258,7 @@ void DCircleProgress::setLineWidth(const int width)
 QLabel *DCircleProgress::topLabel()
 {
     Q_D(DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Getting top label reference";
     return &d->m_topLabel;
 }
 
@@ -229,14 +270,14 @@ QLabel *DCircleProgress::topLabel()
 QLabel *DCircleProgress::bottomLabel()
 {
     Q_D(DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Getting bottom label reference";
     return &d->m_bottomLabel;
 }
 
 void DCircleProgress::paintEvent(QPaintEvent *e)
 {
     Q_D(DCircleProgress);
-
+    qCDebug(logProgressAnimation) << "Paint event triggered, rect:" << e->rect();
     QPainter p(this);
     d->paint(&p);
 
@@ -246,7 +287,7 @@ void DCircleProgress::paintEvent(QPaintEvent *e)
 void DCircleProgress::mouseReleaseEvent(QMouseEvent *e)
 {
     Q_UNUSED(e)
-
+    qCDebug(logProgressAnimation) << "Mouse release event, emitting clicked signal";
     Q_EMIT clicked();
 }
 #if QT_VERSION > QT_VERSION_CHECK(6, 0, 0)
@@ -255,6 +296,7 @@ void DCircleProgress::enterEvent(QEnterEvent *e)
 void DCircleProgress::enterEvent(QEvent *e)
 #endif
 {
+    qCDebug(logProgressAnimation) << "Mouse enter event, emitting mouseEntered signal";
     Q_EMIT mouseEntered();
 
     QWidget::enterEvent(e);
@@ -262,6 +304,7 @@ void DCircleProgress::enterEvent(QEvent *e)
 
 void DCircleProgress::leaveEvent(QEvent *e)
 {
+    qCDebug(logProgressAnimation) << "Mouse leave event, emitting mouseLeaved signal";
     Q_EMIT mouseLeaved();
 
     QWidget::leaveEvent(e);

@@ -10,6 +10,9 @@
 #include <QPainter>
 #include <QStylePainter>
 #include <QStyleOptionProgressBar>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logProgressAnimation, "dtk.widgets.progress")
 
 DWIDGET_BEGIN_NAMESPACE
 
@@ -28,6 +31,7 @@ DWIDGET_USE_NAMESPACE
 DColoredProgressBarPrivate::DColoredProgressBarPrivate(DColoredProgressBar *q)
     : DObjectPrivate(q)
 {
+    qCDebug(logProgressAnimation) << "Creating DColoredProgressBarPrivate";
 }
 
 /*!
@@ -40,6 +44,7 @@ DColoredProgressBar::DColoredProgressBar(QWidget *parent)
     : QProgressBar(parent)
     , DObject(*new DColoredProgressBarPrivate(this))
 {
+    qCDebug(logProgressAnimation) << "Creating DColoredProgressBar";
 }
 
 /*!
@@ -51,6 +56,7 @@ DColoredProgressBar::DColoredProgressBar(QWidget *parent)
  */
 void DColoredProgressBar::addThreshold(int threshold, QBrush brush)
 {
+    qCDebug(logProgressAnimation) << "Adding threshold" << threshold << "with brush";
     D_D(DColoredProgressBar);
     d->threshmap[threshold] = brush;
 }
@@ -62,6 +68,7 @@ void DColoredProgressBar::addThreshold(int threshold, QBrush brush)
  */
 void DColoredProgressBar::removeThreshold(int threshold)
 {
+    qCDebug(logProgressAnimation) << "Removing threshold" << threshold;
     D_D(DColoredProgressBar);
     if (d->threshmap.contains(threshold)) {
         d->threshmap.remove(threshold);
@@ -75,25 +82,32 @@ void DColoredProgressBar::removeThreshold(int threshold)
  */
 QList<int> DColoredProgressBar::thresholds() const
 {
+    qCDebug(logProgressAnimation) << "Getting thresholds, count:" << d->threshmap.size();
     D_D(const DColoredProgressBar);
     return d->threshmap.keys();
 }
 
 void DColoredProgressBar::paintEvent(QPaintEvent *)
 {
+    qCDebug(logProgressAnimation) << "Paint event, value:" << value() << "thresholds:" << d->threshmap.size();
     D_D(DColoredProgressBar);
 
     QStylePainter painter(this);
     QStyleOptionProgressBar styopt;
     initStyleOption(&styopt);
+    
     if (d->threshmap.upperBound(value()) != d->threshmap.begin()) {
-        styopt.palette.setBrush(QPalette::ColorRole::Highlight, (--d->threshmap.upperBound(value())).value());
+        auto it = --d->threshmap.upperBound(value());
+        qCDebug(logProgressAnimation) << "Using threshold brush for value:" << value() << "threshold:" << it.key();
+        styopt.palette.setBrush(QPalette::ColorRole::Highlight, it.value());
+    } else {
+        qCDebug(logProgressAnimation) << "No threshold brush found for value:" << value();
     }
 
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setPen(Qt::NoPen);
+    qCDebug(logProgressAnimation) << "Drawing progress bar rect:" << styopt.rect;
     painter.drawRect(styopt.rect);
 
     painter.drawControl(QStyle::ControlElement::CE_ProgressBar, styopt);
-
 }

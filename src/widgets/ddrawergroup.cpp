@@ -6,6 +6,9 @@
 #include "ddrawer.h"
 
 #include <DObjectPrivate>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logContainers, "dtk.widgets.containers")
 
 DWIDGET_BEGIN_NAMESPACE
 
@@ -15,7 +18,7 @@ public:
     DDrawerGroupPrivate(DDrawerGroup *qq)
         : DObjectPrivate(qq)
     {
-
+        qCDebug(logContainers) << "DDrawerGroupPrivate created";
     }
 
     QMap<int, DDrawer *> expandMap;
@@ -43,7 +46,7 @@ DDrawerGroup::DDrawerGroup(QObject *parent)
     : QObject(parent)
     , DCORE_NAMESPACE::DObject(*new DDrawerGroupPrivate(this))
 {
-
+    qCDebug(logContainers) << "DDrawerGroup created";
 }
 
 /*!
@@ -54,6 +57,7 @@ DDrawerGroup::DDrawerGroup(QObject *parent)
 QList<DDrawer *> DDrawerGroup::expands() const
 {
     D_DC(DDrawerGroup);
+    qCDebug(logContainers) << "Getting drawer group expands";
     return d->expandMap.values();
 }
 
@@ -65,10 +69,14 @@ QList<DDrawer *> DDrawerGroup::expands() const
 DDrawer *DDrawerGroup::checkedExpand() const
 {
     D_DC(DDrawerGroup);
-    if (d->checkedMap.isEmpty())
+    qCDebug(logContainers) << "Getting checked expand drawer";
+    if (d->checkedMap.isEmpty()) {
+        qCDebug(logContainers) << "No checked drawers found";
         return NULL;
-    else
+    } else {
+        qCDebug(logContainers) << "Found checked drawer";
         return d->checkedMap.first();
+    }
 }
 
 /*!
@@ -81,6 +89,7 @@ DDrawer *DDrawerGroup::checkedExpand() const
 DDrawer *DDrawerGroup::expand(int id) const
 {
     D_DC(DDrawerGroup);
+    qCDebug(logContainers) << "Getting expand drawer by id:" << id;
     return d->expandMap.value(id);
 }
 
@@ -93,8 +102,10 @@ DDrawer *DDrawerGroup::expand(int id) const
 void DDrawerGroup::addExpand(DDrawer *expand, int id)
 {
     D_D(DDrawerGroup);
+    qCDebug(logContainers) << "Adding expand drawer with id:" << id;
     if (d->expandMap.values().indexOf(expand) == -1){
         if (id == -1){
+            qCDebug(logContainers) << "Auto-generating id for expand drawer";
             int maxId = -1;
             Q_FOREACH (int tmp, d->expandMap.keys()) {
                 maxId = qMax(tmp, maxId);
@@ -116,11 +127,15 @@ void DDrawerGroup::addExpand(DDrawer *expand, int id)
  */
 void DDrawerGroup::setId(DDrawer *expand, int id)
 {
+    qCDebug(logContainers) << "Setting id for drawer to:" << id;
     D_D(DDrawerGroup);
     int index = d->expandMap.values().indexOf(expand);
     if (index != -1){
+        qCDebug(logContainers) << "Found drawer at index:" << index << "updating id";
         d->expandMap.remove(d->expandMap.keys().at(index));
         addExpand(expand, id);
+    } else {
+        qCDebug(logContainers) << "Drawer not found in expand map";
     }
 }
 
@@ -131,9 +146,15 @@ void DDrawerGroup::setId(DDrawer *expand, int id)
  */
 void DDrawerGroup::removeExpand(DDrawer *expand)
 {
+    qCDebug(logContainers) << "Removing expand drawer";
     D_D(DDrawerGroup);
     int index = d->expandMap.values().indexOf(expand);
-    d->expandMap.remove(d->expandMap.keys().at(index));
+    if (index != -1) {
+        qCDebug(logContainers) << "Found drawer at index:" << index << "removing";
+        d->expandMap.remove(d->expandMap.keys().at(index));
+    } else {
+        qCDebug(logContainers) << "Drawer not found in expand map";
+    }
 }
 
 /*!
@@ -143,11 +164,16 @@ void DDrawerGroup::removeExpand(DDrawer *expand)
  */
 int DDrawerGroup::checkedId() const
 {
+    qCDebug(logContainers) << "Getting checked drawer id";
     D_DC(DDrawerGroup);
-    if (d->checkedMap.isEmpty())
+    if (d->checkedMap.isEmpty()) {
+        qCDebug(logContainers) << "No checked drawers, returning -1";
         return -1;
-    else
-        return d->checkedMap.firstKey();
+    } else {
+        const auto& checkedId = d->checkedMap.firstKey();
+        qCDebug(logContainers) << "Returning checked drawer id:" << checkedId;
+        return checkedId;
+    }
 }
 
 /*!
@@ -159,26 +185,50 @@ int DDrawerGroup::checkedId() const
  */
 int DDrawerGroup::id(DDrawer *expand) const
 {
+    qCDebug(logContainers) << "Getting id for drawer";
     D_DC(DDrawerGroup);
-    return d->expandMap.keys().at(d->expandMap.values().indexOf(expand));
+    int index = d->expandMap.values().indexOf(expand);
+    if (index != -1) {
+        const auto& drawerId = d->expandMap.keys().at(index);
+        qCDebug(logContainers) << "Found drawer id:" << drawerId;
+        return drawerId;
+    } else {
+        qCDebug(logContainers) << "Drawer not found, returning -1";
+        return -1;
+    }
 }
 
 void DDrawerGroup::onExpandChanged(bool v)
 {
+    qCDebug(logContainers) << "Drawer expand changed, value:" << v;
     D_D(DDrawerGroup);
     DDrawer *dSender = qobject_cast<DDrawer *>(sender());
-    if (!dSender || dSender == checkedExpand() || !v)
+    if (!dSender) {
+        qCDebug(logContainers) << "No sender found";
         return;
+    }
+    if (dSender == checkedExpand()) {
+        qCDebug(logContainers) << "Sender is already checked expand";
+        return;
+    }
+    if (!v) {
+        qCDebug(logContainers) << "Expand value is false";
+        return;
+    }
 
+    qCDebug(logContainers) << "Clearing checked map and setting new checked drawer";
     d->checkedMap.clear();
     int checkedIndex = d->expandMap.values().indexOf(dSender);
     d->checkedMap.insert(d->expandMap.keys().at(checkedIndex), dSender);
 
     QList<DDrawer *> expandList = d->expandMap.values();
+    qCDebug(logContainers) << "Collapsing other drawers, total count:" << expandList.count();
     for (int i = 0; i < expandList.count(); i ++){
         DDrawer *target = expandList.at(i);
-        if (target != dSender && target->expand())
+        if (target != dSender && target->expand()) {
+            qCDebug(logContainers) << "Collapsing drawer at index:" << i;
             target->setExpand(false);
+        }
     }
 }
 

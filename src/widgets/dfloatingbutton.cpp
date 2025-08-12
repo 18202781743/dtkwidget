@@ -8,6 +8,9 @@
 #include "dstyle.h"
 
 #include <private/qabstractbutton_p.h>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(logBasicWidgets, "dtk.widgets.basic")
 
 DWIDGET_BEGIN_NAMESPACE
 
@@ -19,6 +22,7 @@ DWIDGET_BEGIN_NAMESPACE
 DFloatingButton::DFloatingButton(QWidget *parent)
     : DIconButton(parent)
 {
+    qCDebug(logBasicWidgets) << "Creating DFloatingButton with parent";
     setBackgroundRole(QPalette::Highlight);
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
@@ -26,6 +30,7 @@ DFloatingButton::DFloatingButton(QWidget *parent)
 DFloatingButton::DFloatingButton(QStyle::StandardPixmap iconType, QWidget *parent)
     : DIconButton(iconType, parent)
 {
+    qCDebug(logBasicWidgets) << "Creating DFloatingButton with QStyle icon type:" << iconType;
     setBackgroundRole(QPalette::Highlight);
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
@@ -33,6 +38,7 @@ DFloatingButton::DFloatingButton(QStyle::StandardPixmap iconType, QWidget *paren
 DFloatingButton::DFloatingButton(DStyle::StandardPixmap iconType, QWidget *parent)
     : DIconButton(iconType, parent)
 {
+    qCDebug(logBasicWidgets) << "Creating DFloatingButton with DStyle icon type:" << iconType;
     setBackgroundRole(QPalette::Highlight);
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
@@ -40,12 +46,14 @@ DFloatingButton::DFloatingButton(DStyle::StandardPixmap iconType, QWidget *paren
 DFloatingButton::DFloatingButton(const QString &text, QWidget *parent)
     : DFloatingButton(parent)
 {
+    qCDebug(logBasicWidgets) << "Creating DFloatingButton with text:" << text;
     setText(text);
 }
 
 DFloatingButton::DFloatingButton(const QIcon &icon, const QString &text, QWidget *parent)
     : DFloatingButton(parent)
 {
+    qCDebug(logBasicWidgets) << "Creating DFloatingButton with icon and text:" << text;
     setIcon(icon);
     setText(text);
 }
@@ -53,20 +61,24 @@ DFloatingButton::DFloatingButton(const QIcon &icon, const QString &text, QWidget
 DFloatingButton::DFloatingButton(const DDciIcon &icon, const QString &text, QWidget *parent)
     : DFloatingButton(text, parent)
 {
+    qCDebug(logBasicWidgets) << "Creating DFloatingButton with DDciIcon and text:" << text;
     setIcon(icon);
 }
 
 DStyleOptionButton DFloatingButton::baseStyleOption() const
 {
+    qCDebug(logBasicWidgets) << "Getting base style option for floating button";
     DStyleOptionButton opt;
     opt.features = QStyleOptionButton::ButtonFeature(DStyleOptionButton::FloatingButton);
-
+    qCDebug(logBasicWidgets) << "Base style option created with FloatingButton feature";
     return opt;
 }
 
 void DFloatingButton::initStyleOption(DStyleOptionButton *option) const
 {
+    qCDebug(logBasicWidgets) << "Initializing style option for floating button";
     DIconButton::initStyleOption(option);
+    qCDebug(logBasicWidgets) << "Style option initialized via DIconButton";
 }
 
 DWIDGET_END_NAMESPACE

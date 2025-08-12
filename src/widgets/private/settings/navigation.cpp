@@ -14,10 +14,13 @@
 #include <DSettingsGroup>
 #include <DListView>
 #include <DPaletteHelper>
+#include <QLoggingCategory>
 
 #include "navigationdelegate.h"
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logSettingsConfig)
 
 class NavigationPrivate
 {
@@ -66,6 +69,8 @@ Navigation::Navigation(QWidget *parent) :
 {
     Q_D(Navigation);
 
+    qCDebug(logSettingsConfig) << "Construct navigation"
+                               << reinterpret_cast<const void *>(this);
     setObjectName("Navigation");
 
     setContentsMargins(0, 0, 0, 0);
@@ -97,6 +102,7 @@ Navigation::Navigation(QWidget *parent) :
     connect(d->navbar->selectionModel(), &QItemSelectionModel::currentChanged, this, [=] (const QModelIndex &current) {
         const QString &key = current.data(NavigationDelegate::NavKeyRole).toString();
         if (!key.isEmpty()) {
+            qCDebug(logSettingsConfig) << "Select group" << key;
             Q_EMIT selectedGroup(key);
         }
     });
@@ -111,6 +117,7 @@ bool Navigation::groupIsVisible(const QString &key) const
 {
     Q_D(const Navigation);
 
+    qCDebug(logSettingsConfig) << "Query group visible" << key;
     const QModelIndex &index = d->indexOfGroup(key);
 
     return index.isValid() && d->navbar->isRowHidden(index.row());
@@ -120,6 +127,7 @@ void Navigation::setGroupVisible(const QString &key, bool visible)
 {
     Q_D(Navigation);
 
+    qCDebug(logSettingsConfig) << "Set group visible" << key << visible;
     for (const auto& index : d->indexesOfGroup(key)) {
         d->navbar->setRowHidden(index.row(), !visible);
     }
@@ -129,6 +137,7 @@ void Navigation::onSelectGroup(const QString &key)
 {
     Q_D(Navigation);
 
+    qCDebug(logSettingsConfig) << "On select group" << key;
     const QModelIndex &index = d->indexOfGroup(key);
 
     if (index.isValid()) {
@@ -140,6 +149,8 @@ void Navigation::updateSettings(const QByteArray &translateContext, QPointer<DTK
 {
     Q_D(Navigation);
 
+    Q_UNUSED(translateContext)
+    qCDebug(logSettingsConfig) << "Update settings navigation";
     for (auto groupKey : settings->groupKeys()) {
         auto group = settings->group(groupKey);
         if (group->isHidden()) {

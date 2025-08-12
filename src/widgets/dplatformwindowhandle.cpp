@@ -7,13 +7,19 @@
 #include <QWidget>
 #include <QApplication>
 #include <QWindow>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logWindowPlatform)
+}
 
 static int g_surfaceType = -1;
 
 static QWindow *ensureWindowHandle(QWidget *widget)
 {
+    qCDebug(logWindowPlatform) << "Ensuring window handle for widget";
     QWidget *window = widget->window();
     QWindow *handle = window->windowHandle();
 
@@ -70,7 +76,7 @@ static QWindow *ensureWindowHandle(QWidget *widget)
 DPlatformWindowHandle::DPlatformWindowHandle(QWidget *widget, QObject *parent)
     : DPlatformHandle(ensureWindowHandle(widget), parent)
 {
-
+    qCDebug(logWindowPlatform) << "Creating platform window handle";
 }
 
 /*!

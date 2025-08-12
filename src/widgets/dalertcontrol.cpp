@@ -9,12 +9,16 @@
 #include <QTimer>
 #include <QLayout>
 #include <QEvent>
+#include <QLoggingCategory>
 
 DWIDGET_BEGIN_NAMESPACE
+
+Q_DECLARE_LOGGING_CATEGORY(logUtils)
 
 DAlertControlPrivate::DAlertControlPrivate(DAlertControl *q)
  : DObjectPrivate(q)
 {
+    qCDebug(logUtils) << "Creating DAlertControlPrivate";
     alertColor = q->defaultAlertColor();
     timer.setSingleShot(true);
     QObject::connect(&timer, &QTimer::timeout, q, &DAlertControl::hideAlertMessage);
@@ -22,8 +26,9 @@ DAlertControlPrivate::DAlertControlPrivate(DAlertControl *q)
 
 void DAlertControlPrivate::updateTooltipPos()
 {
+    qCDebug(logUtils) << "Updating tooltip position";
     if (!target || !target->parentWidget() || !frame || !frame->parentWidget()) {
-        qWarning("target or frame is nullptr.");
+        qCWarning(logUtils) << "target or frame is nullptr";
         return;
     }
     QWidget *p = target->parentWidget();
@@ -42,6 +47,7 @@ void DAlertControlPrivate::updateTooltipPos()
     QPoint objPoint;
     switch (alignment) {
     case Qt::AlignLeft:
+        qCDebug(logUtils) << "Aligning tooltip to left";
         objPoint = p->mapTo(qobject_cast<QWidget *>(frame->parentWidget()), point);
         if (objPoint.x() + frame->width() > (frame->parentWidget()->width())) {
             int shift = (objPoint.x() + frame->width()) - frame->parentWidget()->width();
@@ -49,6 +55,7 @@ void DAlertControlPrivate::updateTooltipPos()
         }
         break;
     case Qt::AlignRight:
+        qCDebug(logUtils) << "Aligning tooltip to right";
         point += QPoint(leftPending, 0);
         objPoint = p->mapTo(qobject_cast<QWidget *>(frame->parentWidget()), point);
         if (objPoint.x() < 0) {
@@ -57,10 +64,12 @@ void DAlertControlPrivate::updateTooltipPos()
         break;
     case Qt::AlignHCenter:
     case Qt::AlignCenter:
+        qCDebug(logUtils) << "Aligning tooltip to center";
         point += QPoint(leftPending/2, 0);
         objPoint = p->mapTo(qobject_cast<QWidget *>(frame->parentWidget()), point);
         break;
     default:
+        qCWarning(logUtils) << "Unknown alignment:" << static_cast<int>(alignment);
         return;
     }
 
@@ -71,12 +80,14 @@ DAlertControl::DAlertControl(QWidget *target, QObject *parent)
     : QObject(parent)
     , DObject(*new DAlertControlPrivate(this))
 {
+    qCDebug(logUtils) << "Creating DAlertControl with target:" << target;
     D_D(DAlertControl);
     d->target = target;
 }
 
 DAlertControl::~DAlertControl()
 {
+    qCDebug(logUtils) << "Destroying DAlertControl";
     hideAlertMessage();
 }
 
@@ -87,8 +98,10 @@ DAlertControl::~DAlertControl()
  */
 void DAlertControl::setAlert(bool isAlert)
 {
+    qCDebug(logUtils) << "Setting alert state:" << isAlert;
     D_D(DAlertControl);
     if (isAlert == d->isAlert || !d->target) {
+        qCDebug(logUtils) << "Alert state unchanged or target is null";
         return;
     }
 
@@ -97,9 +110,11 @@ void DAlertControl::setAlert(bool isAlert)
     DPalette p = d->target->palette();
 
     if (isAlert) {
+        qCDebug(logUtils) << "Applying alert color to target";
         p.setColor(QPalette::Button, alertColor());
         d->target->setPalette(p);
     } else {
+        qCDebug(logUtils) << "Resetting target palette";
         d->target->setPalette(QPalette());
     }
     d->target->update();
@@ -114,8 +129,9 @@ void DAlertControl::setAlert(bool isAlert)
 bool DAlertControl::isAlert() const
 {
     D_DC(DAlertControl);
-
-    return d->isAlert;
+    const auto& result = d->isAlert;
+    qCDebug(logUtils) << "Current alert state:" << result;
+    return result;
 }
 
 /*!
@@ -125,7 +141,9 @@ bool DAlertControl::isAlert() const
  */
 QColor DAlertControl::defaultAlertColor() const
 {
-    return QColor(241, 57, 50, qRound(0.15 * 255));
+    const auto& color = QColor(241, 57, 50, qRound(0.15 * 255));
+    qCDebug(logUtils) << "Default alert color:" << color;
+    return color;
 }
 
 /*!
@@ -135,13 +153,16 @@ QColor DAlertControl::defaultAlertColor() const
  */
 void DAlertControl::setAlertColor(QColor c)
 {
+    qCDebug(logUtils) << "Setting alert color:" << c;
     D_D(DAlertControl);
     if (c == d->alertColor) {
+        qCDebug(logUtils) << "Alert color unchanged";
         return;
     }
 
     d->alertColor = c;
     if (d->target) {
+        qCDebug(logUtils) << "Updating target with new alert color";
         d->target->update();
     }
 }
@@ -153,7 +174,9 @@ void DAlertControl::setAlertColor(QColor c)
 QColor DAlertControl::alertColor() const
 {
     D_DC(DAlertControl);
-    return d->alertColor;
+    const auto& color = d->alertColor;
+    qCDebug(logUtils) << "Current alert color:" << color;
+    return color;
 }
 
 /*!
@@ -164,6 +187,7 @@ QColor DAlertControl::alertColor() const
  */
 void DAlertControl::setMessageAlignment(Qt::Alignment alignment)
 {
+    qCDebug(logUtils) << "Setting message alignment:" << static_cast<int>(alignment);
     D_D(DAlertControl);
     d->alignment = alignment;
 }
@@ -175,7 +199,9 @@ void DAlertControl::setMessageAlignment(Qt::Alignment alignment)
 Qt::Alignment DAlertControl::messageAlignment() const
 {
     D_DC(DAlertControl);
-    return d->alignment;
+    const auto& alignment = d->alignment;
+    qCDebug(logUtils) << "Current message alignment:" << static_cast<int>(alignment);
+    return alignment;
 }
 
 /*!
@@ -188,6 +214,7 @@ Qt::Alignment DAlertControl::messageAlignment() const
  */
 void DAlertControl::showAlertMessage(const QString &text, int duration)
 {
+    qCDebug(logUtils) << "Showing alert message:" << text << "duration:" << duration;
     showAlertMessage(text, nullptr, duration);
 }
 
@@ -203,14 +230,20 @@ void DAlertControl::showAlertMessage(const QString &text, int duration)
  */
 void DAlertControl::showAlertMessage(const QString &text, QWidget *follower, int duration)
 {
+    qCDebug(logUtils) << "Showing alert message:" << text << "follower:" << follower << "duration:" << duration;
     D_D(DAlertControl);
-    if (!d->target)
+    if (!d->target) {
+        qCWarning(logUtils) << "Target is null, cannot show alert message";
         return;
+    }
 
-    if (text.isEmpty())
+    if (text.isEmpty()) {
+        qCWarning(logUtils) << "Alert text is empty";
         return;
+    }
 
     if (!d->tooltip) {
+        qCDebug(logUtils) << "Creating new tooltip";
         d->tooltip = new DToolTip(text);
         d->tooltip->setObjectName("AlertTooltip");
         d->tooltip->setAccessibleName("DAlertControlAlertToolTip");
@@ -225,10 +258,12 @@ void DAlertControl::showAlertMessage(const QString &text, QWidget *follower, int
     }
 
     if (follower) {
+        qCDebug(logUtils) << "Setting follower widget";
         d->frame->setParent(follower->topLevelWidget());
         d->follower = follower;
         d->follower->installEventFilter(this);
     } else {
+        qCDebug(logUtils) << "Using target as follower";
         d->frame->setParent(d->target->topLevelWidget());
         d->follower = d->target;
         d->follower->installEventFilter(this);
@@ -239,15 +274,19 @@ void DAlertControl::showAlertMessage(const QString &text, QWidget *follower, int
     if (d->frame->parent()) {
         d->updateTooltipPos();
         // 如果 target 都隐藏了,显示警告消息毫无意义，只会让人困惑
-        d->frame->setVisible(d->target->isVisibleTo(d->target->topLevelWidget()));
+        const auto& isVisible = d->target->isVisibleTo(d->target->topLevelWidget());
+        qCDebug(logUtils) << "Target visible to top level widget:" << isVisible;
+        d->frame->setVisible(isVisible);
         d->frame->adjustSize();
         d->frame->raise();
     }
     if (duration < 0) {
+        qCDebug(logUtils) << "Stopping timer for persistent alert";
         d->timer.stop();
         return;
     }
 
+    qCDebug(logUtils) << "Starting timer with duration:" << duration;
     d->timer.start(duration);
 }
 
@@ -257,6 +296,7 @@ void DAlertControl::showAlertMessage(const QString &text, QWidget *follower, int
  */
 void DAlertControl::hideAlertMessage()
 {
+    qCDebug(logUtils) << "Hiding alert message";
     Q_D(DAlertControl);
 
     if (d->frame) {
@@ -273,23 +313,31 @@ DAlertControl::DAlertControl(DAlertControlPrivate &d, QObject *parent)
     : QObject(parent)
     , DObject(d)
 {
-
+    qCDebug(logUtils) << "Creating DAlertControl with private data";
 }
 
 bool DAlertControl::eventFilter(QObject *watched, QEvent *event)
 {
     Q_D(DAlertControl);
     if (watched == d->follower) {
-        if (event->type() == QEvent::Move || event->type() == QEvent::Resize)
+        if (event->type() == QEvent::Move || event->type() == QEvent::Resize) {
+            qCDebug(logUtils) << "Follower moved or resized, updating tooltip position";
             d->updateTooltipPos();
+        }
     }
 
     if (d->follower && watched == d->follower->topLevelWidget()) {
-        if (event->type() == QEvent::HoverMove || event->type() == QEvent::UpdateRequest)
+        if (event->type() == QEvent::HoverMove || event->type() == QEvent::UpdateRequest) {
+            qCDebug(logUtils) << "Top level widget hover or update, updating tooltip position";
             d->updateTooltipPos();
+        }
 
-        if (d->timer.isActive())
-            d->frame->setVisible(!d->follower->visibleRegion().isNull());
+        if (d->timer.isActive()) {
+            const auto& visibleRegion = d->follower->visibleRegion();
+            const auto& isVisible = !visibleRegion.isNull();
+            qCDebug(logUtils) << "Timer active, setting frame visibility:" << isVisible;
+            d->frame->setVisible(isVisible);
+        }
     }
     return QObject::eventFilter(watched, event);
 }

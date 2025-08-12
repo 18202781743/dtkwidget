@@ -8,6 +8,8 @@
 
 DWIDGET_BEGIN_NAMESPACE
 
+Q_DECLARE_LOGGING_CATEGORY(logUtilClasses)
+
 /*!
   \class Dtk::Widget::DHiDPIHelper
   \inmodule dtkwidget
@@ -21,6 +23,7 @@ DWIDGET_BEGIN_NAMESPACE
  */
 QPixmap DHiDPIHelper::loadNxPixmap(const QString &fileName)
 {
+    qCDebug(logUtilClasses) << "Loading Nx pixmap for file:" << fileName;
     return DTK_GUI_NAMESPACE::DIcon::loadNxPixmap(fileName);
 }
 

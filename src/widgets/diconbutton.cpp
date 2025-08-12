@@ -8,14 +8,20 @@
 #include "dstyle.h"
 #include "private/diconbutton_p.h"
 
+#include <QLoggingCategory>
+
 #include <private/qabstractbutton_p.h>
 
 DWIDGET_BEGIN_NAMESPACE
 
+namespace {
+Q_DECLARE_LOGGING_CATEGORY(logBasicWidgets)
+}
+
 DIconButtonPrivate::DIconButtonPrivate(DIconButton *qq)
     : DObjectPrivate(qq)
 {
-
+    qCDebug(logBasicWidgets) << "Creating icon button private";
 }
 
 /*!
@@ -33,7 +39,7 @@ DIconButtonPrivate::DIconButtonPrivate(DIconButton *qq)
 DIconButton::DIconButton(QWidget *parent)
     : DIconButton(*new DIconButtonPrivate(this), parent)
 {
-
+    qCDebug(logBasicWidgets) << "Creating icon button";
 }
 
 DIconButton::DIconButton(QStyle::StandardPixmap iconType, QWidget *parent)
@@ -45,6 +51,7 @@ DIconButton::DIconButton(QStyle::StandardPixmap iconType, QWidget *parent)
 DIconButton::DIconButton(DStyle::StandardPixmap iconType, QWidget *parent)
     : DIconButton(parent)
 {
+    qCDebug(logBasicWidgets) << "Creating icon button with DTK icon type:" << int(iconType);
     d_func()->iconType = static_cast<qint64>(iconType);
     setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 }
@@ -68,7 +75,7 @@ DIconButton::~DIconButton()
 void DIconButton::setIcon(const QIcon &icon)
 {
     D_D(DIconButton);
-
+    qCDebug(logBasicWidgets) << "Setting custom icon";
     d->iconType = -1;
     QAbstractButton::setIcon(icon);
 }
@@ -94,7 +101,7 @@ void DIconButton::setIcon(QStyle::StandardPixmap iconType)
 void DIconButton::setIcon(DStyle::StandardPixmap iconType)
 {
     D_D(DIconButton);
-
+    qCDebug(logBasicWidgets) << "Setting DTK standard icon type:" << int(iconType);
     d->iconType = iconType;
     QAbstractButton::setIcon(DStyleHelper(style()).standardIcon(iconType, nullptr, this));
 }

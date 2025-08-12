@@ -6,6 +6,7 @@
 
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLoggingCategory>
 
 class ContentTitlePrivate
 {
@@ -18,11 +19,15 @@ public:
     Q_DECLARE_PUBLIC(ContentTitle)
 };
 
+Q_DECLARE_LOGGING_CATEGORY(logSettingsConfig)
+
 ContentTitle::ContentTitle(QWidget *parent) :
     QWidget(parent), d_ptr(new ContentTitlePrivate(this))
 {
     Q_D(ContentTitle);
 
+    qCDebug(logSettingsConfig) << "Construct content title"
+                               << reinterpret_cast<const void *>(this);
     setObjectName("ContentTitle");
 
     auto layout = new QHBoxLayout(this);
@@ -60,5 +65,6 @@ QLabel *ContentTitle::label() const
 void ContentTitle::setTitle(const QString &title)
 {
     Q_D(ContentTitle);
+    qCDebug(logSettingsConfig) << "Set title";
     d->titleLabel->setText(title);
 }
